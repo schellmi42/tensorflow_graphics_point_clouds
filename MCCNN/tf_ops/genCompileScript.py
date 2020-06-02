@@ -106,16 +106,11 @@ if __name__ == '__main__':
             " build/scan_alg.cu.o "+
             " build/store_neighbors.cu.o "+
             " build/compute_pdf.cu.o "+
-            " build/compute_smooth_weights.cu.o "+
             " build/count_unique_keys.cu.o "+
             " build/store_unique_keys.cu.o "+
             " build/pooling_avg.cu.o "+
             " build/count_pooling_pd.cu.o "+
             " build/store_pooled_pts.cu.o "+
-            " build/knn.cu.o "+
-            " build/graph_aggregation.cu.o "+
-            " build/compute_topo_dist.cu.o "+
-            " build/protein_pooling.cu.o "+
 
             " build/basis_utils.cu.o "+
             " build/basis_proj.cu.o "+
@@ -124,20 +119,12 @@ if __name__ == '__main__':
             " build/basis_hproj.cu.o "+
             " build/basis_hproj_bilateral.cu.o "+
 
-            " cc/src/collapse_edges.cpp "+
             " cc/src/tf_gpu_device.cpp "+
             " cc/src/compute_keys.cpp "+
             " cc/src/build_grid_ds.cpp "+
             " cc/src/find_neighbors.cpp "+
             " cc/src/compute_pdf.cpp "+
-            " cc/src/compute_smooth_w.cpp "+
             " cc/src/pooling.cpp "+
-            " cc/src/knn.cpp "+
-            " cc/src/basis_proj.cpp "+
-            " cc/src/basis_proj_bilateral.cpp "+
-            " cc/src/graph_aggregation.cpp "+
-            " cc/src/compute_topo_dist.cpp "+
-            " cc/src/protein_pooling.cpp "+
 
             "-o build/MCCNN2.so -shared -fPIC "+
             "-Icc/header "+
