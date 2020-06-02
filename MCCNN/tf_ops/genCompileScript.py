@@ -56,9 +56,6 @@ if __name__ == '__main__':
             nvccCompileInfo+" cu/src/compute_pdf.cu -o build/compute_pdf.cu.o "+
             "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
         myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
-            nvccCompileInfo+" cu/src/compute_smooth_weights.cu -o build/compute_smooth_weights.cu.o "+
-            "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
-        myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
             nvccCompileInfo+" cu/src/count_unique_keys.cu -o build/count_unique_keys.cu.o "+
             "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
         myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
@@ -72,9 +69,6 @@ if __name__ == '__main__':
             "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
         myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
             nvccCompileInfo+" cu/src/store_pooled_pts.cu -o build/store_pooled_pts.cu.o "+
-            "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
-        myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
-            nvccCompileInfo+" cu/src/knn.cu -o build/knn.cu.o "+
             "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
         
         #BASIS FUNCTIONS OPERATIONS
@@ -97,16 +91,6 @@ if __name__ == '__main__':
             nvccCompileInfo+" cu/src/basis/basis_hproj_bilateral.cu -o build/basis_hproj_bilateral.cu.o "+
             "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
 
-        #GRAPHS
-        myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
-            nvccCompileInfo+" cu/src/graph_aggregation.cu -o build/graph_aggregation.cu.o "+
-            "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
-        myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
-            nvccCompileInfo+" cu/src/compute_topo_dist.cu -o build/compute_topo_dist.cu.o "+
-            "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
-        myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
-            nvccCompileInfo+" cu/src/protein_pooling.cu -o build/protein_pooling.cu.o "+
-            "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
 
         #Compile the library
         tensorflowInclude = tf.sysconfig.get_include()
