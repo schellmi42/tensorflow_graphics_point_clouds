@@ -133,5 +133,5 @@ if __name__ == '__main__':
             " -I"+args.cudaFolder+"/include "+
             "-lcudart -L "+args.cudaFolder+"/lib64/ "+
             " ".join(tf.sysconfig.get_link_flags())+
-            " -O2\n")
+            " -O2\n") 
 
