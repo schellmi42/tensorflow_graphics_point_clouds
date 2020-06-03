@@ -32,7 +32,7 @@ def compute_keys(pPointCloud, pAABB, pNumCells, pCellSize, name=None):
             pAABB.aabbMin_/pCellSize,
             pNumCells,
             tf.math.reciprocal(pCellSize))
-tf.NoGradient('ComputeKeys')
+tf.no_gradient('ComputeKeys')
 
 
 def build_grid_ds(pKeys, pNumCells, pbatch_size, name=None):
@@ -42,7 +42,7 @@ def build_grid_ds(pKeys, pNumCells, pbatch_size, name=None):
             pNumCells,
             pNumCells,
             pbatch_size)
-tf.NoGradient('BuildGridDs')
+tf.no_gradient('BuildGridDs')
 
 
 def find_neighbors(pGrid, pPCSamples, pRadii, pMaxNeighbors, name=None): 
@@ -58,7 +58,7 @@ def find_neighbors(pGrid, pPCSamples, pRadii, pMaxNeighbors, name=None):
             tf.math.reciprocal(pGrid.cellSizes_),
             tf.math.reciprocal(pRadii),
             pMaxNeighbors)
-tf.NoGradient('FindNeighbors')
+tf.no_gradient('FindNeighbors')
 
 
 def pooling(pNeighborhood, pPoolMode, name = None):
@@ -71,7 +71,7 @@ def pooling(pNeighborhood, pPoolMode, name = None):
             pNeighborhood.neighbors_,
             pNeighborhood.samplesNeighRanges_,
             pPoolMode)
-tf.NoGradient('Pooling')
+tf.no_gradient('Pooling')
 
 
 # def knn(pGrid, pPCSamples, pRadii, pNumNeighs, pNearest):
@@ -89,14 +89,14 @@ tf.NoGradient('Pooling')
 #         tf.math.reciprocal(pGrid.cellSizes_),
 #         tf.math.reciprocal(pRadii),
 #         curNeighs)
-# tf.NoGradient('KnnGrid')
+# tf.no_gradient('KnnGrid')
 
 # def emd_approx(pDistances, pNeighIndexs, pBatchIds, pNumPts1, pNumPts2):
 #     return tf.transpose(MCCNN2_module.emd_approx(
 #             tf.transpose(pDistances), 
 #             tf.transpose(pNeighIndexs), 
 #             pBatchIds, pNumPts1, pNumPts2))
-# tf.NoGradient('EmdApprox')
+# tf.no_gradient('EmdApprox')
 
 def compute_pdf(pNeighborhood, pBandwidth, pMode, name=None):  
     with tf.compat.v1.name_scope(name, "compute pdf", [pNeighborhood, pBandwidth, pMode]):
@@ -107,7 +107,7 @@ def compute_pdf(pNeighborhood, pBandwidth, pMode, name=None):
             tf.math.reciprocal(pBandwidth),
             tf.math.reciprocal(pNeighborhood.radii_),
             pMode)
-tf.NoGradient('ComputePdf')
+tf.no_gradient('ComputePdf')
 
 def compute_pdf_with_pt_grads(pNeighborhood, pBandwidth, pMode, name=None): 
     with tf.compat.v1.name_scope(name, "compute pdf with point gradients", [pNeighborhood, pBandwidth, pMode]):
@@ -142,7 +142,7 @@ def _compute_pdf_grad(op, *grads):
 #         pGraph.nodeStartIndexs_,
 #         pMaxDistance,
 #         intConstEdge)
-# tf.NoGradient('ComputeTopoDist')
+# tf.no_gradient('ComputeTopoDist')
 
 
 # def compute_smooth_weights(pNeighborhood, pRadius):  
@@ -152,7 +152,7 @@ def _compute_pdf_grad(op, *grads):
 #         pNeighborhood.neighbors_,
 #         pNeighborhood.samplesNeighRanges_, 
 #         tf.math.reciprocal(pRadius))
-# tf.NoGradient('ComputeSmoothW')
+# tf.no_gradient('ComputeSmoothW')
 
 
 # def compute_smooth_weights_with_pt_grads(pNeighborhood, pRadius):  
@@ -178,7 +178,7 @@ def _compute_pdf_grad(op, *grads):
 #     return MCCNN2_module.protein_pooling(
 #         pGraph.neighbors_,
 #         pGraph.nodeStartIndexs_)
-# tf.NoGradient('ProteinPooling')
+# tf.no_gradient('ProteinPooling')
 
 
 # def compute_graph_aggregation(pGraph, pFeatures, pNormalize):
@@ -200,7 +200,7 @@ def _compute_pdf_grad(op, *grads):
 # def collapse_edges(pEdgeSortedIds, pEdgeIds, pStartNodeIds):
 #     return MCCNN2_module.collapse_edges(
 #         pEdgeSortedIds, pEdgeIds, pStartNodeIds)
-# tf.NoGradient('CollapseEdges')
+# tf.no_gradient('CollapseEdges')
 
 
 # def basis_proj(pNeighborhood, pInFeatures,
@@ -294,4 +294,4 @@ def _compute_pdf_grad(op, *grads):
 #         pMeshVox.coordMin_,
 #         pMeshVox.coordMax_,
 #         pMeshVox.cellSize_)
-# tf.NoGradient('RayMeshIntersection')
+# tf.no_gradient('RayMeshIntersection')
