@@ -21,7 +21,7 @@ class AABB:
     Attributes:
         aabbMin_ (float tensor bxd): List of minimum points of the bounding boxes.
         aabbMax_ (float tensor bxd): List of maximum points of the bounding boxes.
-        batch_size_ (int): Size of the batch.
+        batchSize_ (int): Size of the batch.
     """
 
     def __init__(self, point_cloud, name=None):
@@ -31,7 +31,7 @@ class AABB:
             Pointcloud (PointCloud): Point cloud from which to compute the bounding box.
         """
         with tf.compat.v1.name_scope(name, "bounding box constructor", [self, point_cloud]):
-            self.batch_size_ = point_cloud.batch_size_
-            self.aabbMin_ = tf.math.unsorted_segment_min(point_cloud.pts_, point_cloud.batchIds_, self.batch_size_)-1e-9
-            self.aabbMax_ = tf.math.unsorted_segment_max(point_cloud.pts_, point_cloud.batchIds_, self.batch_size_)+1e-9
+            self.batchSize_ = point_cloud.batchSize_
+            self.aabbMin_ = tf.math.unsorted_segment_min(point_cloud.pts_, point_cloud.batchIds_, self.batchSize_)-1e-9
+            self.aabbMax_ = tf.math.unsorted_segment_max(point_cloud.pts_, point_cloud.batchIds_, self.batchSize_)+1e-9
             
