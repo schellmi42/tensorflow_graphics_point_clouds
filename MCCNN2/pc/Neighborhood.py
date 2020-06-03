@@ -27,8 +27,6 @@ from MCCNN2.pc import PointCloud
 from MCCNN2Module import find_neighbors
 from MCCNN2Module import compute_pdf
 from MCCNN2Module import compute_pdf_with_pt_grads
-from MCCNN2Module import compute_smooth_weights
-from MCCNN2Module import compute_smooth_weights_with_pt_grads
 
 class KDEMode(enum.Enum):
     """ Parameters for kernel density estimation (KDE) """
@@ -114,18 +112,6 @@ class Neighborhood:
                     tmpPDF = compute_pdf(auxNeigh, pBandwidth, pMode.value)
                 self.pdf_ = tf.gather(tmpPDF, self.neighbors_[:, 0])
 
-
-    # def compute_smooth_weights(self, pPtGradients = False):
-    #     """Method to compute the smooth weights of a neighborhood.
-
-    #     Args:
-    #         pPtGradients (bool): Boolean that determines if the operation
-    #             will compute gradients for the input points or not.
-    #     """
-    #     if pPtGradients:
-    #         self.smoothW_ = compute_smooth_weights_with_pt_grads(self, self.radii_)
-    #     else:
-    #         self.smoothW_ = compute_smooth_weights(self, self.radii_)
 
 
     def apply_neighbor_mask(self, pMask, name):

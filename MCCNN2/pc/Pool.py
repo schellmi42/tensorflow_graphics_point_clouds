@@ -46,8 +46,8 @@ class Pool:
         """Constructor.
 
         Args:
-            pNeighborhood (MCNeighborhood): Neighborhood.
-            pPoolMode (MCPoolMode): Mode used to pool points.
+            pNeighborhood (Neighborhood): Neighborhood.
+            pPoolMode (PoolMode): Mode used to pool points.
         """
         with tf.compat.v1.name_scope(name,"pool point cloud", [self, pNeighborhood, pPoolMode]):
             #Save the attributes.
@@ -59,7 +59,7 @@ class Pool:
                 self.neighborhood_, self.poolMode_.value)
 
             #Save the pooled point cloud.
-            if pPoolMode == MCPoolMode.pd:
+            if pPoolMode == PoolMode.pd:
                 self.indices_ = tf.gather(self.neighborhood_.grid_.sortedIndices_, poolIndices)
             else:
                 self.indices_ = None
