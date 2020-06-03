@@ -24,14 +24,14 @@ class AABB:
         batch_size_ (int): Size of the batch.
     """
 
-    def __init__(self, Pointcloud, name=None):
+    def __init__(self, point_cloud, name=None):
         """Constructor.
 
         Args:
-            Pointcloud (Pointcloud): Point cloud from which to compute the bounding box.
+            Pointcloud (PointCloud): Point cloud from which to compute the bounding box.
         """
-        with tf.compat.v1.name_scope(name, "bounding box constructor", [self, Pointcloud]):
-            self.batch_size_ = Pointcloud.batch_size_
-            self.aabbMin_ = tf.math.unsorted_segment_min(Pointcloud.pts_, Pointcloud.batchIds_, self.batch_size_)-1e-9
-            self.aabbMax_ = tf.math.unsorted_segment_max(Pointcloud.pts_, Pointcloud.batchIds_, self.batch_size_)+1e-9
+        with tf.compat.v1.name_scope(name, "bounding box constructor", [self, point_cloud]):
+            self.batch_size_ = point_cloud.batch_size_
+            self.aabbMin_ = tf.math.unsorted_segment_min(point_cloud.pts_, point_cloud.batchIds_, self.batch_size_)-1e-9
+            self.aabbMax_ = tf.math.unsorted_segment_max(point_cloud.pts_, point_cloud.batchIds_, self.batch_size_)+1e-9
             

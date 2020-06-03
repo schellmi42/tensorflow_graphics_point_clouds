@@ -24,7 +24,7 @@ sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 from MCCNN2Module import compute_keys
 from MCCNN2Module import pooling
 
-from MCCNN2.pc import Pointcloud
+from MCCNN2.pc import PointCloud
 
 class PoolMode(enum.Enum):
     pd = 0
@@ -38,7 +38,7 @@ class Pool:
             be the same as the sorted points.
         indices_ (int tensor): List of the indices of the selected points.
             Only valid for the poisson disk sampling algorithm.
-        poolPointCloud_ (Pointcloud): Pooled point cloud.
+        poolPointCloud_ (PointCloud): Pooled point cloud.
         poolMode_ (PoolMode): Mode used to pool points, 1 for Poisson disk sampling, 0 for average
     """
 
@@ -63,5 +63,5 @@ class Pool:
                 self.indices_ = tf.gather(self.neighborhood_.grid_.sortedIndices_, poolIndices)
             else:
                 self.indices_ = None
-            self.poolPointCloud_ = Pointcloud(poolPts, poolBatchIds, 
+            self.poolPointCloud_ = PointCloud(poolPts, poolBatchIds, 
                 self.neighborhood_.pcSamples_.batch_size_)

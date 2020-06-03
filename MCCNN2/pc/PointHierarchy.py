@@ -30,7 +30,7 @@ class PointHierarchy:
 
     Attributes:
         aabb_ (AABB): Bounding box of the point cloud.
-        pointClouds_ (array of Pointcloud): List of point clouds.
+        pointClouds_ (array of PointCloud): List of point clouds.
         poolOps_ (arraz of Pool): List of pooling operations used to 
             create the point hierarchy.
         
@@ -40,7 +40,7 @@ class PointHierarchy:
         """Constructor.
 
         Args:
-            pPointCloud (Pointcloud): Input point cloud.
+            pPointCloud (PointCloud): Input point cloud.
             pCellSizes (array of numpy arrays of floats): List of cell sizes for 
                 each dimension.  
             pPoolMode (PoolMode): Mode used to pool the points.

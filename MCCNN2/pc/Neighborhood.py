@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
-from MCCNN2.pc import Pointcloud
+from MCCNN2.pc import PointCloud
 
 from MCCNN2Module import find_neighbors
 from MCCNN2Module import compute_pdf
@@ -40,7 +40,7 @@ class Neighborhood:
     """Class to represent a neighborhood of points.
 
     Attributes:
-        pcSamples_ (Pointcloud): Samples point cloud.
+        pcSamples_ (PointCloud): Samples point cloud.
         grid_  (Grid): Regular grid data structure.
         radii_ (float tensor d): Radii used to select the neighbors.
         samplesNeighRanges_ (int tensor n): End of the ranges for each sample.
@@ -55,7 +55,7 @@ class Neighborhood:
         Args:
             pGrid  (Grid): Regular grid data structure.
             pRadii (float tensor d): Radii used to select the neighbors.
-            pPCSample (Pointcloud): Samples point cloud. If None, the sorted
+            pPCSample (PointCloud): Samples point cloud. If None, the sorted
                 points from the grid will be used.
             pMaxNeighbors (int): Maximum number of neighbors per sample.
         """
@@ -65,7 +65,7 @@ class Neighborhood:
             #Save the attributes.
             if pPCSample is None:
                 self.equalSamples_ = True
-                self.pcSamples_ = Pointcloud(pGrid.sortedPts_, \
+                self.pcSamples_ = PointCloud(pGrid.sortedPts_, \
                     pGrid.sortedBatchIds_, pGrid.batch_size_)
             else:
                 self.equalSamples_ = False
