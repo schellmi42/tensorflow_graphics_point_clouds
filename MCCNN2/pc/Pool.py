@@ -64,4 +64,4 @@ class Pool:
             else:
                 self.indices_ = None
             self.poolPointCloud_ = PointCloud(poolPts, poolBatchIds, 
-                self.neighborhood_.pcSamples_.batch_size_)
+                self.neighborhood_.pcSamples_.batchSize_)
