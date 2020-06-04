@@ -64,7 +64,7 @@ class Neighborhood:
             if pPCSample is None:
                 self.equalSamples_ = True
                 self.pcSamples_ = PointCloud(pGrid.sortedPts_, \
-                    pGrid.sortedBatchIds_, pGrid.batch_size_)
+                    pGrid.sortedBatchIds_, pGrid.batchSize_)
             else:
                 self.equalSamples_ = False
                 self.pcSamples_ = pPCSample
