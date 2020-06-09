@@ -91,7 +91,7 @@ class Neighborhood:
         """Method to compute the probability density function of a neighborhood.
 
         Args:
-            pBandwidth (float tensor d): Bandwdith used to compute the pdf.
+            pBandwidth (float tensor d): Bandwidth used to compute the pdf.
             pMode (KDEMode): Mode used to determine the bandwidth.
             pPtGradients (bool): Boolean that determines if the operation
                 will compute gradients for the input points or not.
@@ -123,7 +123,7 @@ class Neighborhood:
 
         """
         with tf.compat.v1.name_scope(name, "apply mask to neighbors", [self, pMask]):
-            pmask = tf.convert_to_tensor(value=pMask)
+            pMask = tf.convert_to_tensor(value=pMask)
 
             #Compute the new neighbor list.
             indices = tf.reshape(tf.where(pMask), [-1])

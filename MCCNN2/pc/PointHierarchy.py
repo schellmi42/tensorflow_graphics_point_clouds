@@ -46,7 +46,7 @@ class PointHierarchy:
             pPoolMode (PoolMode): Mode used to pool the points.
         """
         with tf.compat.v1.name_scope(name,"hierarchical point cloud constructor", [self, pPointCloud, pCellSizes, pPoolMode]):
-
+            
             #Initialize the attributes.
             self.aabb_ = AABB(pPointCloud)
             self.pointClouds_ = [pPointCloud]
@@ -54,11 +54,12 @@ class PointHierarchy:
             self.cellSizes_ = []
             
             #Compute the number of dimensions of the input point cloud.
-            numDims = pPointCloud.pts_.shape[1]
+            numDims = pPointCloud.dimension_
 
             #Create the different pooling operations.
             curPC = pPointCloud
             for poolIter, curCellSizes in enumerate(pCellSizes):
+                curCellSizes  = tf.convert_to_tensor(curCellSizes)
 
                 #Check if the cell size is defined for all the dimensions.
                 #If not, the last cell size value is tiled until all the dimensions have a value. 
@@ -66,6 +67,8 @@ class PointHierarchy:
                 if curNumDims < numDims:
                     curCellSizes = np.concatenate((curCellSizes, 
                         np.tile(curCellSizes[-1], numDims-curNumDims)))
+                elif curNumDims > numDims:
+                    raise ValueError('Too many dimensions in cell sizes %s instead of max. %s'%(curNumDims, numDims))
                 self.cellSizes_.append(curCellSizes)
                 
                 #Create the pooling operation.
@@ -78,4 +81,19 @@ class PointHierarchy:
                 self.poolOps_.append(curPoolOp)
                 self.pointClouds_.append(curPoolOp.poolPointCloud_)
                 curPC = curPoolOp.poolPointCloud_
+
+    def get_points(self, id, name=None):
+        """ Returns the points of the specified batch
+
+        Args:
+            id (int): Identifier of the batch
+        
+        Return:
+            list of tensors: Points of the specified batch id 
+        """
+        with tf.compat.v1.name_scope(name, "get points of specific batch id", [self, id]):
+            points = []
+            for point_cloud in self.pointClouds_:
+                points.append(point_cloud.get_points(id))
+            return points
             
