@@ -63,5 +63,5 @@ class Pool:
                 self.indices_ = tf.gather(self.neighborhood_.grid_.sortedIndices_, poolIndices)
             else:
                 self.indices_ = None
-            self.poolPointCloud_ = PointCloud(poolPts, poolBatchIds, 
-                self.neighborhood_.pcSamples_.batchSize_)
+            self.poolPointCloud_ = PointCloud(pPts=poolPts, pBatchIds=poolBatchIds, 
+                pBatchSize=self.neighborhood_.pcSamples_.batchSize_)
