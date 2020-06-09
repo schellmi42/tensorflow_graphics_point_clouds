@@ -1,2 +1,6 @@
+# builds of CUDA ops
 MCCNN2/tf_ops/build/
+# local test script
 test.py
+# pycache
+__pycache__/
