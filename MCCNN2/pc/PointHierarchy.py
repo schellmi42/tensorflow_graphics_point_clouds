@@ -18,6 +18,8 @@ import sys
 import numpy as np
 import tensorflow as tf
 
+from MCCNN2.pc import utils
+
 from MCCNN2.pc import AABB
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
@@ -39,22 +41,24 @@ class PointHierarchy:
     def __init__(self, pPointCloud, pCellSizes, pPoolMode = PoolMode.pd, name=None):
         """Constructor.
 
-        Args:
+        Args: 
             pPointCloud (PointCloud): Input point cloud.
             pCellSizes (array of numpy arrays of floats): List of cell sizes for 
                 each dimension.  
             pPoolMode (PoolMode): Mode used to pool the points.
         """
         with tf.compat.v1.name_scope(name,"hierarchical point cloud constructor", [self, pPointCloud, pCellSizes, pPoolMode]):
-            
+
+            # utils.check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pPoolMode)
+
             #Initialize the attributes.
             self.aabb_ = AABB(pPointCloud)
             self.pointClouds_ = [pPointCloud]
             self.poolOps_ = []
             self.cellSizes_ = []
             
-            #Compute the number of dimensions of the input point cloud.
-            numDims = pPointCloud.dimension_
+            self.dimensions_ = pPointCloud.dimension_
+            self.batchShape_ = pPointCloud.batchShape_
 
             #Create the different pooling operations.
             curPC = pPointCloud
@@ -64,10 +68,10 @@ class PointHierarchy:
                 #Check if the cell size is defined for all the dimensions.
                 #If not, the last cell size value is tiled until all the dimensions have a value. 
                 curNumDims = curCellSizes.shape[0]
-                if curNumDims < numDims:
+                if curNumDims < self.dimensions_:
                     curCellSizes = np.concatenate((curCellSizes, 
-                        np.tile(curCellSizes[-1], numDims-curNumDims)))
-                elif curNumDims > numDims:
+                        np.tile(curCellSizes[-1], self.dimensions_-curNumDims)))
+                elif curNumDims > self.dimensions_:
                     raise ValueError('Too many dimensions in cell sizes %s instead of max. %s'%(curNumDims, numDims))
                 self.cellSizes_.append(curCellSizes)
                 
@@ -79,21 +83,43 @@ class PointHierarchy:
                 curPoolOp = Pool(curNeighborhood, pPoolMode)
                 
                 self.poolOps_.append(curPoolOp)
+                curPoolOp.poolPointCloud_.set_batch_shape(self.batchShape_)
                 self.pointClouds_.append(curPoolOp.poolPointCloud_)
                 curPC = curPoolOp.poolPointCloud_
 
-    def get_points(self, id, name=None):
-        """ Returns the points of the specified batch
+    def get_points(self, id=None, max_num_points=None, name=None):
+        """ Returns the points.
+
+        Note:
+            In the following, A1 to An are optional batch dimensions.
+
+            If called withoud specifying 'id' returns the points in padded format [A1,...,An,V,D]
 
         Args:
-            id (int): Identifier of the batch
+            id Identifier of point cloud in the batch, if None return all points
         
         Return:
-            list of tensors: Points of the specified batch id 
-        """
+            list of tensors:  if 'id' was given: 2D float tensors,
+                if 'id' not given: float tensors of shape [A1,...,An,V,D].
+        """ 
         with tf.compat.v1.name_scope(name, "get points of specific batch id", [self, id]):
             points = []
             for point_cloud in self.pointClouds_:
                 points.append(point_cloud.get_points(id))
             return points
             
+    def get_sizes(self, name=None):
+        """ Returns the sizes of the point clouds in the point hierarchy. 
+
+        Note:
+            In the following, A1 to An are optional batch dimensions.
+
+        Return:
+            list of tensors of shape [A1,..,An]
+        """
+
+        with tf.compat.v1.name_scope(name, "get point hierarchy sizes", [self]):
+            sizes = []
+            for point_cloud in self.pointClouds_:
+                sizes.append(point_cloud.get_sizes())
+            return sizes

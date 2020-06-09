@@ -32,8 +32,8 @@ class AABB:
         """
         with tf.compat.v1.name_scope(name, "bounding box constructor", [self, point_cloud]):
             self.batchSize_ = point_cloud.batchSize_
-            self.aabbMin_ = tf.math.unsorted_segment_min(point_cloud.pts_, point_cloud.batchIds_, self.batchSize_)-1e-9
-            self.aabbMax_ = tf.math.unsorted_segment_max(point_cloud.pts_, point_cloud.batchIds_, self.batchSize_)+1e-9 
+            self.aabbMin_ = tf.math.unsorted_segment_min(data=point_cloud.pts_, segment_ids=point_cloud.batchIds_, num_segments=self.batchSize_)-1e-9
+            self.aabbMax_ = tf.math.unsorted_segment_max(data=point_cloud.pts_, segment_ids=point_cloud.batchIds_, num_segments=self.batchSize_)+1e-9 
     
     def get_diameter(self, ord = 'euclidean',name=None):
         """ Returns the diameter of the bounding box
@@ -46,5 +46,5 @@ class AABB:
             diam:   tensor [A1,..An] diameters of the bound boxes
         """
 
-        with tf.compat.v1.name_scope(name,"Compute diameter of bounding box", [self]):
-                return tf.linalg.norm(self.aabbMax_  -self.aabbMin_, ord = ord,axis=-1)
+        with tf.compat.v1.name_scope(name,"Compute diameter of bounding box", [self, ord]):
+                return tf.linalg.norm(self.aabbMax_ - self.aabbMin_, ord = ord, axis=-1)
