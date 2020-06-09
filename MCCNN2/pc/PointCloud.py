@@ -130,8 +130,6 @@ class PointCloud:
 
         Note:
             In the following, A1 to An are optional batch dimensions.
-
-        Note: 
             Use this instead of accessing 'self.sizes_', 
             if the class was constructed using segmented input the 'sizes_' is created in this method.
 
@@ -147,22 +145,21 @@ class PointCloud:
     
     def get_unflatten(self, max_num_points, name=None):
         """ Returns the method to unflatten the segmented points.
+    
+        Use this instead of accessing 'self.unflatten_',
+        if the class was constructed using segmented input the 'unflatten_' method is created in this method.
 
         Note:
-            In the following, A1 to An are optional batch dimensions.
+            In the following, A1 to An are optional batch dimensions
 
-        Note: 
-            use this instead of accessing 'self.unflatten_',
-            if the class was constructed using segmented input the 'unflatten_' method is created in this method.
+        Args:
+            max_num_points: (int) specifies the 'V' dimension the method returns,
+                by default uses maximum of 'sizes'. `max_rows >= max(sizes)`
+        Return:
+            method to unflatten the segmented points, which returns [A1,...,An,V,D] tensor, zero padded
 
-            Args:
-                max_num_points: (int) specifies the 'V' dimension the method returns,
-                    by default uses maximum of 'sizes'. `max_rows >= max(sizes)`
-            Return:
-                method to unflatten the segmented points, which returns [A1,...,An,V,D] tensor, zero padded
-
-            Raises:
-                ValueError: When trying to unflatten unsorted points.
+        Raises:
+            ValueError: When trying to unflatten unsorted points.
         """
         with tf.compat.v1.name_scope(name, "get unflatten method", [self, max_num_points]):
             if self.unflatten_ is None:
@@ -170,7 +167,9 @@ class PointCloud:
             return self.unflatten_
 
     def set_batch_shape(self, batchShape, name=None):
-        """ Function to set the batch shape if it was constructed from segmented input
+        """ Function to change the batch shape
+
+            Use this to set a batch shape instead of using 'self.batchShape_' to also change dependent variables. 
 
         Note:
             In the following, A1 to An are optional batch dimensions.
