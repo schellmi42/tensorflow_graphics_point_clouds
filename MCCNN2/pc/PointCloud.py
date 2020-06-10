@@ -181,11 +181,14 @@ class PointCloud:
             ValueError: if shape does not sum up to batch size.
         """
         with tf.compat.v1.name_scope(name, "set batch shape", [self, batchShape]):
-            batchShape = tf.convert_to_tensor(value=batchShape)
-            if tf.reduce_prod(batchShape) != self.batchSize_:
-                raise ValueError('Incompatible batch size. Must be %s but is %s'%(self.batchSize_,tf.reduce_prod(batchShape)))
-            self.batchShape_ = batchShape
-            self.get_segment_id_ = tf.reshape(tf.range(0,self.batchSize_),self.batchShape_)
+            if not batchShape is None:
+                batchShape = tf.convert_to_tensor(value=batchShape)
+                if tf.reduce_prod(batchShape) != self.batchSize_:
+                    raise ValueError('Incompatible batch size. Must be %s but is %s'%(self.batchSize_,tf.reduce_prod(batchShape)))
+                self.batchShape_ = batchShape
+                self.get_segment_id_ = tf.reshape(tf.range(0,self.batchSize_),self.batchShape_)
+            else:
+                self.batchShape_ = None
             
 
     def __eq__(self, other, name=None):
