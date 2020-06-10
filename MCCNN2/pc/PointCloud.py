@@ -98,6 +98,7 @@ class PointCloud:
             # self.sortedIndicesBatch_ = tf.reverse(self.sortedIndicesBatch_, axis = [0])
             self.sortedIndicesBatch_ = tf.argsort(self.batchIds_)
     
+
     def get_points(self,id=None, max_num_points=None, name=None):
         """ Returns the points.
 
@@ -125,6 +126,7 @@ class PointCloud:
             else:
                 return self.get_unflatten(max_num_points=max_num_points)(self.pts_)
 
+
     def get_sizes(self, name=None):
         """ Returns the sizes of the point clouds in the batch. 
 
@@ -143,6 +145,7 @@ class PointCloud:
                     self.sizes_ = tf.reshape(self.sizes_,self.batchShape_)
             return self.sizes_
     
+
     def get_unflatten(self, max_num_points, name=None):
         """ Returns the method to unflatten the segmented points.
     
@@ -166,6 +169,7 @@ class PointCloud:
                 self.unflatten_ = lambda data : unflatten_2d_to_batch(data=tf.gather(data, self.sortedIndicesBatch_),sizes=self.get_sizes(),max_rows=max_num_points)
             return self.unflatten_
 
+
     def set_batch_shape(self, batchShape, name=None):
         """ Function to change the batch shape
 
@@ -187,6 +191,8 @@ class PointCloud:
                     raise ValueError('Incompatible batch size. Must be %s but is %s'%(self.batchSize_,tf.reduce_prod(batchShape)))
                 self.batchShape_ = batchShape
                 self.get_segment_id_ = tf.reshape(tf.range(0,self.batchSize_),self.batchShape_)
+                if not self.sizes_ is None:
+                    self.sizes_ = self.sizes_ = tf.reshape(self.sizes_,self.batchShape_)
             else:
                 self.batchShape_ = None
             
