@@ -32,7 +32,7 @@ class AABB:
         """Constructor.
 
         Args:
-            Pointcloud (PointCloud): Point cloud from which to compute the bounding box.
+            Pointcloud (PointCloud):  Point cloud from which to compute the bounding box.
         """
         with tf.compat.v1.name_scope(name, "bounding box constructor", [self, point_cloud]):
             self.batchSize_ = point_cloud.batchSize_
@@ -41,12 +41,15 @@ class AABB:
             self.aabbMax_ = tf.math.unsorted_segment_max(data=point_cloud.pts_, segment_ids=point_cloud.batchIds_, num_segments=self.batchSize_)+1e-9 
     
     def get_diameter(self, ord = 'euclidean',name=None):
-        """ Returns the diameter of the bounding box
+        """ Returns the diameter of the bounding box.
+
+        Note:
+            In the following, A1 to An are optional batch dimensions.
 
         Args:
             ord:    Order of the norm. Supported values are `'euclidean'`,  
                     `1`, `2`, `np.inf` and any positive real number yielding the corresponding  
-                    p-norm. Default is `'euclidean'`
+                    p-norm. Default is `'euclidean'`.
         Return:
             diam:   tensor [A1,..An] diameters of the bound boxes
         """
@@ -56,4 +59,4 @@ class AABB:
             if self.batchShape_ is None:
                 return diam
             else:
-                return tf.reshape(diam,self.batchShape_)
+                return tf.reshape(diam, self.batchShape_)
