@@ -140,4 +140,4 @@ class PointHierarchy:
         """
         with tf.compat.v1.name_scope(name, "set batch shape of point hierarchy", [self, batchShape]):
             for point_cloud in self.pointClouds_:
-                point_cloud.set_batch_shape(batch_shape)
+                point_cloud.set_batch_shape(batchShape)
