@@ -123,3 +123,21 @@ class PointHierarchy:
             for point_cloud in self.pointClouds_:
                 sizes.append(point_cloud.get_sizes())
             return sizes
+
+        def set_batch_shape(self, batchShape, name=None):
+        """ Function to change the batch shape
+
+            Use this to set a batch shape instead of using 'self.batchShape_' to also change dependent variables. 
+
+        Note:
+            In the following, A1 to An are optional batch dimensions.
+
+        Args:
+            batchShape: float tensor of shape [A1,...,An]
+
+        Raises:
+            ValueError: if shape does not sum up to batch size.
+        """
+        with tf.compat.v1.name_scope(name, "set batch shape of point hierarchy", [self, batchShape]):
+            for point_cloud in self.pointClouds_:
+                point_cloud.set_batch_shape(batch_shape)

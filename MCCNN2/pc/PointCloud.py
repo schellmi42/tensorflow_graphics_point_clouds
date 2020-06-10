@@ -180,7 +180,7 @@ class PointCloud:
         Raises:
             ValueError: if shape does not sum up to batch size.
         """
-        with tf.compat.v1.name_scope(name, "set batch shape", [self, batchShape]):
+        with tf.compat.v1.name_scope(name, "set batch shape of point cloud", [self, batchShape]):
             if not batchShape is None:
                 batchShape = tf.convert_to_tensor(value=batchShape)
                 if tf.reduce_prod(batchShape) != self.batchSize_:
