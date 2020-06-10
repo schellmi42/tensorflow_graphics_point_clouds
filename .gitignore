@@ -4,3 +4,5 @@ MCCNN2/tf_ops/build/
 test.py
 # pycache
 __pycache__/
+# test models
+test_points_clouds/
