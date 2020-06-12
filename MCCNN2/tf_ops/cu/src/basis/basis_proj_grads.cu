@@ -1,14 +1,20 @@
 /////////////////////////////////////////////////////////////////////////////
-/// \file basis_proj_grads.cu
+/// Copyright 2020 Google LLC
 ///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+///    https://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+/////////////////////////////////////////////////////////////////////////////
 /// \brief Implementation of the CUDA operations to compute the gradients
 ///     of a basis projection operation.
-///
-/// \copyright Copyright (c) 2019 Visual Computing group of Ulm University,  
-///            Germany. See the LICENSE file at the top-level directory of 
-///            this distribution.
-///
-/// \author pedro hermosilla (pedro-1.hermosilla-casajus@uni-ulm.de)
 /////////////////////////////////////////////////////////////////////////////
 
 #include "defines.hpp"
