@@ -24,6 +24,7 @@ sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 from MCCNN2Module import compute_keys
 from MCCNN2Module import build_grid_ds
 
+
 class Grid:
     """Class to represent a point cloud distributed in a regular grid.
 
@@ -46,11 +47,14 @@ class Grid:
         Args:
             pPointCloud (PointCloud): Point cloud to distribute in the grid.
             pAABB (AABB): Bounding boxes.
-            pCellSizes (tensor float n): Size of the grid cells in each dimension.
+            pCellSizes (tensor float n): Size of the grid cells in each
+             dimension.
         """
-        with tf.compat.v1.name_scope(name, "constructor for point cloud regular grid", [self, pPointCloud, pAABB, pCellSizes]):
+        with tf.compat.v1.name_scope(
+                name, "constructor for point cloud regular grid",
+                [self, pPointCloud, pAABB, pCellSizes]):
             pCellSizes = tf.convert_to_tensor(value=pCellSizes)
-            
+
             #Save the attributes.
             self.batchSize_ = pAABB.batchSize_
             self.cellSizes_ = pCellSizes
@@ -59,26 +63,31 @@ class Grid:
 
             #Compute the number of cells in the grid.
             aabbSizes = self.aabb_.aabbMax_ - self.aabb_.aabbMin_
-            batchNumCells = tf.cast(tf.math.ceil(aabbSizes/self.cellSizes_), tf.int32)
-            self.numCells_ = tf.maximum(tf.reduce_max(batchNumCells, axis=0), 1)
+            batchNumCells = tf.cast(
+                    tf.math.ceil(aabbSizes / self.cellSizes_), tf.int32)
+            self.numCells_ = tf.maximum(
+                    tf.reduce_max(batchNumCells, axis=0), 1)
 
             #Compute the key for each point.
-            self.curKeys_ = compute_keys(self.pointCloud_, self.aabb_, self.numCells_, 
-                self.cellSizes_)
+            self.curKeys_ = compute_keys(
+                    self.pointCloud_, self.aabb_, self.numCells_,
+                    self.cellSizes_)
 
             #Sort the keys.
-            self.sortedKeys_, self.sortedIndices_ = tf.math.top_k(self.curKeys_, 
-                tf.shape(self.curKeys_)[0])
+            self.sortedKeys_, self.sortedIndices_ = tf.math.top_k(
+                    self.curKeys_, tf.shape(self.curKeys_)[0])
 
             #Compute the invert indexs.
-            _, ptIndexs = tf.math.top_k(self.sortedIndices_, 
-                tf.shape(self.sortedIndices_)[0])
+            _, ptIndexs = tf.math.top_k(
+                    self.sortedIndices_, tf.shape(self.sortedIndices_)[0])
             self.invertedIndices_ = tf.reverse(ptIndexs, [0])
 
             #Get the sorted points and batch ids.
-            self.sortedPts_ = tf.gather(self.pointCloud_.pts_, self.sortedIndices_)
-            self.sortedBatchIds_ = tf.gather(self.pointCloud_.batchIds_, self.sortedIndices_)
+            self.sortedPts_ = tf.gather(
+                    self.pointCloud_.pts_, self.sortedIndices_)
+            self.sortedBatchIds_ = tf.gather(
+                    self.pointCloud_.batchIds_, self.sortedIndices_)
 
             #Build the fast access data structure.
-            self.fastDS_ = build_grid_ds(self.sortedKeys_, self.numCells_, self.batchSize_)
-
+            self.fastDS_ = build_grid_ds(
+                    self.sortedKeys_, self.numCells_, self.batchSize_)

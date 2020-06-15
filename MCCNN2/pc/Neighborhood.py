@@ -23,123 +23,135 @@ ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2.pc import PointCloud
-
 from MCCNN2Module import find_neighbors
 from MCCNN2Module import compute_pdf
 from MCCNN2Module import compute_pdf_with_pt_grads
 
+
 class KDEMode(enum.Enum):
-    """ Parameters for kernel density estimation (KDE) """
-    constant = 0
-    numPts = 1
-    noPDF = 2
+  """ Parameters for kernel density estimation (KDE) """
+  constant = 0
+  numPts = 1
+  noPDF = 2
+
 
 class Neighborhood:
-    """Class to represent a neighborhood of points.
+  """Class to represent a neighborhood of points.
 
-    Attributes:
-        pcSamples_ (PointCloud): Samples point cloud.
-        grid_  (Grid): Regular grid data structure.
-        radii_ (float tensor d): Radii used to select the neighbors.
-        samplesNeighRanges_ (int tensor n): End of the ranges for each sample.
-        neighbors_ (int tensor mx2): Indices of the neighbor point and the sample
-            for each neighbor.
-        pdf_ (float tensor m): PDF value for each neighbor.
+  Attributes:
+    pcSamples_ (PointCloud): Samples point cloud.
+    grid_  (Grid): Regular grid data structure.
+    radii_ (float tensor d): Radii used to select the neighbors.
+    samplesNeighRanges_ (int tensor n): End of the ranges for each sample.
+    neighbors_ (int tensor mx2): Indices of the neighbor point and the
+      sample for each neighbor.
+    pdf_ (float tensor m): PDF value for each neighbor.
+  """
+
+  def __init__(self,
+               pGrid,
+               pRadii,
+               pPCSample=None,
+               pMaxNeighbors=0,
+               name=None):
+    """Constructor.
+
+    Args:
+      pGrid  (Grid): Regular grid data structure.
+      pRadii (float tensor d): Radii used to select the neighbors.
+      pPCSample (PointCloud): Samples point cloud. If None, the sorted
+        points from the grid will be used.
+      pMaxNeighbors (int): Maximum number of neighbors per sample.
     """
+    with tf.compat.v1.name_scope(
+        name, "constructor for neighbourhoods of point clouds",
+        [self, pGrid, pRadii, pPCSample, pMaxNeighbors]):
+      pRadii = tf.convert_to_tensor(value=pRadii)
 
-    def __init__(self, pGrid, pRadii, pPCSample = None, pMaxNeighbors = 0, name=None):
-        """Constructor.
+      #Save the attributes.
+      if pPCSample is None:
+        self.equalSamples_ = True
+        self.pcSamples_ = PointCloud(
+            pGrid.sortedPts_, pGrid.sortedBatchIds_,
+            pGrid.batchSize_)
+      else:
+        self.equalSamples_ = False
+        self.pcSamples_ = pPCSample
+      self.grid_ = pGrid
+      self.radii_ = pRadii
+      self.pMaxNeighbors_ = pMaxNeighbors
 
-        Args:
-            pGrid  (Grid): Regular grid data structure.
-            pRadii (float tensor d): Radii used to select the neighbors.
-            pPCSample (PointCloud): Samples point cloud. If None, the sorted
-                points from the grid will be used.
-            pMaxNeighbors (int): Maximum number of neighbors per sample.
-        """
-        with tf.compat.v1.name_scope(name, "constructor for neighbourhoods of point clouds", [self, pGrid, pRadii, pPCSample, pMaxNeighbors]):
-            pRadii = tf.convert_to_tensor(value=pRadii)
+      #Find the neighbors.
+      self.samplesNeighRanges_, self.neighbors_ = find_neighbors(
+        self.grid_, self.pcSamples_, self.radii_, pMaxNeighbors)
 
-            #Save the attributes.
-            if pPCSample is None:
-                self.equalSamples_ = True
-                self.pcSamples_ = PointCloud(pGrid.sortedPts_, \
-                    pGrid.sortedBatchIds_, pGrid.batchSize_)
-            else:
-                self.equalSamples_ = False
-                self.pcSamples_ = pPCSample
-            self.grid_ = pGrid
-            self.radii_ = pRadii
-            self.pMaxNeighbors_ = pMaxNeighbors
+      #Original neighIds.
+      auxOriginalNeighsIds = tf.gather(
+          self.grid_.sortedIndices_, self.neighbors_[:, 0])
+      self.originalNeighIds_ = tf.concat([
+        tf.reshape(auxOriginalNeighsIds, [-1, 1]),
+        tf.reshape(self.neighbors_[:, 1], [-1, 1])], axis=-1)
 
-            #Find the neighbors.
-            self.samplesNeighRanges_, self.neighbors_ = find_neighbors(
-                self.grid_, self.pcSamples_, self.radii_, pMaxNeighbors)
+      #Initialize the pdf and smooth weights.
+      self.pdf_ = None
+      self.smoothW_ = None
 
-            #Original neighIds.
-            auxOriginalNeighsIds = tf.gather(self.grid_.sortedIndices_, self.neighbors_[:,0])
-            self.originalNeighIds_ = tf.concat([
-                tf.reshape(auxOriginalNeighsIds, [-1,1]), 
-                tf.reshape(self.neighbors_[:,1], [-1,1])], axis=-1)
+  def compute_pdf(self, pBandwidth, pMode=0, pPtGradients=False, name=None):
+    """Method to compute the probability density function of a neighborhood.
 
-            #Initialize the pdf and smooth weights.
-            self.pdf_ = None
-            self.smoothW_ = None
-            
+    Args:
+      pBandwidth (float tensor d): Bandwidth used to compute the pdf.
+      pMode (KDEMode): Mode used to determine the bandwidth.
+      pPtGradients (bool): Boolean that determines if the operation
+        will compute gradients for the input points or not.
+    """
+    with tf.compat.v1.name_scope(
+        name, "compute pdf for neighbours",
+        [self, pBandwidth, pMode, pPtGradients]):
+      pBandwidth = tf.convert_to_tensor(value=pBandwidth)
 
-    def compute_pdf(self, pBandwidth, pMode = 0, pPtGradients = False, name=None):
-        """Method to compute the probability density function of a neighborhood.
+      if pMode == KDEMode.noPDF:
+        self.pdf_ = tf.ones_like(
+            self.neighbors_[:, 0], dtype=tf.float32)
+      else:
+        if self.equalSamples_:
+          auxNeigh = self
+        else:
+          auxNeigh = Neighborhood(self.grid_, self.radii_, None)
+        if pPtGradients:
+          tmpPDF = compute_pdf_with_pt_grads(
+              auxNeigh, pBandwidth, pMode.value)
+        else:
+          tmpPDF = compute_pdf(auxNeigh, pBandwidth, pMode.value)
+        self.pdf_ = tf.gather(tmpPDF, self.neighbors_[:, 0])
 
-        Args:
-            pBandwidth (float tensor d): Bandwidth used to compute the pdf.
-            pMode (KDEMode): Mode used to determine the bandwidth.
-            pPtGradients (bool): Boolean that determines if the operation
-                will compute gradients for the input points or not.
-        """
-        with tf.compat.v1.name_scope(name, "compute pdf for neighbours", [self, pBandwidth, pMode, pPtGradients]):
-            pBandwidth = tf.convert_to_tensor(value=pBandwidth)
+  def apply_neighbor_mask(self, pMask, name):
+    """Method to apply a mask to the neighbors.
 
-            if pMode == KDEMode.noPDF:
-                self.pdf_ = tf.ones_like(self.neighbors_[:, 0], dtype=tf.float32)
-            else:
-                if self.equalSamples_:
-                    auxNeigh = self
-                else:
-                    auxNeigh = Neighborhood(self.grid_, self.radii_, None)
-                if pPtGradients:
-                    tmpPDF = compute_pdf_with_pt_grads(auxNeigh, pBandwidth, pMode.value)
-                else:
-                    tmpPDF = compute_pdf(auxNeigh, pBandwidth, pMode.value)
-                self.pdf_ = tf.gather(tmpPDF, self.neighbors_[:, 0])
+    Args:
+      pMask (bool tensor n): Tensor with a bool element for each
+        neighbor. Those which True will remain in the neighborhood.
 
+    """
+    with tf.compat.v1.name_scope(
+        name, "apply mask to neighbors", [self, pMask]):
+      pMask = tf.convert_to_tensor(value=pMask)
 
+      #Compute the new neighbor list.
+      indices = tf.reshape(tf.where(pMask), [-1])
+      self.neighbors_ = tf.gather(self.neighbors_, indices)
+      self.originalNeighIds_ = tf.gather(
+        self.originalNeighIds_, indices)
+      newNumNeighs = tf.math.unsorted_segment_sum(
+        tf.ones_like(self.neighbors_),
+        self.neighbors_[:, 1],
+        tf.shape(self.samplesNeighRanges_)[0])
+      self.samplesNeighRanges_ = tf.math.cumsum(newNumNeighs)
 
-    def apply_neighbor_mask(self, pMask, name):
-        """Method to apply a mask to the neighbors.
+      #Update the smooth values.
+      if not(self.smoothW_ is None):
+        self.smoothW_ = tf.gather(self.smoothW_, indices)
 
-        Args:
-            pMask (bool tensor n): Tensor with a bool element for each neighbor.
-                Those which True will remain in the nieghborhood.
-
-        """
-        with tf.compat.v1.name_scope(name, "apply mask to neighbors", [self, pMask]):
-            pMask = tf.convert_to_tensor(value=pMask)
-
-            #Compute the new neighbor list.
-            indices = tf.reshape(tf.where(pMask), [-1])
-            self.neighbors_ = tf.gather(self.neighbors_, indices)
-            self.originalNeighIds_ = tf.gather(
-                self.originalNeighIds_, indices)
-            newNumNeighs = tf.math.unsorted_segment_sum(
-                tf.ones_like(self.neighbors_), 
-                self.neighbors_[:,1], 
-                tf.shape(self.samplesNeighRanges_)[0])
-            self.samplesNeighRanges_ = tf.math.cumsum(newNumNeighs)
-
-            #Update the smooth values.
-            if not(self.smoothW_ is None):
-                self.smoothW_ = tf.gather(self.smoothW_, indices)
-
-            #Update the pdf values.
-            if not(self.pdf_ is None):
-                self.pdf_ = tf.gather(self.pdf_, indices)
+      #Update the pdf values.
+      if not(self.pdf_ is None):
+        self.pdf_ = tf.gather(self.pdf_, indices)

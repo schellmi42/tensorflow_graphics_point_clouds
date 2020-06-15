@@ -26,42 +26,48 @@ from MCCNN2Module import pooling
 
 from MCCNN2.pc import PointCloud
 
+
 class PoolMode(enum.Enum):
-    pd = 0
-    avg = 1
+  pd = 0
+  avg = 1
+
 
 class Pool:
-    """Class to represent a pool operation on point clouds.
+  """Class to represent a pool operation on point clouds.
 
-    Attributes:
-        neighborhood_ (Neighborhood): Neighborhood. The samples should
-            be the same as the sorted points.
-        indices_ (int tensor): List of the indices of the selected points.
-            Only valid for the poisson disk sampling algorithm.
-        poolPointCloud_ (PointCloud): Pooled point cloud.
-        poolMode_ (PoolMode): Mode used to pool points, 1 for Poisson disk sampling, 0 for average
+  Attributes:
+    neighborhood_ (Neighborhood): Neighborhood. The samples should
+      be the same as the sorted points.
+    indices_ (int tensor): List of the indices of the selected points.
+      Only valid for the poisson disk sampling algorithm.
+    poolPointCloud_ (PointCloud): Pooled point cloud.
+    poolMode_ (PoolMode): Mode used to pool points, 1 for Poisson disk
+    sampling, 0 for average
+  """
+
+  def __init__(self, pNeighborhood, pPoolMode=PoolMode.pd, name=None):
+    """Constructor.
+
+    Args:
+      pNeighborhood (Neighborhood): Neighborhood.
+      pPoolMode (PoolMode): Mode used to pool points.
     """
+    with tf.compat.v1.name_scope(
+        name, "pool point cloud", [self, pNeighborhood, pPoolMode]):
+      #Save the attributes.
+      self.neighborhood_ = pNeighborhood
+      self.poolMode_ = pPoolMode
 
-    def __init__(self, pNeighborhood, pPoolMode = PoolMode.pd, name=None):
-        """Constructor.
+      #Compute the pooling.
+      poolPts, poolBatchIds, poolIndices = pooling(
+        self.neighborhood_, self.poolMode_.value)
 
-        Args:
-            pNeighborhood (Neighborhood): Neighborhood.
-            pPoolMode (PoolMode): Mode used to pool points.
-        """
-        with tf.compat.v1.name_scope(name,"pool point cloud", [self, pNeighborhood, pPoolMode]):
-            #Save the attributes.
-            self.neighborhood_ = pNeighborhood
-            self.poolMode_ = pPoolMode
-
-            #Compute the pooling.
-            poolPts, poolBatchIds, poolIndices = pooling(
-                self.neighborhood_, self.poolMode_.value)
-
-            #Save the pooled point cloud.
-            if pPoolMode == PoolMode.pd:
-                self.indices_ = tf.gather(self.neighborhood_.grid_.sortedIndices_, poolIndices)
-            else:
-                self.indices_ = None
-            self.poolPointCloud_ = PointCloud(pPts=poolPts, pBatchIds=poolBatchIds, 
-                pBatchSize=self.neighborhood_.pcSamples_.batchSize_)
+      #Save the pooled point cloud.
+      if pPoolMode == PoolMode.pd:
+        self.indices_ = tf.gather(
+            self.neighborhood_.grid_.sortedIndices_, poolIndices)
+      else:
+        self.indices_ = None
+      self.poolPointCloud_ = PointCloud(
+          pPts=poolPts, pBatchIds=poolBatchIds,
+          pBatchSize=self.neighborhood_.pcSamples_.batchSize_)
