@@ -103,7 +103,7 @@ class PointCloud:
       elif pBatchIds is not None:
         # if input is already 2D tensor with segmentation ids
         if pBatchSize is None:
-          self.batchSize_ = tf.reduce_max(pBatchIds)
+          self.batchSize_ = tf.reduce_max(pBatchIds)+1
         else:
           self.batchSize_ = pBatchSize
         self.batchIds_ = pBatchIds
@@ -170,7 +170,7 @@ class PointCloud:
           self.sizes_ = tf.reshape(self.sizes_, self.batchShape_)
       return self.sizes_
 
-  def get_unflatten(self, max_num_points, name=None):
+  def get_unflatten(self, max_num_points=None, name=None):
     """ Returns the method to unflatten the segmented points.
 
     Use this instead of accessing 'self.unflatten_',

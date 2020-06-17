@@ -158,3 +158,6 @@ class PointHierarchy:
 
   def __getitem__(self, index):
     return self.pointClouds_[index]
+
+  def __len__(self):
+    return len(self.pointClouds_)
