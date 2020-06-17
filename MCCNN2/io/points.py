@@ -88,7 +88,7 @@ def load_batch_of_points(filenames,
   """
 
   batch_size = len(filenames)
-  if tf.reduce_prod(batch_shape) != batch_size:
+  if batch_shape != [-1] and tf.reduce_prod(batch_shape) != batch_size:
     raise ValueError(
         f'Invalid batch shape {batch_shape} for batch size {batch_size}')
   points = []

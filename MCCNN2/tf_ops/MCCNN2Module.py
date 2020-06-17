@@ -217,33 +217,31 @@ def _compute_pdf_grad(op, *grads):
 
 
 def basis_proj(pNeighborhood, pInFeatures,
-        pBasis, pBasisType):
-    if pNeighborhood.smoothW_ is None:
-        curPDF = pNeighborhood.pdf_
-    else:
-        curPDF = pNeighborhood.pdf_ * tf.math.reciprocal(
-            pNeighborhood.smoothW_)
-    return MCCNN2_module.basis_proj(
-        pNeighborhood.grid_.pointCloud_.pts_,
-        pInFeatures,
-        pNeighborhood.pcSamples_.pts_,
-        pNeighborhood.originalNeighIds_,
-        pNeighborhood.samplesNeighRanges_,
-        tf.math.reciprocal(pNeighborhood.radii_),
-        curPDF,
-        pBasis,
-        pBasisType,
-        True)
+               pBasis, pBasisType):
+  curPDF = pNeighborhood.pdf_
+  return MCCNN2_module.basis_proj(
+      pNeighborhood.grid_.pointCloud_.pts_,
+      pInFeatures,
+      pNeighborhood.pcSamples_.pts_,
+      pNeighborhood.originalNeighIds_,
+      pNeighborhood.samplesNeighRanges_,
+      tf.math.reciprocal(pNeighborhood.radii_),
+      curPDF,
+      pBasis,
+      pBasisType,
+      True)
+
+
 @tf.RegisterGradient("BasisProj")
 def _basis_proj_grad(op, *grads):
-    featGrads, basisGrads, pointGrads, sampleGrads, pdfGrads = \
-        MCCNN2_module.basis_proj_grads_with_pt_grads(
-        op.inputs[0], op.inputs[1], op.inputs[2],
-        op.inputs[3], op.inputs[4], op.inputs[5],
-        op.inputs[6], op.inputs[7],
-        grads[0], op.get_attr("basis_type"))
-    return [pointGrads, featGrads, sampleGrads, None, None,
-        None, pdfGrads, basisGrads]
+  featGrads, basisGrads, pointGrads, sampleGrads, pdfGrads = \
+      MCCNN2_module.basis_proj_grads_with_pt_grads(
+          op.inputs[0], op.inputs[1], op.inputs[2],
+          op.inputs[3], op.inputs[4], op.inputs[5],
+          op.inputs[6], op.inputs[7],
+          grads[0], op.get_attr("basis_type"))
+  return [pointGrads, featGrads, sampleGrads, None, None,
+          None, pdfGrads, basisGrads]
 
 
 # def basis_proj_bilateral(pNeighborhood, pNeighVals, pInFeatures,

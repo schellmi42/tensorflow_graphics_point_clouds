@@ -94,9 +94,8 @@ class Neighborhood:
 
       #Initialize the pdf and smooth weights.
       self.pdf_ = None
-      self.smoothW_ = None
 
-  def compute_pdf(self, pBandwidth, pMode=0, pPtGradients=False, name=None):
+  def compute_pdf(self, pBandwidth, pMode=0, pPtGradients=True, name=None):
     """Method to compute the probability density function of a neighborhood.
 
     Args:
@@ -148,9 +147,6 @@ class Neighborhood:
         tf.shape(self.samplesNeighRanges_)[0])
       self.samplesNeighRanges_ = tf.math.cumsum(newNumNeighs)
 
-      #Update the smooth values.
-      if not(self.smoothW_ is None):
-        self.smoothW_ = tf.gather(self.smoothW_, indices)
 
       #Update the pdf values.
       if not(self.pdf_ is None):

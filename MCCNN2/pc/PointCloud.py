@@ -17,7 +17,7 @@ import tensorflow as tf
 from tensorflow_graphics.geometry.convolution.utils import \
     flatten_batch_to_2d, unflatten_2d_to_batch
 
-from MCCNN2.pc import utils
+from MCCNN2.pc.utils import check_valid_point_cloud_input
 
 
 class PointCloud:
@@ -78,7 +78,7 @@ class PointCloud:
       if pBatchIds is not None:
         pBatchIds = tf.convert_to_tensor(value=pBatchIds, dtype=tf.int32)
 
-      utils.check_valid_point_cloud_input(pPts, sizes, pBatchIds)
+      check_valid_point_cloud_input(pPts, sizes, pBatchIds)
 
       self.sizes_ = sizes
       self.batchShape_ = None

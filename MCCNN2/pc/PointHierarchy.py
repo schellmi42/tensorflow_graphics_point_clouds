@@ -18,7 +18,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from MCCNN2.pc import utils
+from MCCNN2.pc.utils import check_valid_point_hierarchy_input
 
 from MCCNN2.pc import AABB
 from MCCNN2.pc import PointCloud
@@ -55,7 +55,7 @@ class PointHierarchy:
         name, "hierarchical point cloud constructor",
         [self, pPointCloud, pCellSizes, pPoolMode]):
 
-      # utils.check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pPoolMode)
+      # check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pPoolMode)
 
       #Initialize the attributes.
       self.aabb_ = AABB(pPointCloud)

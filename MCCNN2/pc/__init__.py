@@ -6,3 +6,4 @@ from .Neighborhood import KDEMode
 from .Pool import Pool
 from .Pool import PoolMode
 from .PointHierarchy import PointHierarchy
+from .MCConv import MCConv

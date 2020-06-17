@@ -126,6 +126,7 @@ if __name__ == '__main__':
       " cc/src/find_neighbors.cpp "+
       " cc/src/compute_pdf.cpp "+
       " cc/src/pooling.cpp "+
+      " cc/src/basis_proj.cpp "+
 
       "-o build/MCCNN2.so -shared -fPIC "+
       "-Icc/header "+
