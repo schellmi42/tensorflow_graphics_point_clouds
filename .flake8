@@ -8,8 +8,7 @@ exclude = .git,
           __pycache__,
           tensorflow_graphics/projects/*
           tensorflow_graphics/submodules/*
-          test.py
-          test2.py
+          test*.py
           genCompileScript.py
 ignore = C901,
          E101,
