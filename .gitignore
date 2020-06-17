@@ -4,5 +4,7 @@ MCCNN2/tf_ops/build/
 test.py
 # pycache
 __pycache__/
+# visual studio code files
+.vscode/
 # test models
-test_points_clouds/
+test_point_clouds/
