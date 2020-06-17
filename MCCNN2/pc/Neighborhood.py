@@ -147,7 +147,6 @@ class Neighborhood:
         tf.shape(self.samplesNeighRanges_)[0])
       self.samplesNeighRanges_ = tf.math.cumsum(newNumNeighs)
 
-
       #Update the pdf values.
       if not(self.pdf_ is None):
         self.pdf_ = tf.gather(self.pdf_, indices)
