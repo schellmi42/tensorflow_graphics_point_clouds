@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent """
+"""Class to represent a regular grid for point clouds"""
 
 import os
 import sys
@@ -78,9 +78,10 @@ class Grid:
                     self.curKeys_, tf.shape(self.curKeys_)[0])
 
             #Compute the invert indexs.
-            _, ptIndexs = tf.math.top_k(
-                    self.sortedIndices_, tf.shape(self.sortedIndices_)[0])
-            self.invertedIndices_ = tf.reverse(ptIndexs, [0])
+            # _, ptIndexs = tf.math.top_k(
+            #         self.sortedIndices_, tf.shape(self.sortedIndices_)[0])
+            #  self.invertedIndices_ = tf.reverse(ptIndexs, [0])
+            self.invertedIndices_ = tf.argsort(self.sortedIndices_)
 
             #Get the sorted points and batch ids.
             self.sortedPts_ = tf.gather(

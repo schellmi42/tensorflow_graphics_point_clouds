@@ -40,6 +40,8 @@ class AABB:
         name, "bounding box constructor", [self, point_cloud]):
       self.batchSize_ = point_cloud.batchSize_
       self.batchShape_ = point_cloud.batchShape_
+      self.point_cloud_ = point_cloud
+
       self.aabbMin_ = tf.math.unsorted_segment_min(
           data=point_cloud.pts_, segment_ids=point_cloud.batchIds_,
           num_segments=self.batchSize_) - 1e-9

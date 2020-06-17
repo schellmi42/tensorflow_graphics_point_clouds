@@ -140,7 +140,10 @@ class PointCloud:
         name, "get point clouds", [self, id, max_num_points]):
       if id is not None:
         if not isinstance(id, int):
-          id = self.get_segment_id_[id]
+          slice = self.get_segment_id_
+          for slice_id in id:
+            slice = slice[slice_id]
+          id = slice
         if id > self.batchSize_:
           raise IndexError('batch index out of range')
         return self.pts_[self.batchIds_ == id]
