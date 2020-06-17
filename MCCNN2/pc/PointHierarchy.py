@@ -155,3 +155,6 @@ class PointHierarchy:
         name, "set batch shape of point hierarchy", [self, batchShape]):
       for point_cloud in self.pointClouds_:
         point_cloud.set_batch_shape(batchShape)
+
+  def __getitem__(self, index):
+    return self.pointClouds_[index]
