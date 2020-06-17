@@ -1,7 +1,7 @@
 # builds of CUDA ops
 MCCNN2/tf_ops/build/
 # local test script
-test.py
+test*.py
 # pycache
 __pycache__/
 # visual studio code files
