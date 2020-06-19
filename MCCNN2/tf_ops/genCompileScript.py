@@ -97,7 +97,7 @@ if __name__ == '__main__':
     tensorflowInclude = tf.sysconfig.get_include()
     tensorflowLib = tf.sysconfig.get_lib()
     myCompileScript.write(
-      "g++-4.8 -std=c++11"+debugString+
+      "g++ -std=c++11"+debugString+
 
       " build/compute_keys.cu.o "+
       " build/build_grid_ds.cu.o "+

@@ -65,8 +65,8 @@ def find_neighbors(pGrid, pPCSamples, pRadii, pMaxNeighbors, name=None):
 tf.no_gradient('FindNeighbors')
 
 
-def pooling(pNeighborhood, pPoolMode, name=None):
-  with tf.compat.v1.name_scope(name, "pooling", [pNeighborhood, pPoolMode]):
+def sampling(pNeighborhood, pPoolMode, name=None):
+  with tf.compat.v1.name_scope(name, "sampling", [pNeighborhood, pPoolMode]):
     return MCCNN2_module.pooling(
       pNeighborhood.grid_.sortedPts_,
       pNeighborhood.grid_.sortedBatchIds_,
