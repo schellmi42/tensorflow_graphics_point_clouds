@@ -103,7 +103,7 @@ class PointCloud:
       elif pBatchIds is not None:
         # if input is already 2D tensor with segmentation ids
         if pBatchSize is None:
-          self.batchSize_ = tf.reduce_max(pBatchIds)+1
+          self.batchSize_ = tf.reduce_max(pBatchIds) + 1
         else:
           self.batchSize_ = pBatchSize
         self.batchIds_ = pBatchIds
@@ -165,7 +165,7 @@ class PointCloud:
     with tf.compat.v1.name_scope(name, "get point cloud sizes", [self]):
       if self.sizes_ is None:
         _, _, self.sizes_ = tf.unique_with_counts(
-            tf.gather(self.batchIds_, self.sortedIndicesBatch_))
+            self.batchIds_)
         if self.batchShape_ is not None:
           self.sizes_ = tf.reshape(self.sizes_, self.batchShape_)
       return self.sizes_
