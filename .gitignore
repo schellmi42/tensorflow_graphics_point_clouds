@@ -8,3 +8,5 @@ __pycache__/
 .vscode/
 # test models
 test_point_clouds/
+# copied files
+*_copy.py
