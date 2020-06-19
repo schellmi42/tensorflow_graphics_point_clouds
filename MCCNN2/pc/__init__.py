@@ -3,7 +3,7 @@ from .PointCloud import PointCloud
 from .Grid import Grid
 from .Neighborhood import Neighborhood
 from .Neighborhood import KDEMode
-from .Pool import Pool
-from .Pool import PoolMode
+from .Sample import Sample
+from .Sample import SampleMode
 from .PointHierarchy import PointHierarchy
 from .MCConv import MCConv

@@ -32,24 +32,48 @@ from MCCNN2.pc.tests import utils
 class GridTest(test_case.TestCase):
 
   @parameterized.parameters(
+    (100000, 32, [0.1, 0.1, 0.1])
+  )
+  def test_compute_keys_with_sort(self, num_points, batch_size, radius):
+    points, batch_ids = utils._create_random_point_cloud_segmented(
+        batch_size, num_points * batch_size,
+        sizes=np.ones(batch_size, dtype=int) * num_points)
+    point_cloud = PointCloud(points, batch_ids)
+    aabb = AABB(point_cloud)
+    grid = Grid(point_cloud, aabb, radius)
+
+    total_num_cells = grid.numCells_.numpy()
+    aabb_min = aabb.aabbMin_.numpy()
+
+    aabb_min_per_point = aabb_min[batch_ids, :]
+    cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
+    cell_ind = np.minimum(np.maximum(cell_ind, np.array([0, 0, 0])),
+                          total_num_cells)
+    keys = batch_ids * total_num_cells[0] * \
+        total_num_cells[1] * total_num_cells[2] + \
+        cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
+        cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
+
+    self.assertAllEqual(grid.curKeys_, keys)
+    keys = np.sort(keys)
+    self.assertAllEqual(grid.sortedKeys_, keys)
+
+  @parameterized.parameters(
     (10000, 10, 32, [0.2, 0.2, 0.2])
   )
   def test_grid(self, num_points, num_samples, batch_size, radius):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size,
         sizes=np.ones(batch_size, dtype=int) * num_points)
-    print(points.dtype)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
     grid = Grid(point_cloud, aabb, radius)
 
-    fast_ds_tf = grid.fastDS_
-
     total_num_cells = grid.numCells_.numpy()
     aabb_min = aabb.aabbMin_.numpy()
 
-    ptAABBMin = aabb_min[batch_ids, :]
-    cell_ind = np.floor((points - ptAABBMin) / radius).astype(int)
+    aabb_min_per_point = aabb_min[batch_ids, :]
+    cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
     cell_ind = np.minimum(np.maximum(cell_ind, np.array([0, 0, 0])),
                           total_num_cells)
     keys = batch_ids * total_num_cells[0] * \
@@ -89,7 +113,7 @@ class GridTest(test_case.TestCase):
           ds_numpy[curbatch_ids, xIndex, yIndex, 1] = key_iter + 1
 
     # check if the data structure is equal
-    self.assertAllEqual(fast_ds_tf, ds_numpy)
+    self.assertAllEqual(grid.fastDS_, ds_numpy)
 
 if __name__ == '__main__':
   test_case.main()

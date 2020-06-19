@@ -23,8 +23,6 @@ from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
-from MCCNN2.pc import Pool
-from MCCNN2.pc import PoolMode
 
 import os
 import sys

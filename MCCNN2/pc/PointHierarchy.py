@@ -24,8 +24,8 @@ from MCCNN2.pc import AABB
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
-from MCCNN2.pc import Pool
-from MCCNN2.pc import PoolMode
+from MCCNN2.pc import Sample
+from MCCNN2.pc import SampleMode
 
 
 class PointHierarchy:
@@ -34,14 +34,14 @@ class PointHierarchy:
   Attributes:
     aabb_ (AABB): Bounding box of the point cloud.
     pointClouds_ (array of PointCloud): List of point clouds.
-    poolOps_ (arraz of Pool): List of pooling operations used to
+    sampleOps_ (arraz of Sample): List of sampling operations used to
       create the point hierarchy.
   """
 
   def __init__(self,
                pPointCloud,
                pCellSizes,
-               pPoolMode=PoolMode.pd,
+               pSampleMode=SampleMode.pd,
                name=None):
     """Constructor.
 
@@ -49,26 +49,26 @@ class PointHierarchy:
       pPointCloud (PointCloud): Input point cloud.
       pCellSizes (array of numpy arrays of floats): List of cell sizes for
         each dimension.
-      pPoolMode (PoolMode): Mode used to pool the points.
+      pSampleMode (SampleMode): Mode used to sample the points.
     """
     with tf.compat.v1.name_scope(
         name, "hierarchical point cloud constructor",
-        [self, pPointCloud, pCellSizes, pPoolMode]):
+        [self, pPointCloud, pCellSizes, pSampleMode]):
 
-      # check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pPoolMode)
+      # check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pSampleMode)
 
       #Initialize the attributes.
       self.aabb_ = AABB(pPointCloud)
       self.pointClouds_ = [pPointCloud]
-      self.poolOps_ = []
+      self.sampleOps_ = []
       self.cellSizes_ = []
 
       self.dimensions_ = pPointCloud.dimension_
       self.batchShape_ = pPointCloud.batchShape_
 
-      #Create the different pooling operations.
+      #Create the different sampling operations.
       curPC = pPointCloud
-      for poolIter, curCellSizes in enumerate(pCellSizes):
+      for sampleIter, curCellSizes in enumerate(pCellSizes):
         curCellSizes  = tf.convert_to_tensor(curCellSizes, dtype=tf.float32)
 
         # Check if the cell size is defined for all the dimensions.
@@ -85,17 +85,17 @@ class PointHierarchy:
                 instead of max. {self.dimensions_}')
         self.cellSizes_.append(curCellSizes)
 
-        #Create the pooling operation.
+        #Create the sampling operation.
         cellSizesTensor = tf.convert_to_tensor(curCellSizes, np.float32)
 
         curGrid = Grid(curPC, self.aabb_, cellSizesTensor)
         curNeighborhood = Neighborhood(curGrid, cellSizesTensor)
-        curPoolOp = Pool(curNeighborhood, pPoolMode)
+        curSampleOp = Sample(curNeighborhood, pSampleMode)
 
-        self.poolOps_.append(curPoolOp)
-        curPoolOp.poolPointCloud_.set_batch_shape(self.batchShape_)
-        self.pointClouds_.append(curPoolOp.poolPointCloud_)
-        curPC = curPoolOp.poolPointCloud_
+        self.sampleOps_.append(curSampleOp)
+        curSampleOp.samplePointCloud_.set_batch_shape(self.batchShape_)
+        self.pointClouds_.append(curSampleOp.samplePointCloud_)
+        curPC = curSampleOp.samplePointCloud_
 
   def get_points(self, id=None, max_num_points=None, name=None):
     """ Returns the points.
