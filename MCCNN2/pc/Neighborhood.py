@@ -92,7 +92,7 @@ class Neighborhood:
         tf.reshape(auxOriginalNeighsIds, [-1, 1]),
         tf.reshape(self.neighbors_[:, 1], [-1, 1])], axis=-1)
 
-      #Initialize the pdf and smooth weights.
+      #Initialize the pdf
       self.pdf_ = None
 
   def compute_pdf(self, pBandwidth, pMode=0, pPtGradients=True, name=None):

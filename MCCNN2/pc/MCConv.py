@@ -14,6 +14,8 @@
 """Class to represent point cloud convolution"""
 
 import tensorflow as tf
+from tensorflow_graphics.geometry.convolution.utils import \
+    flatten_batch_to_2d
 
 
 from MCCNN2.pc import AABB
@@ -95,6 +97,8 @@ class MCConv:
                                  [pInFeatures, pInPC, pOutPC, pRadius,
                                   pBandWidth]):
       pInFeatures = tf.convert_to_tensor(value=pInFeatures, dtype=tf.float32)
+      if len(pInFeatures.shape) > 2:
+        pInFeatures, _ = flatten_batch_to_2d(pInFeatures, pInPC.sizes_)
       pRadius = tf.convert_to_tensor(value=pRadius, dtype=tf.float32)
       pBandWidth = tf.convert_to_tensor(value=pBandWidth)
 
