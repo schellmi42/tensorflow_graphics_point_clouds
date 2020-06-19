@@ -74,7 +74,7 @@ class PointCloud:
         [self, pPts, pBatchIds, pBatchSize, sizes]):
       pPts = tf.convert_to_tensor(value=pPts, dtype=tf.float32)
       if sizes is not None:
-        sizes = tf.convert_to_tensor(value=sizes)
+        sizes = tf.convert_to_tensor(value=sizes, dtype=tf.int32)
       if pBatchIds is not None:
         pBatchIds = tf.convert_to_tensor(value=pBatchIds, dtype=tf.int32)
 
@@ -217,7 +217,7 @@ class PointCloud:
     with tf.compat.v1.name_scope(
         name, "set batch shape of point cloud", [self, batchShape]):
       if batchShape is not None:
-        batchShape = tf.convert_to_tensor(value=batchShape)
+        batchShape = tf.convert_to_tensor(value=batchShape, dtype=tf.int32)
         if tf.reduce_prod(batchShape) != self.batchSize_:
           raise ValueError(
               f'Incompatible batch size. Must be {self.batchSize_} \

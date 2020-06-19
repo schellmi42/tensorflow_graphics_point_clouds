@@ -123,30 +123,3 @@ class Neighborhood:
         else:
           tmpPDF = compute_pdf(auxNeigh, pBandwidth, pMode.value)
         self.pdf_ = tf.gather(tmpPDF, self.neighbors_[:, 0])
-
-  def apply_neighbor_mask(self, pMask, name):
-    """Method to apply a mask to the neighbors.
-
-    Args:
-      pMask (bool tensor n): Tensor with a bool element for each
-        neighbor. Those which True will remain in the neighborhood.
-
-    """
-    with tf.compat.v1.name_scope(
-        name, "apply mask to neighbors", [self, pMask]):
-      pMask = tf.convert_to_tensor(value=pMask)
-
-      #Compute the new neighbor list.
-      indices = tf.reshape(tf.where(pMask), [-1])
-      self.neighbors_ = tf.gather(self.neighbors_, indices)
-      self.originalNeighIds_ = tf.gather(
-        self.originalNeighIds_, indices)
-      newNumNeighs = tf.math.unsorted_segment_sum(
-        tf.ones_like(self.neighbors_),
-        self.neighbors_[:, 1],
-        tf.shape(self.samplesNeighRanges_)[0])
-      self.samplesNeighRanges_ = tf.math.cumsum(newNumNeighs)
-
-      #Update the pdf values.
-      if not(self.pdf_ is None):
-        self.pdf_ = tf.gather(self.pdf_, indices)

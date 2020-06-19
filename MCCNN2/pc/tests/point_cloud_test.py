@@ -28,3 +28,6 @@ from MCCNN2.pc.tests import utils
 
 
 class point_cloud_test(test_case.TestCase):
+
+  def dummy_test():
+    assert(1 == 1)

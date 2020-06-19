@@ -69,7 +69,7 @@ class PointHierarchy:
       #Create the different pooling operations.
       curPC = pPointCloud
       for poolIter, curCellSizes in enumerate(pCellSizes):
-        curCellSizes  = tf.convert_to_tensor(curCellSizes)
+        curCellSizes  = tf.convert_to_tensor(curCellSizes, dtype=tf.float32)
 
         # Check if the cell size is defined for all the dimensions.
         # If not, the last cell size value is tiled until all the dimensions

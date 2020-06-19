@@ -53,7 +53,7 @@ class Grid:
     with tf.compat.v1.name_scope(
         name, "constructor for point cloud regular grid",
         [self, pPointCloud, pAABB, pCellSizes]):
-      pCellSizes = tf.convert_to_tensor(value=pCellSizes)
+      pCellSizes = tf.convert_to_tensor(value=pCellSizes, dtype=tf.float32)
 
       #Save the attributes.
       self.batchSize_ = pAABB.batchSize_
@@ -74,8 +74,8 @@ class Grid:
           self.cellSizes_)
 
       #Sort the keys.
-      # self.sortedKeys_, self.sortedIndices_ = tf.math.top_k(
-      #     self.curKeys_, tf.shape(self.curKeys_)[0])
+      self.sortedKeys_, self.sortedIndices_ = tf.math.top_k(
+           self.curKeys_, tf.shape(self.curKeys_)[0])
       self.sortedIndices_ = tf.argsort(self.curKeys_)
       self.sortedKeys_ = tf.gather(self.curKeys_, self.sortedIndices_)
 
