@@ -101,12 +101,8 @@ class MCConv:
       pBandWidth = tf.convert_to_tensor(value=pBandWidth)
 
       #Create the radii tensor.
-      # curRadii = np.array([pRadius for i in range(self.numDims_)])
-      # radiiTensor = tf.convert_to_tensor(curRadii, np.float32)
       radiiTensor = tf.repeat([pRadius], self.numDims_)
       #Create the badnwidth tensor.
-      # curBandWidth = np.concatenate([0.2 for i in range(self.numDims_)])
-      # bwTensor = tf.convert_to_tensor(curBandWidth, np.float32)
       bwTensor = tf.repeat(pBandWidth, self.numDims_)
 
       #Compute the AABB.
@@ -116,7 +112,7 @@ class MCConv:
       grid = Grid(pInPC, aabbIn, radiiTensor)
 
       #Compute the neighborhood key.
-      neigh = Neighborhood(grid, radiiTensor, pOutPC, 0)
+      neigh = Neighborhood(grid, radiiTensor, pOutPC)
       neigh.compute_pdf(bwTensor, pMode=KDEMode.constant, pPtGradients=True)
 
       #Compute convolution (RELU - 2, LRELU - 3, ELU - 4)

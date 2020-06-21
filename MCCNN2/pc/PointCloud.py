@@ -112,10 +112,6 @@ class PointCloud:
         raise ValueError('invalid input format.')
 
       #Sort the points based on the batch ids in incremental order.
-      # _, self.sortedIndicesBatch_ = tf.math.top_k(
-      #     self.batchIds_, tf.shape(self.batchIds_)[0])
-      # self.sortedIndicesBatch_ = tf.reverse(
-      #     self.sortedIndicesBatch_, axis = [0])
       self.sortedIndicesBatch_ = tf.argsort(self.batchIds_)
 
   def get_points(self, id=None, max_num_points=None, name=None):
@@ -164,8 +160,10 @@ class PointCloud:
     """
     with tf.compat.v1.name_scope(name, "get point cloud sizes", [self]):
       if self.sizes_ is None:
-        _, _, self.sizes_ = tf.unique_with_counts(
+        auxIdx, _, self.sizes_ = tf.unique_with_counts(
             self.batchIds_)
+        auxIdxSortedIds = tf.argsort(auxIdx)
+        self.sizes_ = tf.gather(self.sizes_, auxIdxSortedIds)
         if self.batchShape_ is not None:
           self.sizes_ = tf.reshape(self.sizes_, self.batchShape_)
       return self.sizes_
@@ -226,7 +224,7 @@ class PointCloud:
         self.get_segment_id_ = tf.reshape(
             tf.range(0, self.batchSize_), self.batchShape_)
         if self.sizes_ is not None:
-          self.sizes_ = self.sizes_ = tf.reshape(self.sizes_, self.batchShape_)
+          self.sizes_ = tf.reshape(self.sizes_, self.batchShape_)
       else:
         self.batchShape_ = None
 

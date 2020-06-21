@@ -74,15 +74,10 @@ class Grid:
           self.cellSizes_)
 
       #Sort the keys.
-      self.sortedKeys_, self.sortedIndices_ = tf.math.top_k(
-           self.curKeys_, tf.shape(self.curKeys_)[0])
-      self.sortedIndices_ = tf.argsort(self.curKeys_)
+      self.sortedIndices_ = tf.argsort(self.curKeys_, direction='DESCENDING')
       self.sortedKeys_ = tf.gather(self.curKeys_, self.sortedIndices_)
 
       #Compute the invert indexs.
-      # _, ptIndexs = tf.math.top_k(
-      #         self.sortedIndices_, tf.shape(self.sortedIndices_)[0])
-      # self.invertedIndices_ = tf.reverse(ptIndexs, [0])
       # self.invertedIndices_ = tf.argsort(self.sortedIndices_)
 
       #Get the sorted points and batch ids.
