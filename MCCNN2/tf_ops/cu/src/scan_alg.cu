@@ -257,11 +257,17 @@ unsigned int mccnn::scan_alg(
     }
 
     //Get the total accumulated value.
-    int accumScan = 1;
+    int* accumScan = pDevice->getIntTmpGPUBuffer(1, true);
     pDevice->memcpy_device_to_host(
-        (void*)&accumScan, 
+        (void*)accumScan, 
         (void*)counters[counters.size()-1].first, 
         sizeof(int));
+
+    //Wait for the result.
+    cudaEvent_t resEvent;
+    cudaEventCreate(&resEvent);
+    cudaEventRecord(resEvent, cudaStream);
+    cudaEventSynchronize(resEvent);
 
 #ifdef DEBUG_INFO
     cudaEventRecord(stop, cudaStream);
@@ -274,11 +280,11 @@ unsigned int mccnn::scan_alg(
     fprintf(stderr, "### SCAN ALG ###\n");
     fprintf(stderr, "Num elements: %d\n", pNumElems);
     fprintf(stderr, "Num iterations: %d\n", numIterations);
-    fprintf(stderr, "Total accum: %d\n", accumScan);
+    fprintf(stderr, "Total accum: %d\n", accumScan[0]);
     fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
     fprintf(stderr, "Execution time: %f\n", milliseconds);
     fprintf(stderr, "\n");
 #endif
 
-    return accumScan;
+    return accumScan[0];
 }

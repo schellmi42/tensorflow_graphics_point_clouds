@@ -188,10 +188,20 @@ void mccnn::count_pooling_pd_gpu(
     pDevice->check_error(__FILE__, __LINE__);
 
     //Copy the number of points into cpu memory.
+    int* auxNumPooledPts = pDevice->getIntTmpGPUBuffer(1, true);
     pDevice->memcpy_device_to_host(
-        (void*)&pOutNumPooledPts,
+        (void*)auxNumPooledPts,
         (void*)tmpCounter,
         sizeof(int));
+
+    //Wait for the result.
+    cudaEvent_t resEvent;
+    cudaEventCreate(&resEvent);
+    cudaEventRecord(resEvent, cudaStream);
+    cudaEventSynchronize(resEvent);
+
+    //Collect the result.
+    pOutNumPooledPts = auxNumPooledPts[0];
 
 #ifdef DEBUG_INFO
     cudaEventRecord(stop, cudaStream);

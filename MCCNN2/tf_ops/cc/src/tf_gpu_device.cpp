@@ -117,19 +117,19 @@ namespace mccnn{
         }
     }
 
-    float* TFGPUDevice::getFloatTmpGPUBuffer(const unsigned int pSize)
+    float* TFGPUDevice::getFloatTmpGPUBuffer(const unsigned int pSize, bool pCPUManaged)
     {
-        return this->getTmpGPUBuffer<float>(pSize);
+        return this->getTmpGPUBuffer<float>(pSize, pCPUManaged);
     }
 
-    int* TFGPUDevice::getIntTmpGPUBuffer(const unsigned int pSize)
+    int* TFGPUDevice::getIntTmpGPUBuffer(const unsigned int pSize, bool pCPUManaged)
     {
-        return this->getTmpGPUBuffer<int>(pSize);
+        return this->getTmpGPUBuffer<int>(pSize, pCPUManaged);
     }
 
-    int64_m* TFGPUDevice::getInt64TmpGPUBuffer(const unsigned int pSize)
+    int64_m* TFGPUDevice::getInt64TmpGPUBuffer(const unsigned int pSize, bool pCPUManaged)
     {
-        return this->getTmpGPUBuffer<mccnn::int64_m>(pSize);
+        return this->getTmpGPUBuffer<mccnn::int64_m>(pSize, pCPUManaged);
     }
 
     const cudaStream_t& TFGPUDevice::getCUDAStream()
@@ -138,12 +138,18 @@ namespace mccnn{
     }
 
     template<class T>
-    T* TFGPUDevice::getTmpGPUBuffer(const unsigned int pSize)
+    T* TFGPUDevice::getTmpGPUBuffer(const unsigned int pSize, bool pCPUManaged)
     {
+        tensorflow::AllocatorAttributes allocatorAtt;
+        if(pCPUManaged){
+            allocatorAtt.set_on_host(true);
+            allocatorAtt.set_gpu_compatible(true);
+        }
+        
         std::unique_ptr<tensorflow::Tensor> pTmpTensor = make_unique<tensorflow::Tensor>();
         TensorShape tmpShape = TensorShape{pSize};
         if(!TF_PREDICT_TRUE(context_->allocate_temp(
-            DataTypeToEnum<T>::value, tmpShape, pTmpTensor.get()).ok())){
+            DataTypeToEnum<T>::value, tmpShape, pTmpTensor.get(), allocatorAtt).ok())){
             fprintf(stderr,"Error allocating temporal tensor of %ld bytes.\n", sizeof(T)*pSize);
             exit(-1);
             //TODO - Proper error handling, exceptions.
@@ -153,7 +159,8 @@ namespace mccnn{
         return &(tmpTensorFlat(0));
     }
 
-    template int* TFGPUDevice::getTmpGPUBuffer<int>(const unsigned int pSize);
-    template float* TFGPUDevice::getTmpGPUBuffer<float>(const unsigned int pSize);
+    template int* TFGPUDevice::getTmpGPUBuffer<int>(const unsigned int pSize, bool pCPUManaged);
+    template mccnn::int64_m* TFGPUDevice::getTmpGPUBuffer<mccnn::int64_m>(const unsigned int pSize, bool pCPUManaged);
+    template float* TFGPUDevice::getTmpGPUBuffer<float>(const unsigned int pSize, bool pCPUManaged);
 
 }

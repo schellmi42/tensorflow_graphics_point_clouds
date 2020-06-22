@@ -125,10 +125,15 @@ void mccnn::build_grid_ds_gpu(
     float milliseconds = 0;
     cudaEventElapsedTime(&milliseconds, start, stop);
 
-    int numCells[D];
+    int* numCells = pDevice->getIntTmpGPUBuffer(D, true);
     pDevice->memcpy_device_to_host((void*)&numCells, (void*)pInGPUPtrNumCells, sizeof(int)*D);
-    int* dsCPU = new int[pDSSize];
+    int* dsCPU = pDevice->getIntTmpGPUBuffer(pDSSize, true);
     pDevice->memcpy_device_to_host((void*)dsCPU, (void*)pOutGPUPtrDS, sizeof(int)*pDSSize);
+
+    cudaEvent_t resEvent;
+    cudaEventCreate(&resEvent);
+    cudaEventRecord(resEvent, cudaStream);
+    cudaEventSynchronize(resEvent);
 
     int maxNumPts = 0;
     int minNumPts = pNumPts;
@@ -158,8 +163,6 @@ void mccnn::build_grid_ds_gpu(
     fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
     fprintf(stderr, "Execution time: %f\n", milliseconds);
     fprintf(stderr, "\n");
-
-    delete[] dsCPU;
 #endif
 }
 

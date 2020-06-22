@@ -140,26 +140,32 @@ namespace mccnn{
             /**
              *  Method to get a temporal gpu memory buffer of floats.
              *  @param  pSize   Number of elements in the buffer.
+             *  @param  pCPUManaged Booleant that indicates if the buffer will
+             *  be allocated on CPU for host device data transfers.
              *  @paramt Type of the elements in the buffer.
              *  @return Pointer to the buffer in memory.
              */
-            virtual float* getFloatTmpGPUBuffer(const unsigned int pSize) = 0;
+            virtual float* getFloatTmpGPUBuffer(const unsigned int pSize, bool pCPUManaged = false) = 0;
 
             /**
              *  Method to get a temporal gpu memory buffer of ints.
              *  @param  pSize   Number of elements in the buffer.
+             *  @param  pCPUManaged Booleant that indicates if the buffer will
+             *  be allocated on CPU for host device data transfers.
              *  @paramt Type of the elements in the buffer.
              *  @return Pointer to the buffer in memory.
              */
-            virtual int* getIntTmpGPUBuffer(const unsigned int pSize) = 0;
+            virtual int* getIntTmpGPUBuffer(const unsigned int pSize, bool pCPUManaged = false) = 0;
 
             /**
              *  Method to get a temporal gpu memory buffer of int64_m.
              *  @param  pSize   Number of elements in the buffer.
+             *  @param  pCPUManaged Booleant that indicates if the buffer will
+             *  be allocated on CPU for host device data transfers.
              *  @paramt Type of the elements in the buffer.
              *  @return Pointer to the buffer in memory.
              */
-            virtual mccnn::int64_m* getInt64TmpGPUBuffer(const unsigned int pSize) = 0;
+            virtual mccnn::int64_m* getInt64TmpGPUBuffer(const unsigned int pSize, bool pCPUManaged = false) = 0;
 
             /**
              *  Method to get the cuda stream used.

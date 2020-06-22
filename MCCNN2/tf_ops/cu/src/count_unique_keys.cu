@@ -111,11 +111,17 @@ unsigned int mccnn::count_unique_keys_gpu(
     pDevice->check_error(__FILE__, __LINE__);
 
     //Get the total number of keys.
-    int numUniqueKeys;
+    int* numUniqueKeys = pDevice->getIntTmpGPUBuffer(1, true);;
     pDevice->memcpy_device_to_host(
-        (void*)&numUniqueKeys,
+        (void*)numUniqueKeys,
         (void*)tmpCounter,
         sizeof(int));
+
+    //Wait for the result.
+    cudaEvent_t resEvent;
+    cudaEventCreate(&resEvent);
+    cudaEventRecord(resEvent, cudaStream);
+    cudaEventSynchronize(resEvent);
 
 #ifdef DEBUG_INFO
     cudaEventRecord(stop, cudaStream);
@@ -127,11 +133,11 @@ unsigned int mccnn::count_unique_keys_gpu(
 
     fprintf(stderr, "### COUNT UNIQUE KEYS ###\n");
     fprintf(stderr, "Num points: %d\n", pNumPts);
-    fprintf(stderr, "Num keys: %d\n", numUniqueKeys+1);
+    fprintf(stderr, "Num keys: %d\n", numUniqueKeys[0]+1);
     fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
     fprintf(stderr, "Execution time: %f\n", milliseconds);
     fprintf(stderr, "\n");
 #endif
 
-    return numUniqueKeys+1;
+    return numUniqueKeys[0]+1;
 }

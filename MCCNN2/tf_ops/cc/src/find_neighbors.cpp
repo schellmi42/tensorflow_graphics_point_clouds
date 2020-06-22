@@ -178,11 +178,16 @@ namespace mccnn{
                     numDimensions, 1, combOffsets);
                 unsigned int numOfComputations = numOffsets/NUM_OFFSETS_X_COMPUTE_BLOCK;
 
+                //Created the pinned cpu memory to store the offsets.
+                int bufferSize = (int)combOffsets.size();
+                int* combOffsetsPinnedMem = gpuDevice->getIntTmpGPUBuffer(bufferSize, true);
+                memcpy((void*)combOffsetsPinnedMem, (void*)&combOffsets[0], sizeof(int)*bufferSize);
+
                 for(int i = 0; i < numOfComputations; ++i)
                 {
                     //Copy to device the offsets.
                     gpuDevice->memcpy_host_to_device(tmpGPUPtr3, 
-                        &combOffsets[numDimensions*NUM_OFFSETS_X_COMPUTE_BLOCK*i], 
+                        &combOffsetsPinnedMem[numDimensions*NUM_OFFSETS_X_COMPUTE_BLOCK*i], 
                         sizeof(int)*numDimensions*NUM_OFFSETS_X_COMPUTE_BLOCK);
                     gpuDevice->check_error(__FILE__, __LINE__);
 
@@ -223,7 +228,7 @@ namespace mccnn{
                     if(numOfComputations > 1){
                         //Copy to device the offsets.
                         gpuDevice->memcpy_host_to_device(tmpGPUPtr3, 
-                            &combOffsets[numDimensions*NUM_OFFSETS_X_COMPUTE_BLOCK*i], 
+                            &combOffsetsPinnedMem[numDimensions*NUM_OFFSETS_X_COMPUTE_BLOCK*i], 
                             sizeof(int)*numDimensions*NUM_OFFSETS_X_COMPUTE_BLOCK);
                         gpuDevice->check_error(__FILE__, __LINE__);
 
