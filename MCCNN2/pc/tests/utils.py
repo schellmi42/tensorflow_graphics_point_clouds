@@ -21,8 +21,9 @@ def _create_random_point_cloud_segmented(batch_size,
                                          num_points,
                                          dimension=3,
                                          sizes=None,
-                                         scale=1):
-  points = scale * np.random.randn(num_points, dimension)
+                                         scale=1,
+                                         clean_aabb=False):
+  points = np.random.uniform(0, scale, [num_points, dimension])
   if sizes is None:
     batch_ids = np.random.randint(0, batch_size, num_points)
     batch_ids[:batch_size] = np.arange(0, batch_size)
@@ -30,6 +31,14 @@ def _create_random_point_cloud_segmented(batch_size,
   else:
     sizes = np.array(sizes, dtype=int)
     batch_ids = np.repeat(np.arange(0, batch_size), sizes)
+  if clean_aabb:
+    # adds points such that the aabb is [0,0,0] [1,1,1]*scale
+    # to prevent rounding errors
+    points = np.concatenate(
+        (points, scale * np.ones([batch_size, 3]) - 1e-9,
+         1e-9 + np.zeros([batch_size, 3])))
+    batch_ids = np.concatenate(
+        (batch_ids, np.arange(0, batch_size), np.arange(0, batch_size)))
   return points, batch_ids
 
 
@@ -37,10 +46,11 @@ def _create_random_point_cloud_padded(max_num_points,
                                       batch_shape,
                                       dimension=3,
                                       sizes=None,
-                                      scale=1):
+                                      scale=1,
+                                      nice_aabb=False):
   batch_size = np.prod(batch_shape)
-  points = scale * \
-      np.random.randn(max_num_points * batch_size, dimension)
+  points = np.random.uniform(
+      0, scale, [max_num_points * batch_size, dimension])
   points = points.reshape(batch_shape + [max_num_points, dimension])
   if sizes is None:
     sizes = np.random.randint(1, max_num_points, batch_shape)

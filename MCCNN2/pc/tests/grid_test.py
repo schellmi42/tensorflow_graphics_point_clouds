@@ -28,14 +28,14 @@ from MCCNN2.pc.tests import utils
 class GridTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (10000, 32, 30, [0.1, 0.1, 0.1])
+    (10000, 32, 30, [0.1, 0.1, 0.1]),
+    (20000, 16, 30, [0.2, 0.2, 0.2])
   )
   def test_compute_keys_with_sort(self, num_points, batch_size, scale, radius):
+    np.random.seed(10)
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size,
-        sizes=np.ones(batch_size, dtype=int) * num_points,
-        scale=scale)
-    points = np.around(points, decimals=2)
+        sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
     grid = Grid(point_cloud, aabb, radius)
@@ -52,7 +52,7 @@ class GridTest(test_case.TestCase):
         cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
         cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
 
-    # self.assertAllEqual(grid.curKeys_, keys)
+    self.assertAllEqual(grid.curKeys_, keys)
 
     # sort descending
     sorted_keys = np.flip(np.sort(keys))
@@ -60,22 +60,19 @@ class GridTest(test_case.TestCase):
     self.assertAllEqual(grid.sortedKeys_, sorted_keys)
 
   @parameterized.parameters(
-    (10000, 32, 1, [0.2, 0.2, 0.2])
+    (10000, 32, 1, [0.1, 0.2, 0.2]),
+    (2000, 16, 30, [0.2, 0.5, 0.2])
   )
   def test_grid(self, num_points, batch_size, scale, radius):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size,
-        sizes=np.ones(batch_size, dtype=int) * num_points,
-        scale=scale)
-    # to prevent errors due to floating point precision
-    points = np.around(points, decimals=5)
+        sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
     grid = Grid(point_cloud, aabb, radius)
 
     total_num_cells = grid.numCells_.numpy()
     aabb_min = aabb.aabbMin_.numpy()
-
     aabb_min_per_point = aabb_min[batch_ids, :]
     cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
     cell_ind = np.minimum(np.maximum(cell_ind, np.array([0, 0, 0])),
