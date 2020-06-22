@@ -55,3 +55,10 @@ def _create_random_point_cloud_padded(max_num_points,
   if sizes is None:
     sizes = np.random.randint(1, max_num_points, batch_shape)
   return points, sizes
+
+
+def _create_uniform_distributed_point_cloud_2D(num_points_sqrt,
+                                               scale=1):
+  ticks = np.linspace(0, scale, num=num_points_sqrt)
+  points = np.array(np.meshgrid(ticks, ticks)).T
+  return points

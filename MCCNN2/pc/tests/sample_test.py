@@ -37,7 +37,8 @@ class SamplingTest(test_case.TestCase):
   @parameterized.parameters(
     (1000, 32, [0.1, 0.1, 0.1])
   )
-  def test_sampling_poisson_disk(self, num_points, batch_size, cell_sizes):
+  def test_sampling_poisson_disk_on_random(
+        self, num_points, batch_size, cell_sizes):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size,
         sizes=np.ones(batch_size, dtype=int) * num_points)
@@ -62,9 +63,30 @@ class SamplingTest(test_case.TestCase):
     self.assertTrue(np.all(min_dist < cell_sizes))
 
   @parameterized.parameters(
+    (6, 1),
+    (100, 5)
+  )
+  def test_sampling_poisson_disk_on_uniform(self, num_points_sqrt, scale):
+    points = utils._create_uniform_distributed_point_cloud_2D(
+        num_points_sqrt, scale=scale)
+    cell_sizes = scale * np.array([2, 2], dtype=np.float32) \
+        / num_points_sqrt
+    batch_ids = np.zeros([len(points)])
+    point_cloud = PointCloud(points, batch_ids)
+    aabb = AABB(point_cloud)
+    grid  = Grid(point_cloud, aabb, cell_sizes)
+    neighborhood = Neighborhood(grid, cell_sizes)
+    sample = Sample(neighborhood, SampleMode.pd)
+
+    sampled_points = sample.sampledPointCloud_.pts_.numpy()
+    expected_num_pts = num_points_sqrt ** 2 // 2
+    self.assertTrue(len(sampled_points) == expected_num_pts)
+
+  @parameterized.parameters(
     (100, 32, [0.1, 0.1, 0.1])
   )
-  def test_sampling_average(self, num_points, batch_size, cell_sizes):
+  def test_sampling_average_on_random(
+        self, num_points, batch_size, cell_sizes):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size,
         sizes=np.ones(batch_size, dtype=int) * num_points)
