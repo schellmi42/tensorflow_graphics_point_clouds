@@ -93,9 +93,9 @@ class PointHierarchy:
         curSampleOp = Sample(curNeighborhood, pSampleMode)
 
         self.sampleOps_.append(curSampleOp)
-        curSampleOp.samplePointCloud_.set_batch_shape(self.batchShape_)
-        self.pointClouds_.append(curSampleOp.samplePointCloud_)
-        curPC = curSampleOp.samplePointCloud_
+        curSampleOp.sampledPointCloud_.set_batch_shape(self.batchShape_)
+        self.pointClouds_.append(curSampleOp.sampledPointCloud_)
+        curPC = curSampleOp.sampledPointCloud_
 
   def get_points(self, id=None, max_num_points=None, name=None):
     """ Returns the points.

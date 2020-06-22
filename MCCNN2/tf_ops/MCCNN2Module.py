@@ -75,7 +75,7 @@ def sampling(pNeighborhood, pPoolMode, name=None):
       pNeighborhood.neighbors_,
       pNeighborhood.samplesNeighRanges_,
       pPoolMode)
-tf.no_gradient('Pooling')
+tf.no_gradient('sampling')
 
 
 # def knn(pGrid, pPCSamples, pRadii, pNumNeighs, pNearest):

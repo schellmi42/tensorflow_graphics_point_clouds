@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+""" class to represent a sampling operation """
 
 import os
 import sys
@@ -68,6 +69,6 @@ class Sample:
             self.neighborhood_.grid_.sortedIndices_, sampleIndices)
       else:
         self.indices_ = None
-      self.samplePointCloud_ = PointCloud(
+      self.sampledPointCloud_ = PointCloud(
           pPts=samplePts, pBatchIds=sampleBatchIds,
           pBatchSize=self.neighborhood_.pcSamples_.batchSize_)

@@ -20,8 +20,9 @@ import numpy as np
 def _create_random_point_cloud_segmented(batch_size,
                                          num_points,
                                          dimension=3,
-                                         sizes=None):
-  points = np.float32(np.random.randn(num_points, dimension))
+                                         sizes=None,
+                                         scale=1):
+  points = scale * np.float32(np.random.randn(num_points, dimension))
   if sizes is None:
     batch_ids = np.random.randint(0, batch_size, num_points)
     batch_ids[:batch_size] = np.arange(0, batch_size)
@@ -35,9 +36,11 @@ def _create_random_point_cloud_segmented(batch_size,
 def _create_random_point_cloud_padded(max_num_points,
                                       batch_shape,
                                       dimension=3,
-                                      sizes=None):
+                                      sizes=None,
+                                      scale=1):
   batch_size = np.prod(batch_shape)
-  points = np.float32(np.random.randn(max_num_points * batch_size, dimension))
+  points = scale * np.float32(
+      np.random.randn(max_num_points * batch_size, dimension))
   points = points.reshape(batch_shape + [max_num_points, dimension])
   if sizes is None:
     sizes = np.random.randint(1, max_num_points, batch_shape)
