@@ -114,6 +114,10 @@ class PointCloud:
       #Sort the points based on the batch ids in incremental order.
       self.sortedIndicesBatch_ = tf.argsort(self.batchIds_)
 
+      # initialize grid and neighborhood_cache
+      self._grid_cache = {}
+      self._neighborhood_cache = {}
+
   def get_points(self, id=None, max_num_points=None, name=None):
     """ Returns the points.
 

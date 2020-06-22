@@ -14,8 +14,7 @@
 """Class to represent point cloud convolution"""
 
 import tensorflow as tf
-from tensorflow_graphics.geometry.convolution.utils import \
-    flatten_batch_to_2d
+from MCCNN2.pc.utils import _flatten_features
 
 
 from MCCNN2.pc import AABB
@@ -105,10 +104,11 @@ class MCConv:
 
   def __call__(self,
                pInFeatures,
-               pInPC,
-               pOutPC,
+               pInPC: PointCloud,
+               pOutPC: PointCloud,
                pRadius,
                pBandWidth=0.2,
+               return_sorted=False,
                name=None):
     """ Computes the Monte-Carlo Convolution
 
@@ -125,6 +125,8 @@ class MCConv:
       pRadius: A float, the convolution radius.
       pBandWidth: The used bandwidth used in the kernel densitiy estimation on
         the input point cloud.
+      return_sorted: A boolean, if 'True' the output tensor is sorted
+        according to the batch_ids.
 
       Returns:
         Tensor with shape [N_out,D_out]
@@ -132,10 +134,9 @@ class MCConv:
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
                                  [pInFeatures, pInPC, pOutPC, pRadius,
-                                  pBandWidth]):
+                                  pBandWidth, return_sorted]):
       pInFeatures = tf.convert_to_tensor(value=pInFeatures, dtype=tf.float32)
-      if len(pInFeatures.shape) > 2:
-        pInFeatures, _ = flatten_batch_to_2d(pInFeatures, pInPC.sizes_)
+      pInFeatures = _flatten_features(pInFeatures, pInPC)
       pRadius = tf.convert_to_tensor(value=pRadius, dtype=tf.float32)
       pBandWidth = tf.convert_to_tensor(value=pBandWidth)
 
@@ -158,6 +159,10 @@ class MCConv:
       inWeightFeat = basis_proj(neigh, pInFeatures, self.basisTF_, 3)
 
       #Compute the convolution.
-      return tf.matmul(tf.reshape(inWeightFeat,
-                                  [-1, self.numInFeatures_ * self.numHidden_]),
-                       self.weights_)
+      convolution_result = tf.matmul(tf.reshape(
+          inWeightFeat, [-1, self.numInFeatures_ * self.numHidden_]),
+          self.weights_)
+      if return_sorted:
+        convolution_result = tf.gather(convolution_result,
+                                       pOutPC.sortedBatchIds_)
+      return convolution_result

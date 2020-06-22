@@ -14,6 +14,7 @@
 """Class to represent axis aligned bounding box of point clouds"""
 
 import tensorflow as tf
+from MCCNN2.pc import PointCloud
 
 
 class AABB:
@@ -29,7 +30,7 @@ class AABB:
     batchShape_: An int tensor of shape [A1,...,An]
   """
 
-  def __init__(self, point_cloud, name=None):
+  def __init__(self, point_cloud: PointCloud, name=None):
     """Constructor.
 
     Args:

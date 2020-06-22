@@ -16,13 +16,14 @@
 
 import os
 import tensorflow as tf
+import numpy as np
 from tensorflow_graphics.io.triangle_mesh import load as load_mesh
 
 
-def load_points_from_file(filename,
-                          delimiter=',',
-                          dimension=3,
-                          dtype=tf.float32):
+def load_points_from_file_to_tensor(filename,
+                                    delimiter=',',
+                                    dimension=3,
+                                    dtype=tf.float32):
   """ Loads point clouds with features from ASCII files using tf.io.gfile.GFile()
 
   Args:
@@ -37,7 +38,7 @@ def load_points_from_file(filename,
     features: A `Tensor` of shape [N,D2] and type dtype
 
   Raises:
-    TypeError: if filename ist not of type 'string'
+    TypeError: if filename is not of type 'string'
     FileNotFoundError: if filename does not exist
 
   """
@@ -57,6 +58,49 @@ def load_points_from_file(filename,
       features = tf.convert_to_tensor(value=features)
       points = tf.strings.to_number(input=points, out_type=dtype)
       features = tf.strings.to_number(input=features, out_type=dtype)
+      return points, features
+    else:
+      raise FileNotFoundError(f"No such file: {filename}")
+  else:
+    raise TypeError("'filename' must be of type 'string'")
+
+
+def load_points_from_file_to_numpy(filename,
+                                   delimiter=',',
+                                   dimension=3,
+                                   dtype=np.float32):
+  """ Loads point clouds with features from ASCII files using tf.io.gfile.GFile()
+
+  Args:
+    filename: `string` path to the file
+    delimiter: `string` delimiter that separates the points in the file
+    dimension: `int` D1 , the first D1 elements in each line are treated as
+    point coordinates, the rest as features
+    dtype: `np.dtype` of the output array
+
+  Returns:
+    points: A numpy array of shape [N,D1] and type dtype
+    features: A numpy array of shape [N,D2] and type dtype
+
+  Raises:
+    TypeError: if filename is not of type 'string'
+    FileNotFoundError: if filename does not exist
+
+  """
+
+  points = []
+  features = []
+  if isinstance(filename, str):
+    if tf.io.gfile.exists(filename):
+      with tf.io.gfile.GFile(filename, 'r') as in_file:
+        for line in in_file:
+          line_elements = line[:-1].split(delimiter)
+          points.append(line_elements[0:dimension])
+          if len(line_elements) > 3:
+            features.append(line_elements[dimension:])
+
+      points = np.array(points, dtype=dtype)
+      features = np.array(features, dtype=dtype)
       return points, features
     else:
       raise FileNotFoundError(f"No such file: {filename}")
@@ -96,7 +140,7 @@ def load_batch_of_points(filenames,
   max_num_points = 0
   sizes = []
   for filename in filenames:
-    curr_points, curr_features = load_points_from_file(
+    curr_points, curr_features = load_points_from_file_to_tensor(
         filename=filename, delimiter=delimiter, dtype=dtype)
     points.append(curr_points)
     features.append(curr_features)

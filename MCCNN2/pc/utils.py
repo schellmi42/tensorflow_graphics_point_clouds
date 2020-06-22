@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import tensorflow as tf
+from tensorflow_graphics.geometry.convolution.utils import flatten_batch_to_2d
 from MCCNN2.pc import PointCloud
 
 
@@ -62,3 +63,10 @@ def check_valid_point_hierarchy_input(point_cloud, cell_sizes, pool_mode):
     if not len(curr_cell_sizes) in [1, point_cloud.dimension_]:
       raise ValueError(f'Invalid number of cell sizes for point cloud dimension.  \
         Must be 1 or {point_cloud.dimension_} but is {len(curr_cell_sizes)}.')
+
+
+def _flatten_features(features, point_cloud):
+  if len(features.shape) > 2:
+    sizes = point_cloud.get_sizes()
+    features, _ = flatten_batch_to_2d(features, sizes)
+  return features

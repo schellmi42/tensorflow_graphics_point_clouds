@@ -23,6 +23,7 @@ ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2.pc import PointCloud
+from MCCNN2.pc import Grid
 from MCCNN2Module import find_neighbors
 from MCCNN2Module import compute_pdf
 from MCCNN2Module import compute_pdf_with_pt_grads
@@ -49,7 +50,7 @@ class Neighborhood:
   """
 
   def __init__(self,
-               pGrid,
+               pGrid: Grid,
                pRadii,
                pPCSample=None,
                pMaxNeighbors=0,

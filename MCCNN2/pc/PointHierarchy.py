@@ -39,7 +39,7 @@ class PointHierarchy:
   """
 
   def __init__(self,
-               pPointCloud,
+               pPointCloud: PointCloud,
                pCellSizes,
                pSampleMode=SampleMode.pd,
                name=None):
