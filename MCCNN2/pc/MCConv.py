@@ -35,6 +35,16 @@ from MCCNN2Module import basis_proj
 
 
 class MCConv:
+  """ Class to represent a Monte-Carlo convolution layer
+
+    Attributes:
+      numInFeatures_: Integer, the number of features per input point
+      numoutFeatures_: Integer, the number of features to compute
+      numHidden_: Integer, the number of neurons in the hidden layer of the
+        kernel MLP
+      numDims_: Integer, dimensionality of the point cloud
+      convName_: String, name for the operation
+  """
 
   def __init__(self,
                pNumInFeatures,
@@ -42,6 +52,16 @@ class MCConv:
                pHiddenSize,
                pNumDims,
                pConvName=None):
+    """ Constructior, initializes weights
+
+    Args:
+    pNumInFeatures: Integer D_in, the number of features per input point
+    pNumOutFeatures: Integer D_out, the number of features to compute
+    pHiddenSize: Integer, the number of neurons in the hidden layer of the
+        kernel MLP
+    pNumDims: Integer, dimensionality of the point cloud
+    pConvName: String, name for the operation
+    """
 
     with tf.compat.v1.name_scope(pConvName, "create Monte-Carlo convolution",
                                  [self, pNumOutFeatures, pNumInFeatures,
@@ -90,6 +110,25 @@ class MCConv:
                pRadius,
                pBandWidth=0.2,
                name=None):
+    """ Computes the Monte-Carlo Convolution
+
+    Note:
+      In the following, A1 to An are optional batch dimensions.
+      D_in is the number of input features.
+      D_out is the number of output features.
+
+    Args:
+      pInFeatures: A float Tensor of shape [N_in,D_in] or [A1,...,An,V,D_in],
+        the size must be the same as the points in the input point cloud.
+      pInPC: A PointCloud instance, represents the input point cloud.
+      pOutPC: A PointCloud instance, represents the output point cloud.
+      pRadius: A float, the convolution radius.
+      pBandWidth: The used bandwidth used in the kernel densitiy estimation on
+        the input point cloud.
+
+      Returns:
+        Tensor with shape [N_out,D_out]
+    """
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
                                  [pInFeatures, pInPC, pOutPC, pRadius,
