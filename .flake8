@@ -32,4 +32,4 @@ ignore = C901,
          W191,
          W503,
          W504,
-         E402, # own customization
+         E402, # own customization 'Module level import not at top of file'
