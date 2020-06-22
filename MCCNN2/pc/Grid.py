@@ -58,7 +58,7 @@ class Grid:
         name, "constructor for point cloud regular grid",
         [self, pPointCloud, pAABB, pCellSizes]):
       pCellSizes = tf.convert_to_tensor(value=pCellSizes, dtype=tf.float32)
-      if pCellSizes in pPointCloud._grid_cache:
+      if False:  # pCellSizes in pPointCloud._grid_cache:
         # load from memory
         self = pPointCloud._grid_cache[pCellSizes]
       else:
@@ -98,4 +98,4 @@ class Grid:
             self.sortedKeys_, self.numCells_, self.batchSize_)
 
         # add grid to the cache
-        pPointCloud._grid_cache[hash(pCellSizes)] = self
+        # pPointCloud._grid_cache[hash(pCellSizes)] = self
