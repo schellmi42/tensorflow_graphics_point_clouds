@@ -6,3 +6,5 @@ from .Neighborhood import KDEMode
 from .Sample import Sample
 from .Sample import SampleMode
 from .PointHierarchy import PointHierarchy
+
+from MCCNN2.pc import layers
