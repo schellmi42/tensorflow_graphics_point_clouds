@@ -22,11 +22,15 @@ def _create_random_point_cloud_segmented(batch_size,
                                          dimension=3,
                                          sizes=None,
                                          scale=1,
-                                         clean_aabb=False):
+                                         clean_aabb=False,
+                                         equal_sized_batches=False):
   points = np.random.uniform(0, scale, [num_points, dimension])
   if sizes is None:
-    batch_ids = np.random.randint(0, batch_size, num_points)
-    batch_ids[:batch_size] = np.arange(0, batch_size)
+    if not equal_sized_batches:
+      batch_ids = np.random.randint(0, batch_size, num_points)
+      batch_ids[:batch_size] = np.arange(0, batch_size)
+    else:
+      batch_ids = np.repeat(np.arange(0, batch_size), num_points // batch_size)
     # batch_ids = np.sort(batch_ids)
   else:
     sizes = np.array(sizes, dtype=int)

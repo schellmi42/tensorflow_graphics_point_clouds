@@ -63,7 +63,7 @@ class SamplingTest(test_case.TestCase):
     self.assertTrue(np.all(min_dist < cell_sizes))
 
   @parameterized.parameters(
-    (6, 1),
+    (600, 1),
     (100, 5)
   )
   def test_sampling_poisson_disk_on_uniform(self, num_points_sqrt, scale):
