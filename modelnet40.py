@@ -9,7 +9,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.random.seed(42)
 tf.random.set_seed(42)
 
-quick_test=True
+quick_test=False
 
 data_dir = '../2019 - ModelNet_PointNet/'
 num_classes = 40 # modelnet 10 or 40
