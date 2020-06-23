@@ -46,9 +46,9 @@ class ComputePDFTest(test_case.TestCase):
         equal_sized_batches=True)
     samples = np.full((batch_size * num_samples, 3), 0.0, dtype=float)
     for i in range(batch_size):
-        cur_choice = np.random.choice(num_points, num_samples, replace=True)
-        samples[num_samples * i:num_samples * (i + 1), :] = \
-            points[cur_choice + i * num_points]
+      cur_choice = np.random.choice(num_points, num_samples, replace=True)
+      samples[num_samples * i:num_samples * (i + 1), :] = \
+          points[cur_choice + i * num_points]
     samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
 
     point_cloud = PointCloud(points, batch_ids, batch_size)
@@ -68,21 +68,21 @@ class ComputePDFTest(test_case.TestCase):
     accum_points = []
     prev_batch_i = -1
     for pt_i, batch_i in enumerate(sorted_batch_ids):
-        if batch_i != prev_batch_i:
-            if len(accum_points) > 0:
-                test_points = np.array(accum_points)
-                kde_skl = KernelDensity(bandwidth=bandwidth)
-                kde_skl.fit(test_points)
-                log_pdf = kde_skl.score_samples(test_points)
-                pdf = np.exp(log_pdf)
-                if len(pdf_real) > 0:
-                    pdf_real = np.concatenate((pdf_real, pdf), axis=0)
-                else:
-                    pdf_real = pdf
-            accum_points = [sorted_points[pt_i] / cell_size]
-            prev_batch_i = batch_i
-        else:
-            accum_points.append(sorted_points[pt_i] / cell_size)
+      if batch_i != prev_batch_i:
+        if len(accum_points) > 0:
+          test_points = np.array(accum_points)
+          kde_skl = KernelDensity(bandwidth=bandwidth)
+          kde_skl.fit(test_points)
+          log_pdf = kde_skl.score_samples(test_points)
+          pdf = np.exp(log_pdf)
+          if len(pdf_real) > 0:
+            pdf_real = np.concatenate((pdf_real, pdf), axis=0)
+          else:
+            pdf_real = pdf
+        accum_points = [sorted_points[pt_i] / cell_size]
+        prev_batch_i = batch_i
+      else:
+        accum_points.append(sorted_points[pt_i] / cell_size)
 
     test_points = np.array(accum_points)
     kde_skl = KernelDensity(bandwidth=bandwidth)
@@ -90,9 +90,9 @@ class ComputePDFTest(test_case.TestCase):
     log_pdf = kde_skl.score_samples(test_points)
     pdf = np.exp(log_pdf)
     if len(pdf_real) > 0:
-        pdf_real = np.concatenate((pdf_real, pdf), axis=0)
+      pdf_real = np.concatenate((pdf_real, pdf), axis=0)
     else:
-        pdf_real = pdf
+      pdf_real = pdf
 
     pdf_tf = np.asarray(pdf_tf / float(len(accum_points)))
     pdf_skl = np.asarray(pdf_real)[neighbor_ids[:, 0]]
@@ -110,8 +110,8 @@ class ComputePDFTest(test_case.TestCase):
         equal_sized_batches=True)
     samples = np.full((batch_size * num_samples, 3), 0.0, dtype=float)
     for i in range(batch_size):
-        cur_choice = np.random.choice(num_points, num_samples, replace=True)
-        samples[num_samples * i:num_samples * (i + 1), :] = \
+      cur_choice = np.random.choice(num_points, num_samples, replace=True)
+      samples[num_samples * i:num_samples * (i + 1), :] = \
             points[cur_choice + i * num_points]
     samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
     def compute_pdf(points_in):
