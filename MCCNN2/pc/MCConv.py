@@ -164,5 +164,5 @@ class MCConv:
           self.weights_)
       if return_sorted:
         convolution_result = tf.gather(convolution_result,
-                                       pOutPC.sortedBatchIds_)
+                                       pOutPC.sortedIndicesBatch_)
       return convolution_result
