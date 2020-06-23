@@ -1,6 +1,7 @@
 import tensorflow as tf 
 import MCCNN2.pc as pc
 import MCCNN2.io as io
+from MCCNN2.pc import layers as pc_layers
 import numpy as np
 import tensorflow_graphics
 import os, time
@@ -9,7 +10,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.random.seed(42)
 tf.random.set_seed(42)
 
-quick_test=False
+quick_test=True
 
 data_dir = '../2019 - ModelNet_PointNet/'
 num_classes = 40 # modelnet 10 or 40
@@ -88,7 +89,7 @@ class mymodel(tf.keras.Model):
     self.dense_layers = []
     self.activations = []
     for i in range(self.num_layers):
-      self.conv_layers.append(pc.MCConv(feature_sizes[i],feature_sizes[i+1],hidden_size, 3))
+      self.conv_layers.append(pc_layers.MCConv(feature_sizes[i],feature_sizes[i+1],hidden_size, 3))
       self.batch_layers.append(tf.keras.layers.BatchNormalization())
       self.activations.append(tf.keras.layers.LeakyReLU())
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-2]))

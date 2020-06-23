@@ -6,4 +6,3 @@ from .Neighborhood import KDEMode
 from .Sample import Sample
 from .Sample import SampleMode
 from .PointHierarchy import PointHierarchy
-from .MCConv import MCConv
