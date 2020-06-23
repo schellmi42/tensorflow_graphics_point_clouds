@@ -1,2 +1,2 @@
 from .Pooling import GlobalAveragePooling, GlobalMaxPooling
-from .MCConv import MCConv
+from .MCConv import MCConv, MCConv2Sampled

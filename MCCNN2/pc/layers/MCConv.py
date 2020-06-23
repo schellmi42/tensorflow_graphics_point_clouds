@@ -33,7 +33,7 @@ sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 from MCCNN2Module import basis_proj
 
 
-class MCConv:
+class MCConv2Sampled:
   """ Class to represent a Monte-Carlo convolution layer
 
     Attributes:
@@ -168,7 +168,7 @@ class MCConv:
       return convolution_result
 
 
-class MonteCarloConvolution(MCConv):
+class MCConv(MCConv):
   """ Class to represent a Monte-Carlo convolution layer on one point cloud
 
     Attributes:
@@ -227,3 +227,4 @@ class MonteCarloConvolution(MCConv):
     """
     return super(self).__call__(self, pInFeatures, pPC, pPC, pRadius,
                                 pBandWidth, return_sorted, name)
+                                

@@ -88,7 +88,7 @@ class mymodel(tf.keras.Model):
     self.dense_layers = []
     self.activations = []
     for i in range(self.num_layers):
-      self.conv_layers.append(pc.layers.MCConv(feature_sizes[i],feature_sizes[i+1],hidden_size, 3))
+      self.conv_layers.append(pc.layers.MCConv2Sampled(feature_sizes[i],feature_sizes[i+1],hidden_size, 3))
       self.batch_layers.append(tf.keras.layers.BatchNormalization())
       self.activations.append(tf.keras.layers.LeakyReLU())
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-2]))
