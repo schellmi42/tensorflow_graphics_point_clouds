@@ -50,8 +50,7 @@ def _create_random_point_cloud_padded(max_num_points,
                                       batch_shape,
                                       dimension=3,
                                       sizes=None,
-                                      scale=1,
-                                      nice_aabb=False):
+                                      scale=1):
   batch_size = np.prod(batch_shape)
   points = np.random.uniform(
       0, scale, [max_num_points * batch_size, dimension])

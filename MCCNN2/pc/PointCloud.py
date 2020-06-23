@@ -81,6 +81,8 @@ class PointCloud:
       check_valid_point_cloud_input(pPts, sizes, pBatchIds)
 
       self.sizes_ = sizes
+      self.batchSize_ = pBatchSize
+      self.batchIds_ = pBatchIds
       self.batchShape_ = None
       self.unflatten_ = None
       self.dimension_ = pPts.shape[-1]
@@ -89,7 +91,7 @@ class PointCloud:
         # converting padded [A1,...,An,V,D] tensor into a 2D tensor [N,D] with
         # segmentation ids
         self.batchShape_ = pPts.shape[:-2]
-        if pBatchSize is None:
+        if self.batchSize_ is None:
           self.batchSize_ = tf.reduce_prod(self.batchShape_)
         if self.sizes_ is None:
           self.sizes_ = tf.constant(
@@ -100,16 +102,18 @@ class PointCloud:
         self.batchIds_ = tf.repeat(
             tf.range(0, self.batchSize_),
             repeats=tf.reshape(self.sizes_, [-1]))
-      elif pBatchIds is not None:
+      else:
         # if input is already 2D tensor with segmentation ids
-        if pBatchSize is None:
-          self.batchSize_ = tf.reduce_max(pBatchIds) + 1
+        if self.batchIds_ is None:
+          if self.batchSize_ is None:
+            self.batchSize_ = tf.reduce_prod(self.sizes.shape)
+          self.batchIds_ = tf.repeat(tf.range(0, self.batchSize_), sizes)
+        if self.batchSize_ is None:
+          self.batchSize_ = tf.reduce_max(self.batchIds_) + 1
         else:
           self.batchSize_ = pBatchSize
         self.batchIds_ = pBatchIds
         self.pts_ = pPts
-      else:
-        raise ValueError('invalid input format.')
 
       #Sort the points based on the batch ids in incremental order.
       self.sortedIndicesBatch_ = tf.argsort(self.batchIds_)

@@ -29,5 +29,30 @@ from MCCNN2.pc.tests import utils
 
 class point_cloud_test(test_case.TestCase):
 
-  def dummy_test():
-    assert(1 == 1)
+  @parameterized.parameters(
+    ([32], 100, 3),
+    ([5, 2], 100, 2),
+    ([2, 3, 4], 100, 4)
+  )
+  def test_flatten_unflatten_padded(self, batch_shape, num_points, dimension):
+    batch_size = np.prod(batch_shape)
+    points, sizes = utils._create_random_point_cloud_padded(
+        num_points, batch_shape, dimension=dimension)
+    point_cloud = PointCloud(points, sizes=sizes)
+    retrieved_points = point_cloud.get_points().numpy()
+    self.assertAllEqual(points.shape, retrieved_points.shape)
+    points = points.reshape([batch_size, num_points, dimension])
+    retrieved_points = retrieved_points.reshape(
+        [batch_size, num_points, dimension])
+    sizes = sizes.reshape([batch_size])
+    for i in range(batch_size):
+      self.assertAllClose(points[i, :sizes[i]], retrieved_points[i, :sizes[i]])
+      self.assertTrue(np.all(retrieved_points[i, sizes[i]:] == 0))
+
+  @parameterized.parameters(
+
+  )
+  def 
+
+if __name__ == '__main__':
+  test_case.main()

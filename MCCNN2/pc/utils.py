@@ -30,7 +30,7 @@ def check_valid_point_cloud_input(points, sizes, batch_ids):
       is given.
   """
 
-  if sizes is None and batch_ids is None:
+  if len(points.shape) == 2 and sizes is None and batch_ids is None:
     raise ValueError('Missing input! Either sizes or pBatchIds must be given.')
   if len(points.shape) == 1:
     raise ValueError(
