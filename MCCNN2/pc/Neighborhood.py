@@ -26,7 +26,6 @@ from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2Module import find_neighbors
 from MCCNN2Module import compute_pdf
-from MCCNN2Module import compute_pdf_with_pt_grads
 
 
 class KDEMode(enum.Enum):
@@ -96,18 +95,16 @@ class Neighborhood:
       #Initialize the pdf
       self.pdf_ = None
 
-  def compute_pdf(self, pBandwidth, pMode=0, pPtGradients=True, name=None):
+  def compute_pdf(self, pBandwidth, pMode=0, name=None):
     """Method to compute the probability density function of a neighborhood.
 
     Args:
       pBandwidth (float tensor d): Bandwidth used to compute the pdf.
       pMode (KDEMode): Mode used to determine the bandwidth.
-      pPtGradients (bool): Boolean that determines if the operation
-        will compute gradients for the input points or not.
     """
     with tf.compat.v1.name_scope(
         name, "compute pdf for neighbours",
-        [self, pBandwidth, pMode, pPtGradients]):
+        [self, pBandwidth, pMode]):
       pBandwidth = tf.convert_to_tensor(value=pBandwidth)
 
       if pMode == KDEMode.noPDF:
@@ -118,9 +115,6 @@ class Neighborhood:
           auxNeigh = self
         else:
           auxNeigh = Neighborhood(self.grid_, self.radii_, None)
-        if pPtGradients:
-          tmpPDF = compute_pdf_with_pt_grads(
+        tmpPDF = compute_pdf(
               auxNeigh, pBandwidth, pMode.value)
-        else:
-          tmpPDF = compute_pdf(auxNeigh, pBandwidth, pMode.value)
         self.pdf_ = tf.gather(tmpPDF, self.neighbors_[:, 0])

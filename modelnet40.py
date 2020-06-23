@@ -89,8 +89,12 @@ class mymodel(tf.keras.Model):
     self.activations = []
     for i in range(self.num_layers):
       self.conv_layers.append(pc.layers.MCConv2Sampled(feature_sizes[i],feature_sizes[i+1],hidden_size, 3))
-      self.batch_layers.append(tf.keras.layers.BatchNormalization())
-      self.activations.append(tf.keras.layers.LeakyReLU())
+      if i < self.num_layers-1:
+        self.batch_layers.append(tf.keras.layers.BatchNormalization())
+        self.activations.append(tf.keras.layers.LeakyReLU())
+    self.global_pooling = pc.layers.GlobalAveragePooling()
+    self.batch_layers.append(tf.keras.layers.BatchNormalization())
+    self.activations.append(tf.keras.layers.LeakyReLU())
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-2]))
     self.batch_layers.append(tf.keras.layers.BatchNormalization())
     self.activations.append(tf.keras.layers.LeakyReLU())
@@ -102,17 +106,19 @@ class mymodel(tf.keras.Model):
     conv_radii = self.conv_radii
     point_hierarchy = pc.PointHierarchy(point_cloud, pool_radii)
     for i in range(self.num_layers):
-      if i == self.num_layers-1:
-        return_sorted=True
-      else:
-        return_sorted=False
-      features = self.conv_layers[i](features, point_hierarchy[i], point_hierarchy[i+1],conv_radii[i], return_sorted=return_sorted)
-      features = self.batch_layers[i](features, training)
-      features = self.activations[i](features)
+      features = self.conv_layers[i](features, point_hierarchy[i], 
+        point_hierarchy[i+1],conv_radii[i], return_sorted=False)
+      if i < self.num_layers-1:
+        features = self.batch_layers[i](features, training)
+        features = self.activations[i](features)
+
+    features = self.global_pooling(features, point_hierarchy[-1])
+    features = self.batch_layers[-2](features, training)
+    features = self.activations[-2](features)
     features = self.dense_layers[-2](features)
     features = self.batch_layers[-1](features, training)
-    features = self.activations[i](features)
-    return features
+    features = self.activations[-1](features)
+    return self.dense_layers[-1](features)
 
 #-----------------------------------------------
 class modelnet_data_generator(tf.keras.utils.Sequence):
@@ -163,17 +169,17 @@ num_epochs = 100
 
 hidden_size = 16
 feature_sizes = [1,128,256,512,128,num_classes]
-pool_radii = np.array([0.1, 0.2, np.sqrt(6)+0.1])
-conv_radii = pool_radii
-
-lr_decay=tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=0.01,
-    decay_steps=100,
-    decay_rate=0.9)
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
+pool_radii = np.array([0.1, 0.2, 0.4])
+conv_radii = pool_radii*1.5
 
 model = mymodel(feature_sizes,hidden_size,pool_radii, conv_radii)
 gen_train = modelnet_data_generator(train_data_points, train_labels, batch_size)
 gen_test = modelnet_data_generator(test_data_points, test_labels, batch_size)
+
+lr_decay=tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=0.001,
+    decay_steps=gen_train.__len__(),
+    decay_rate=0.95)
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 
 train_loss_results = []
 train_accuracy_results = []
@@ -183,18 +189,18 @@ for epoch in range(num_epochs):
   i=0
   time_epoch_start = time.time()
   for points, features, sizes, labels in gen_train:
-    # time_batch_start = time.time()
+    #time_batch_start = time.time()
     with tf.GradientTape() as tape:
       logits = model(points,sizes,features,True)
       pred = tf.nn.softmax(logits, axis=-1)
       loss = loss_function(y_true=labels, y_pred=pred)
     grads = tape.gradient(loss,model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    # time_batch_end = time.time()
+    #time_batch_end = time.time()
     epoch_loss_avg.update_state(loss)
     epoch_accuracy.update_state(labels, pred)
 
-    # print("Epoch {:03d}: Batch: {:03d}, Loss: {:.3f}, Accuracy: {:.3%} Time: {:.3f}ms".format(epoch, i,
+    #print("Epoch {:03d}: Batch: {:03d}, Loss: {:.3f}, Accuracy: {:.3%} Time: {:.3f}ms".format(epoch, i,
     #                                                              epoch_loss_avg.result(),
     #                                                              epoch_accuracy.result(),
     #                                                              1000*(time_batch_end-time_batch_start)))

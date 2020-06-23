@@ -25,7 +25,7 @@
 /**
  *  Template to define the type of correlation used.
  */
-template<int D, bool P, int C> 
+template<int D, int C> 
 struct correlation_type_struct{
     __forceinline__ __device__ float forward(
         const float pKernelExtend,
@@ -37,7 +37,6 @@ struct correlation_type_struct{
         const float pKernelExtend,
         const float pDist,
         const float* __restrict__ pKPtDiff,
-        const float* __restrict__ pInvRadius,
         const float pInvPDF,
         const float pInGradient,
         float* __restrict__ pOutGrads,
@@ -46,7 +45,7 @@ struct correlation_type_struct{
 
 // C = 0 : LINEAR
 template<int D> 
-struct correlation_type_struct<D, false, 0>{
+struct correlation_type_struct<D, 0>{
     __forceinline__ __device__ float forward(
         const float pKernelExtend,
         const float pDist){
@@ -57,39 +56,6 @@ struct correlation_type_struct<D, false, 0>{
         const float pKernelExtend,
         const float pDist,
         const float* __restrict__ pKPtDiff,
-        const float* __restrict__ pInvRadius,
-        const float pInvPDF,
-        const float pInGradient,
-        float* __restrict__ pOutGrads,
-        float* __restrict__ pOutPtGrads){
-
-            float weightVal = this->forward(pKernelExtend, pDist);
-            //If there is a gradient.
-            if(weightVal > 0.0f){
-#pragma unroll
-                for(int j = 0; j < D; ++j){
-                    pOutGrads[j*blockDim.x] -= 
-                        (pKPtDiff[j]*pKernelExtend*pInvPDF*pInGradient)/(pDist+1e-8);
-                }
-                pOutGrads[D*blockDim.x] -= pDist*pInvPDF*pInGradient;
-            }
-        }
-};
-
-
-template<int D> 
-struct correlation_type_struct<D, true, 0>{
-    __forceinline__ __device__ float forward(
-        const float pKernelExtend,
-        const float pDist){
-            return  MCCNN_MAX(1.0 - pDist*pKernelExtend, 0.0);
-        }
-
-    __forceinline__ __device__ void backward(
-        const float pKernelExtend,
-        const float pDist,
-        const float* __restrict__ pKPtDiff,
-        const float* __restrict__ pInvRadius,
         const float pInvPDF,
         const float pInGradient,
         float* __restrict__ pOutGrads,
@@ -102,18 +68,17 @@ struct correlation_type_struct<D, true, 0>{
                 for(int j = 0; j < D; ++j){
                     float grad = (pKPtDiff[j]*pKernelExtend*pInvPDF*pInGradient)/(pDist+1e-8);
                     pOutGrads[j*blockDim.x] -= grad;
-                    pOutPtGrads[j*blockDim.x] = pInvRadius[j]*grad;
-                    pOutPtGrads[(D+j)*blockDim.x] = -pInvRadius[j]*grad;
+                    pOutPtGrads[j*blockDim.x] = grad;
                 }
                 pOutGrads[D*blockDim.x] -= pDist*pInvPDF*pInGradient;
-                pOutPtGrads[D*2*blockDim.x] = -weightVal*pInvPDF*pInvPDF*pInGradient;
+                pOutPtGrads[D*blockDim.x] = -weightVal*pInvPDF*pInvPDF*pInGradient;
             }
         }
 };
 
 // C = 1 : EXPONENTIAL
 template<int D> 
-struct correlation_type_struct<D, false, 1>{
+struct correlation_type_struct<D, 1>{
     __forceinline__ __device__ float forward(
         const float pKernelExtend,
         const float pDist){
@@ -124,34 +89,6 @@ struct correlation_type_struct<D, false, 1>{
         const float pKernelExtend,
         const float pDist,
         const float* __restrict__ pKPtDiff,
-        const float* __restrict__ pInvRadius,
-        const float pInvPDF,
-        const float pInGradient,
-        float* __restrict__ pOutGrads,
-        float* __restrict__ pOutPtGrads){
-
-            float expRes = this->forward(pKernelExtend, pDist);
-#pragma unroll
-            for(int j = 0; j < D; ++j)
-                pOutGrads[j*blockDim.x] -= 
-                    (expRes*pKernelExtend*2.0*pKPtDiff[j]*pInvPDF*pInGradient);
-            pOutGrads[D*blockDim.x] += expRes*pInvPDF*(-pDist*pDist)*pInGradient;
-        }
-};
-
-template<int D> 
-struct correlation_type_struct<D, true, 1>{
-    __forceinline__ __device__ float forward(
-        const float pKernelExtend,
-        const float pDist){
-            return expf(-(pDist*pDist*pKernelExtend));
-        }
-
-    __forceinline__ __device__ void backward(
-        const float pKernelExtend,
-        const float pDist,
-        const float* __restrict__ pKPtDiff,
-        const float* __restrict__ pInvRadius,
         const float pInvPDF,
         const float pInGradient,
         float* __restrict__ pOutGrads,
@@ -162,58 +99,17 @@ struct correlation_type_struct<D, true, 1>{
             for(int j = 0; j < D; ++j){
                 float grad = (expRes*pKernelExtend*2.0*pKPtDiff[j]*pInvPDF*pInGradient);
                 pOutGrads[j*blockDim.x] -= grad;
-                pOutPtGrads[j*blockDim.x] = pInvRadius[j]*grad;
-                pOutPtGrads[(D+j)*blockDim.x] = -pInvRadius[j]*grad;
+                pOutPtGrads[j*blockDim.x] = grad;
             }
             pOutGrads[D*blockDim.x] += expRes*pInvPDF*(-pDist*pDist)*pInGradient;
-            pOutPtGrads[D*2*blockDim.x] = -expRes*pInvPDF*pInvPDF*pInGradient;
+            pOutPtGrads[D*blockDim.x] = -expRes*pInvPDF*pInvPDF*pInGradient;
         }
-};
-
-/**
- *  Template to accumulate the point gradients.
- */
-template<int D, int K, bool P> 
-struct accum_pt_grads{
-
-    __forceinline__ __device__ void accumulate(
-        const int pOffset,
-        const float* pSharedMem,
-        float* __restrict__ pOutPtGrads,
-        float* __restrict__ pOutSampleGrads,
-        float* __restrict__ pOutPDFGrads){}
-};
-
-template<int D, int K> 
-struct accum_pt_grads<D, K, true>{
-
-    __forceinline__ __device__ void accumulate(
-        const int pOffset,
-        const float* __restrict__ pSharedMem,
-        float* __restrict__ pOutPtGrads,
-        float* __restrict__ pOutSampleGrads,
-        float* __restrict__ pOutPDFGrads){
-        float accumVal = 0.0f;
-#pragma unroll
-        for(int j = 0; j < K; ++j){
-            accumVal += pSharedMem[pOffset*blockDim.x + j];
-        }
-        if(pOffset < D)
-            atomicAdd(&pOutPtGrads[pOffset], accumVal);
-        else if(pOffset < D*2)
-            atomicAdd(&pOutSampleGrads[pOffset - D], accumVal);
-        else
-            pOutPDFGrads[0] = accumVal;
-    }
 };
 
 template<int D, int K, int C>
 __global__ void compute_kp_basis_proj_pt_coords(
     const unsigned int pNumNeighbors,       
-    const mccnn::fpoint<D>* __restrict__ pInPtsGPUPtr,
-    const mccnn::fpoint<D>* __restrict__ pInSamplesGPUPtr,
-    const mccnn::fpoint<D>* __restrict__ pInInvRadiiGPUPtr,
-    const int2* __restrict__ pInNeighborsGPUPtr,
+    const float* __restrict__ pInKernelInGPUPtr,
     const float* __restrict__ pInPDFsGPUPtr,
     const float* __restrict__ pInBasisGPUPtr,
     float* __restrict__ pOutProjGPUPtr)
@@ -222,7 +118,7 @@ __global__ void compute_kp_basis_proj_pt_coords(
     extern __shared__ float kernelPts[];
 
     //Create the struct to compute the kernel point correlation.
-    correlation_type_struct<D, false, C> ptCorr;
+    correlation_type_struct<D, C> ptCorr;
 
     //Load the kernel point centers.
 #pragma unroll(2)
@@ -238,12 +134,8 @@ __global__ void compute_kp_basis_proj_pt_coords(
     for(unsigned int curIter = initThreadIndex; 
         curIter < pNumNeighbors; curIter += totalNumThreads)
     {
-        //Get indices to the point and sample.
-        int2 neighAndSampleIndices = pInNeighborsGPUPtr[curIter];
-
         //Compute the pt difference.
-        mccnn::fpoint<D> ptDiff = (pInPtsGPUPtr[neighAndSampleIndices.x] - 
-            pInSamplesGPUPtr[neighAndSampleIndices.y])*pInInvRadiiGPUPtr[0];
+        mccnn::fpoint<D> curKernelIns(&pInKernelInGPUPtr[curIter*D]);
 
         //Compute the pdf inverse.                
         float weightVal = 1.0f/(pInPDFsGPUPtr[curIter]);
@@ -253,7 +145,7 @@ __global__ void compute_kp_basis_proj_pt_coords(
             float sum = 0.0f;
 #pragma unroll
             for(int j = 0; j < D; ++j){
-                float auxDiff = kernelPts[i*(D+1) + j] - ptDiff[j];
+                float auxDiff = kernelPts[i*(D+1) + j] - curKernelIns[j];
                 sum += auxDiff*auxDiff;
             }
 
@@ -264,29 +156,22 @@ __global__ void compute_kp_basis_proj_pt_coords(
     }
 }
 
-template<int D, int K, int C, bool P>
+template<int D, int K, int C>
 __global__ void compute_kp_basis_proj_pt_coords_grads(
     const unsigned int pNumNeighbors,       
-    const float* __restrict__ pInPtsGPUPtr,
-    const float* __restrict__ pInSamplesGPUPtr,
-    const float* __restrict__ pInInvRadiiGPUPtr,
-    const int2* __restrict__ pInNeighborsGPUPtr,
+    const float* __restrict__ pInKernelInGPUPtr,
     const float* __restrict__ pInPDFsGPUPtr,
     const float* __restrict__ pInBasisGPUPtr,
     const float* __restrict__ pInGradsGPUPtr,
     float* __restrict__ pOutBasisGradsGPUPtr,
-    float* __restrict__ pOutPtsGradsGPUPtr,
-    float* __restrict__ pOutSampleGradsGPUPtr,
+    float* __restrict__ pOutKernelInGradsGPUPtr,
     float* __restrict__ pOutPDFGradsGPUPtr)
 {
     //Shared memory to store the kernel points.
     extern __shared__ float sharedMem[];
 
     //Create the struct to compute the kernel point correlation.
-    correlation_type_struct<D, P, C> ptCorr;
-
-    //Create the struct to compute point gradients.
-    accum_pt_grads<D, K, P> ptGrads;
+    correlation_type_struct<D, C> ptCorr;
 
     //Compute usefull indices.
     int totalExecThreads = pNumNeighbors*K;
@@ -299,7 +184,7 @@ __global__ void compute_kp_basis_proj_pt_coords_grads(
     //Get the pointers to shared memory.
     float* kernelPts = sharedMem;
     float* accumGrads = &sharedMem[K*(D+1)];
-    float* sharedPtDiffs = &sharedMem[K*(D+1) + blockDim.x*(D+1)];
+    float* sharedKernelIns = &sharedMem[K*(D+1) + blockDim.x*(D+1)];
     float* accumPtGrads = &sharedMem[K*(D+1) + blockDim.x*(D+1) + groupsXBlock*D];
 
     //Load the kernel point centers.
@@ -320,19 +205,15 @@ __global__ void compute_kp_basis_proj_pt_coords_grads(
         curIter += totalNumThreads)
     {
         //Get indices to the point and sample.
-        int2 neighAndSampleIndices;
         int neighIndex = curIter/K;
         float inGradient = 0.0f;
 
         if(neighIndex < pNumNeighbors){
-            neighAndSampleIndices = pInNeighborsGPUPtr[neighIndex];
 
             //Compute the pt difference.
             if(kpIndex < D){
-                sharedPtDiffs[groupId*D + kpIndex] = 
-                    (pInPtsGPUPtr[neighAndSampleIndices.x*D + kpIndex] -
-                    pInSamplesGPUPtr[neighAndSampleIndices.y*D + kpIndex])*
-                    pInInvRadiiGPUPtr[kpIndex];
+                sharedKernelIns[groupId*D + kpIndex] = 
+                    pInKernelInGPUPtr[neighIndex*D + kpIndex];
             }
 
             //Get the gradient.
@@ -350,7 +231,7 @@ __global__ void compute_kp_basis_proj_pt_coords_grads(
             float kPtDiff[D];
 #pragma unroll
             for(int j = 0; j < D; ++j){
-                kPtDiff[j] = kernelPts[kpIndex*(D+1) + j] - sharedPtDiffs[groupId*D + j];
+                kPtDiff[j] = kernelPts[kpIndex*(D+1) + j] - sharedKernelIns[groupId*D + j];
                 sum += kPtDiff[j]*kPtDiff[j];
             }
 
@@ -358,7 +239,7 @@ __global__ void compute_kp_basis_proj_pt_coords_grads(
             //TODO - Add kahan summation, but requires more shared memory.
             ptCorr.backward(
                 kernelPts[kpIndex*(D+1) + D],
-                dist, kPtDiff, pInInvRadiiGPUPtr,
+                dist, kPtDiff,
                 invPdf, inGradient,
                 &accumGrads[threadIdx.x],
                 &accumPtGrads[threadIdx.x]);
@@ -366,11 +247,16 @@ __global__ void compute_kp_basis_proj_pt_coords_grads(
 
         __syncthreads();
 
-        if(neighIndex < pNumNeighbors && kpIndex < (D*2+1)){
-            ptGrads.accumulate(kpIndex, &accumPtGrads[groupId*K],
-                &pOutPtsGradsGPUPtr[neighAndSampleIndices.x*D],
-                &pOutSampleGradsGPUPtr[neighAndSampleIndices.y*D],
-                &pOutPDFGradsGPUPtr[neighIndex]);
+        if(neighIndex < pNumNeighbors && kpIndex < (D+1)){
+            float accumVal = 0.0f;
+#pragma unroll
+            for(int j = 0; j < K; ++j){
+                accumVal += accumPtGrads[groupId*K + kpIndex*blockDim.x + j];
+            }
+            if(kpIndex < D)
+                pOutKernelInGradsGPUPtr[neighIndex*D+kpIndex] = accumVal;
+            else
+                pOutPDFGradsGPUPtr[neighIndex] = accumVal;
         }
 
         __syncthreads();
@@ -393,27 +279,23 @@ __global__ void compute_kp_basis_proj_pt_coords_grads(
 
 namespace mccnn{
         
-    template<int D, int K, int U>
-    KPBasis<D, K, U>::KPBasis(KPBasis::PointCorrelation ptCorr)
-        :BasisInterface<D, K, U>(), ptCorr_(ptCorr)
+    template<int D, int K>
+    KPBasis<D, K>::KPBasis(KPBasis::PointCorrelation ptCorr)
+        :BasisInterface<D, K>(), ptCorr_(ptCorr)
     {
     }
 
-    template<int D, int K, int U>
-    KPBasis<D, K, U>::~KPBasis(void)
+    template<int D, int K>
+    KPBasis<D, K>::~KPBasis(void)
     {
     }
 
-    template<int D, int K, int U>
-    void KPBasis<D, K, U>::compute_basis_proj_pt_coords(
+    template<int D, int K>
+    void KPBasis<D, K>::compute_basis_proj_pt_coords(
         std::unique_ptr<IGPUDevice>& pDevice,
         const unsigned int pNumNeighbors,       
-        const float* pInPtsGPUPtr,
-        const float* pInSamplesGPUPtr,
-        const float* pInInvRadiiGPUPtr,
-        const int* pInNeighborsGPUPtr,
+        const float* pInKernelInGPUPtr,
         const float* pInPDFsGPUPtr,
-        const float* pInXNeighValsGPUPtr,
         const float* pInBasisGPUPtr,
         float* pOutProjGPUPtr)
     {
@@ -431,9 +313,9 @@ namespace mccnn{
 
         //Get the current function pointer.
         const void* cFunct = nullptr;
-        if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::LINEAR){
+        if(ptCorr_ == KPBasis<D, K>::PointCorrelation::LINEAR){
             cFunct = (const void*)compute_kp_basis_proj_pt_coords<D, K, 0>;
-        }else if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::GAUSS){
+        }else if(ptCorr_ == KPBasis<D, K>::PointCorrelation::GAUSS){
             cFunct = (const void*)compute_kp_basis_proj_pt_coords<D, K, 1>;
         }
 
@@ -458,23 +340,15 @@ namespace mccnn{
         totalNumBlocks = (totalNumBlocks > execBlocks)?execBlocks:totalNumBlocks;
         
         //Execute the kernel extensions.
-        if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::LINEAR){
+        if(ptCorr_ == KPBasis<D, K>::PointCorrelation::LINEAR){
             compute_kp_basis_proj_pt_coords<D, K, 0>
                 <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                pNumNeighbors, 
-                (const fpoint<D>*)pInPtsGPUPtr,
-                (const fpoint<D>*)pInSamplesGPUPtr,
-                (const fpoint<D>*)pInInvRadiiGPUPtr,
-                (const int2*)pInNeighborsGPUPtr,
+                pNumNeighbors, pInKernelInGPUPtr,
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
-        }else if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::GAUSS){
+        }else if(ptCorr_ == KPBasis<D, K>::PointCorrelation::GAUSS){
             compute_kp_basis_proj_pt_coords<D, K, 1>
                 <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                pNumNeighbors, 
-                (const fpoint<D>*)pInPtsGPUPtr,
-                (const fpoint<D>*)pInSamplesGPUPtr,
-                (const fpoint<D>*)pInInvRadiiGPUPtr,
-                (const int2*)pInNeighborsGPUPtr,
+                pNumNeighbors, pInKernelInGPUPtr,
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
         }
         pDevice->check_error(__FILE__, __LINE__);
@@ -502,29 +376,18 @@ namespace mccnn{
 #endif
     }
 
-    template<int D, int K, int U>
-    void KPBasis<D, K, U>::compute_grads_basis_proj_pt_coords(
+    template<int D, int K>
+    void KPBasis<D, K>::compute_grads_basis_proj_pt_coords(
         std::unique_ptr<IGPUDevice>& pDevice,
         const unsigned int pNumNeighbors,       
-        const float* pInPtsGPUPtr,
-        const float* pInSamplesGPUPtr,
-        const float* pInInvRadiiGPUPtr,
-        const int* pInNeighborsGPUPtr,
+        const float* pInKernelInGPUPtr,
         const float* pInPDFsGPUPtr,
-        const float* pInXNeighValsGPUPtr,
         const float* pInBasisGPUPtr,
         const float* pInGradsGPUPtr,
         float* pOutBasisGradsGPUPtr,
-        float* pOutPtsGradsGPUPtr,
-        float* pOutSampleGradsGPUPtr,
-        float* pOutPDFGradsGPUPtr,
-        float* pOutXNeighGradsGPUPtr)
+        float* pOutKernelInsGradsGPUPtr,
+        float* pOutPDFGradsGPUPtr)
     {
-        //Check if the gradietns of the points should be computed.
-        bool pointGrads = (pOutPtsGradsGPUPtr != nullptr) &&
-            (pOutSampleGradsGPUPtr != nullptr) &&
-            (pOutPDFGradsGPUPtr != nullptr);
-        
         //Get the device properties.
         const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 
@@ -539,16 +402,10 @@ namespace mccnn{
 
         //Get the current function pointer.
         const void* cFunct = nullptr;
-        if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::LINEAR){
-            if(pointGrads)
-                cFunct = (const void*)compute_kp_basis_proj_pt_coords_grads<D, K, 0, true>;
-            else
-                cFunct = (const void*)compute_kp_basis_proj_pt_coords_grads<D, K, 0, false>;
-        }else if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::GAUSS){
-            if(pointGrads)
-                cFunct = (const void*)compute_kp_basis_proj_pt_coords_grads<D, K, 1, true>;
-            else
-                cFunct = (const void*)compute_kp_basis_proj_pt_coords_grads<D, K, 1, false>;
+        if(ptCorr_ == KPBasis<D, K>::PointCorrelation::LINEAR){
+            cFunct = (const void*)compute_kp_basis_proj_pt_coords_grads<D, K, 0>;
+        }else if(ptCorr_ == KPBasis<D, K>::PointCorrelation::GAUSS){
+            cFunct = (const void*)compute_kp_basis_proj_pt_coords_grads<D, K, 1>;
         }
 
 #ifdef DEBUG_INFO
@@ -559,8 +416,8 @@ namespace mccnn{
 #endif
 
         //Calculate the shared memory needed.
-        unsigned int sharedMemSize = ((K + blockSize)*(D+1) + 
-            (blockSize/K)*D + blockSize*(D*2 + 1))*sizeof(float);
+        unsigned int sharedMemSize = 
+            (K*(D+1) + blockSize*(D+1)*2 + (blockSize/K)*D)*sizeof(float);
 
         //Compute the number of blocks
         unsigned int numBlocks = pDevice->get_max_active_block_x_sm(
@@ -574,38 +431,18 @@ namespace mccnn{
         totalNumBlocks = (totalNumBlocks > execBlocks)?execBlocks:totalNumBlocks;
         
         //Execute the kernel extensions.
-        if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::LINEAR){
-            if(pointGrads){
-                compute_kp_basis_proj_pt_coords_grads<D, K, 0, true>
+        if(ptCorr_ == KPBasis<D, K>::PointCorrelation::LINEAR){
+            compute_kp_basis_proj_pt_coords_grads<D, K, 0>
                     <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
+                    pNumNeighbors, pInKernelInGPUPtr, pInPDFsGPUPtr, 
                     pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }else{
-                compute_kp_basis_proj_pt_coords_grads<D, K, 0, false>
+                    pOutKernelInsGradsGPUPtr, pOutPDFGradsGPUPtr);
+        }else if(ptCorr_ == KPBasis<D, K>::PointCorrelation::GAUSS){
+            compute_kp_basis_proj_pt_coords_grads<D, K, 1>
                     <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
+                    pNumNeighbors, pInKernelInGPUPtr, pInPDFsGPUPtr, 
                     pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }
-        }else if(ptCorr_ == KPBasis<D, K, U>::PointCorrelation::GAUSS){
-            if(pointGrads){
-                compute_kp_basis_proj_pt_coords_grads<D, K, 1, true>
-                    <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
-                    pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }else{
-                compute_kp_basis_proj_pt_coords_grads<D, K, 1, false>
-                    <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
-                    pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }
+                    pOutKernelInsGradsGPUPtr, pOutPDFGradsGPUPtr);
         }
         
         pDevice->check_error(__FILE__, __LINE__);
@@ -635,6 +472,6 @@ namespace mccnn{
 }
 
 //DECLARE THE VALID INSTANCES OF THE TEMPLATE CLASS
-#define KP_BASIS_CLASS_DECL(D, K, U)    \
-template class mccnn::KPBasis<D, K, U>;
+#define KP_BASIS_CLASS_DECL(D, K)    \
+template class mccnn::KPBasis<D, K>;
 DECLARE_TEMPLATE_DIMS_BASIS(KP_BASIS_CLASS_DECL)

@@ -88,9 +88,6 @@ if __name__ == '__main__':
     myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
       nvccCompileInfo+" cu/src/basis/basis_hproj.cu -o build/basis_hproj.cu.o "+
       "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
-    myCompileScript.write(args.cudaFolder+"/bin/nvcc"+debugString+" -std=c++11 "+
-      nvccCompileInfo+" cu/src/basis/basis_hproj_bilateral.cu -o build/basis_hproj_bilateral.cu.o "+
-      "-Icu/header -Icc/header -c -O2 -DGOOGLE_CUDA=1 -x cu -Xcompiler -fPIC\n")
 
 
     #Compile the library
@@ -118,7 +115,6 @@ if __name__ == '__main__':
       " build/basis_proj_grads.cu.o "+
       " build/basis_kp.cu.o "+
       " build/basis_hproj.cu.o "+
-      " build/basis_hproj_bilateral.cu.o "+
 
       " cc/src/tf_gpu_device.cpp "+
       " cc/src/compute_keys.cpp "+

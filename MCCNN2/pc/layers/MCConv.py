@@ -153,10 +153,15 @@ class MCConv2Sampled:
 
       #Compute the neighborhood key.
       neigh = Neighborhood(grid, radiiTensor, pOutPC)
-      neigh.compute_pdf(bwTensor, pMode=KDEMode.constant, pPtGradients=True)
+      neigh.compute_pdf(bwTensor, pMode=KDEMode.constant)
+
+      #Compute kernel inputs.
+      neighPtCoords = tf.gather(grid.sortedPts_, neigh.neighbors_[:, 0])
+      centerPtCoords = tf.gather(pOutPC.pts_, neigh.neighbors_[:, 1])
+      diffPts = (neighPtCoords - centerPtCoords)/tf.reshape(radiiTensor, [1, self.numDims_])
 
       #Compute convolution (RELU - 2, LRELU - 3, ELU - 4)
-      inWeightFeat = basis_proj(neigh, pInFeatures, self.basisTF_, 3)
+      inWeightFeat = basis_proj(diffPts, neigh, pInFeatures, self.basisTF_, 3)
 
       #Compute the convolution.
       convolution_result = tf.matmul(tf.reshape(

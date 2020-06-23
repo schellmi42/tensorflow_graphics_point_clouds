@@ -129,22 +129,19 @@ __global__ void compute_weighted_in_features(
 ///////////////////////// CPU
           
 
-template<int D, int K, int U>
+template<int D, int K>
 void mccnn::basis_proj_gpu(
     std::unique_ptr<IGPUDevice>& pDevice,
     const BasisFunctType pBasisType,
     const unsigned int pNumSamples,
     const unsigned int pNumNeighbors,
     const unsigned int pNumInFeatures, 
-    const float* pInPtsGPUPtr,
+    const float* pInKernelInGPUPtr,
     const float* pInPtFeaturesGPUPtr,
-    const float* pInSamplesGPUPtr,
     const int* pInNeighborsGPUPtr,
     const int* pInSampleNeighIGPUPtr,
-    const float* pInInvRadiiGPUPtr,
     const float* pInBasisGPUPtr,
     const float* pInPDFsGPUPtr,
-    const float* pInXNeighValGPUPtr,
     float*  pOutFeaturesGPUPtr)
 {
     //Get the cuda stream.
@@ -164,11 +161,10 @@ void mccnn::basis_proj_gpu(
     float* tmpBuffer = pDevice->getFloatTmpGPUBuffer(pNumNeighbors*K);
 
     //The the projector object and project the points.
-    std::unique_ptr<BasisInterface<D, K, U>> basis = 
-        mccnn::basis_function_factory<D, K, U>(pBasisType);
-    basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, pInPtsGPUPtr,
-        pInSamplesGPUPtr, pInInvRadiiGPUPtr, pInNeighborsGPUPtr, pInPDFsGPUPtr,
-        pInXNeighValGPUPtr, pInBasisGPUPtr, tmpBuffer);
+    std::unique_ptr<BasisInterface<D, K>> basis = 
+        mccnn::basis_function_factory<D, K>(pBasisType);
+    basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, pInKernelInGPUPtr,
+        pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer);
 
 #ifdef DEBUG_INFO
     cudaEvent_t start, stop;
@@ -233,22 +229,19 @@ void mccnn::basis_proj_gpu(
 
 ///////////////////////// CPU Template declaration
 
-#define COMPUTE_BASIS_PROJ_KS_TEMP_DECL(Dims, K, U)     \
-    template void mccnn::basis_proj_gpu<Dims, K, U>(    \
+#define COMPUTE_BASIS_PROJ_KS_TEMP_DECL(Dims, K)     \
+    template void mccnn::basis_proj_gpu<Dims, K>(    \
         std::unique_ptr<IGPUDevice>& pDevice,           \
         const BasisFunctType pBasisType,                \
         const unsigned int pNumSamples,                 \
         const unsigned int pNumNeighbors,               \
         const unsigned int pNumInFeatures,              \
-        const float* pInPtsGPUPtr,                      \
+        const float* pInKernelInGPUPtr,                 \
         const float* pInPtFeaturesGPUPtr,               \
-        const float* pInSamplesGPUPtr,                  \
         const int* pInNeighborsGPUPtr,                  \
         const int* pInSampleNeighIGPUPtr,               \
-        const float* pInInvRadiiGPUPtr,                 \
         const float* pInBasisGPUPtr,                    \
         const float* pInPDFsGPUPtr,                     \
-        const float* pInXNeighValGPUPtr,                \
         float*  pOutFeaturesGPUPtr);
 
 DECLARE_TEMPLATE_DIMS_BASIS(COMPUTE_BASIS_PROJ_KS_TEMP_DECL)

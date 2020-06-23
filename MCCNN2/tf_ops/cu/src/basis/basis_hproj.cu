@@ -26,10 +26,7 @@
 template<int D, int K, int A>
 __global__ void compute_hproj_basis_proj_pt_coords(
     const unsigned int pNumNeighbors,       
-    const mccnn::fpoint<D>* __restrict__ pInPtsGPUPtr,
-    const mccnn::fpoint<D>* __restrict__ pInSamplesGPUPtr,
-    const mccnn::fpoint<D>* __restrict__ pInInvRadiiGPUPtr,
-    const int2* __restrict__ pInNeighborsGPUPtr,
+    const float* __restrict__ pInKernelInGPUPtr,
     const float* __restrict__ pInPDFsGPUPtr,
     const float* __restrict__ pInBasisGPUPtr,
     float* __restrict__ pOutProjGPUPtr)
@@ -54,12 +51,8 @@ __global__ void compute_hproj_basis_proj_pt_coords(
     for(unsigned int curIter = initThreadIndex; 
         curIter < pNumNeighbors; curIter += totalNumThreads)
     {
-        //Get indices to the point and sample.
-        int2 neighAndSampleIndices = pInNeighborsGPUPtr[curIter];
-
         //Compute the pt difference.
-        mccnn::fpoint<D> ptDiff = (pInPtsGPUPtr[neighAndSampleIndices.x] - 
-            pInSamplesGPUPtr[neighAndSampleIndices.y])*pInInvRadiiGPUPtr[0];
+        mccnn::fpoint<D> curKernelIns(&pInKernelInGPUPtr[curIter*D]);
 
         //Compute the pdf inverse.                
         float weightVal = 1.0f/(pInPDFsGPUPtr[curIter]);
@@ -69,63 +62,23 @@ __global__ void compute_hproj_basis_proj_pt_coords(
             float sum = 0.0f;
 #pragma unroll
             for(int j = 0; j < D; ++j)
-                sum += kernelPts[i*(D+1) + j]*ptDiff[j];
+                sum += kernelPts[i*(D+1) + j]*curKernelIns[j];
             sum += kernelPts[i*(D+1) + D];
             pOutProjGPUPtr[curIter*K + i] = acFunc.forward(sum)*weightVal;
         }
     }
 }
 
-/**
- *  Template to accumulate the point gradients.
- */
- template<int D, int K, bool P> 
- struct accum_pt_grads{
- 
-     __forceinline__ __device__ void accumulate(
-         const int pOffset,
-         const float* pSharedMem,
-         float* __restrict__ pOutPtGrads,
-         float* __restrict__ pOutSampleGrads,
-         float* __restrict__ pOutPDFGrads){}
- };
- 
- template<int D, int K> 
- struct accum_pt_grads<D, K, true>{
- 
-     __forceinline__ __device__ void accumulate(
-         const int pOffset,
-         const float* __restrict__ pSharedMem,
-         float* __restrict__ pOutPtGrads,
-         float* __restrict__ pOutSampleGrads,
-         float* __restrict__ pOutPDFGrads){
-         float accumVal = 0.0f;
- #pragma unroll
-         for(int j = 0; j < K; ++j){
-             accumVal += pSharedMem[pOffset*blockDim.x + j];
-         }
-         if(pOffset < D)
-             atomicAdd(&pOutPtGrads[pOffset], accumVal);
-         else if(pOffset < D*2)
-             atomicAdd(&pOutSampleGrads[pOffset - D], accumVal);
-         else
-             pOutPDFGrads[0] = accumVal;
-     }
- };
 
-template<int D, int K, int A, bool P>
+template<int D, int K, int A>
 __global__ void compute_hproj_basis_proj_pt_coords_grads(
     const unsigned int pNumNeighbors,       
-    const float* __restrict__ pInPtsGPUPtr,
-    const float* __restrict__ pInSamplesGPUPtr,
-    const float* __restrict__ pInInvRadiiGPUPtr,
-    const int2* __restrict__ pInNeighborsGPUPtr,
+    const float* __restrict__ pInKernelInGPUPtr,
     const float* __restrict__ pInPDFsGPUPtr,
     const float* __restrict__ pInBasisGPUPtr,
     const float* __restrict__ pInGradsGPUPtr,
     float* __restrict__ pOutBasisGradsGPUPtr,
-    float* __restrict__ pOutPtsGradsGPUPtr,
-    float* __restrict__ pOutSampleGradsGPUPtr,
+    float* __restrict__ pOutKernelInGradsGPUPtr,
     float* __restrict__ pOutPDFGradsGPUPtr)
 {
     //Shared memory to store the kernel points.
@@ -133,9 +86,6 @@ __global__ void compute_hproj_basis_proj_pt_coords_grads(
 
     //Create the struct to compute the activation function.
     mccnn::activation_function_struct<A> acFunc;
-
-    //Create the struct to compute point gradients.
-    accum_pt_grads<D, K, P> ptGrads;
 
     //Compute usefull indices.
     int totalExecThreads = pNumNeighbors*K;
@@ -148,7 +98,7 @@ __global__ void compute_hproj_basis_proj_pt_coords_grads(
     //Get the pointers to shared memory.
     float* kernelPts = sharedMem;
     float* accumGrads = &sharedMem[K*(D+1)];
-    float* sharedPtDiffs = &sharedMem[K*(D+1) + blockDim.x*(D+1)];
+    float* sharedKernelIns = &sharedMem[K*(D+1) + blockDim.x*(D+1)];
     float* accumPtGrads = &sharedMem[K*(D+1) + blockDim.x*(D+1) + groupsXBlock*D];
 
     //Load the kernel point centers.
@@ -169,19 +119,15 @@ __global__ void compute_hproj_basis_proj_pt_coords_grads(
         curIter += totalNumThreads)
     {
         //Get indices to the point and sample.
-        int2 neighAndSampleIndices;
         int neighIndex = curIter/K;
         float inGradient = 0.0f;
 
         if(neighIndex < pNumNeighbors){
-            neighAndSampleIndices = pInNeighborsGPUPtr[neighIndex];
 
             //Compute the pt difference.
             if(kpIndex < D){
-                sharedPtDiffs[groupId*D + kpIndex] = 
-                    (pInPtsGPUPtr[neighAndSampleIndices.x*D + kpIndex] -
-                    pInSamplesGPUPtr[neighAndSampleIndices.y*D + kpIndex])*
-                    pInInvRadiiGPUPtr[kpIndex];
+                sharedKernelIns[groupId*D + kpIndex] = 
+                    pInKernelInGPUPtr[neighIndex*D + kpIndex];
             }
 
             //Get the gradient.
@@ -198,7 +144,7 @@ __global__ void compute_hproj_basis_proj_pt_coords_grads(
             float sum = 0.0f;
 #pragma unroll
             for(int j = 0; j < D; ++j)
-                sum += kernelPts[kpIndex*(D+1) + j]*sharedPtDiffs[groupId*D + j];
+                sum += kernelPts[kpIndex*(D+1) + j]*sharedKernelIns[groupId*D + j];
             sum += kernelPts[kpIndex*(D+1) + D];
             float value = acFunc.forward(sum);
 
@@ -210,23 +156,27 @@ __global__ void compute_hproj_basis_proj_pt_coords_grads(
 #pragma unroll
             for(int j = 0; j < D; ++j){
                 accumGrads[threadIdx.x + j*blockDim.x] += 
-                    sharedPtDiffs[groupId*D + j]*curInGradient;
+                    sharedKernelIns[groupId*D + j]*curInGradient;
                 accumPtGrads[threadIdx.x + j*blockDim.x] = 
-                pInInvRadiiGPUPtr[j]*curInGradient*kernelPts[kpIndex*(D+1) + j];
-                accumPtGrads[threadIdx.x + (D+j)*blockDim.x] = 
-                    -pInInvRadiiGPUPtr[j]*curInGradient*kernelPts[kpIndex*(D+1) + j];
+                    curInGradient*kernelPts[kpIndex*(D+1) + j];
             }
             accumGrads[threadIdx.x + D*blockDim.x] += curInGradient;//Bias
-            accumPtGrads[threadIdx.x + D*2*blockDim.x] = -value*invPdf*invPdf*inGradient;//PDF
+            accumPtGrads[threadIdx.x + D*blockDim.x] = -value*invPdf*invPdf*inGradient;//PDF
         }
 
         __syncthreads();
 
-        if(neighIndex < pNumNeighbors && kpIndex < (D*2+1)){
-            ptGrads.accumulate(kpIndex, &accumPtGrads[groupId*K],
-                &pOutPtsGradsGPUPtr[neighAndSampleIndices.x*D],
-                &pOutSampleGradsGPUPtr[neighAndSampleIndices.y*D],
-                &pOutPDFGradsGPUPtr[neighIndex]);
+        if(neighIndex < pNumNeighbors && kpIndex < (D+1)){
+
+            float accumVal = 0.0f;
+#pragma unroll
+            for(int j = 0; j < K; ++j){
+                accumVal += accumPtGrads[groupId*K + kpIndex*blockDim.x + j];
+            }
+            if(kpIndex < D)
+                pOutKernelInGradsGPUPtr[neighIndex*D + kpIndex] = accumVal;
+            else
+                pOutPDFGradsGPUPtr[neighIndex] = accumVal;
         }
 
         __syncthreads();
@@ -249,27 +199,23 @@ __global__ void compute_hproj_basis_proj_pt_coords_grads(
 
 namespace mccnn{
         
-    template<int D, int K, int U>
-    HProjBasis<D, K, U>::HProjBasis(HProjBasis::ActivationFunction pAcFunc)
-        :BasisInterface<D, K, U>(), acFunc_(pAcFunc)
+    template<int D, int K>
+    HProjBasis<D, K>::HProjBasis(HProjBasis::ActivationFunction pAcFunc)
+        :BasisInterface<D, K>(), acFunc_(pAcFunc)
     {
     }
 
-    template<int D, int K, int U>
-    HProjBasis<D, K, U>::~HProjBasis(void)
+    template<int D, int K>
+    HProjBasis<D, K>::~HProjBasis(void)
     {
     }
 
-    template<int D, int K, int U>
-    void HProjBasis<D, K, U>::compute_basis_proj_pt_coords(
+    template<int D, int K>
+    void HProjBasis<D, K>::compute_basis_proj_pt_coords(
         std::unique_ptr<IGPUDevice>& pDevice,
         const unsigned int pNumNeighbors,       
-        const float* pInPtsGPUPtr,
-        const float* pInSamplesGPUPtr,
-        const float* pInInvRadiiGPUPtr,
-        const int* pInNeighborsGPUPtr,
+        const float* pInKernelInGPUPtr,
         const float* pInPDFsGPUPtr,
-        const float* pInXNeighValsGPUPtr,
         const float* pInBasisGPUPtr,
         float* pOutProjGPUPtr)
     {
@@ -287,13 +233,13 @@ namespace mccnn{
 
         //Get the current function pointer.
         const void* cFunct = nullptr;
-        if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::RELU){
+        if(acFunc_ == HProjBasis<D, K>::ActivationFunction::RELU){
             cFunct = (const void*)compute_hproj_basis_proj_pt_coords<D, K, 0>;
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::LRELU){
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::LRELU){
             cFunct = (const void*)compute_hproj_basis_proj_pt_coords<D, K, 1>;
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::ELU){
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::ELU){
             cFunct = (const void*)compute_hproj_basis_proj_pt_coords<D, K, 2>;
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::EXP){
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::EXP){
             cFunct = (const void*)compute_hproj_basis_proj_pt_coords<D, K, 3>;
         }
 
@@ -318,41 +264,25 @@ namespace mccnn{
         totalNumBlocks = (totalNumBlocks > execBlocks)?execBlocks:totalNumBlocks;
         
         //Execute the kernel extensions.
-        if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::RELU){
+        if(acFunc_ == HProjBasis<D, K>::ActivationFunction::RELU){
             compute_hproj_basis_proj_pt_coords<D, K, 0>
                 <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                pNumNeighbors, 
-                (const fpoint<D>*)pInPtsGPUPtr,
-                (const fpoint<D>*)pInSamplesGPUPtr,
-                (const fpoint<D>*)pInInvRadiiGPUPtr,
-                (const int2*)pInNeighborsGPUPtr,
+                pNumNeighbors, pInKernelInGPUPtr,
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::LRELU){
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::LRELU){
             compute_hproj_basis_proj_pt_coords<D, K, 1>
                 <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                pNumNeighbors, 
-                (const fpoint<D>*)pInPtsGPUPtr,
-                (const fpoint<D>*)pInSamplesGPUPtr,
-                (const fpoint<D>*)pInInvRadiiGPUPtr,
-                (const int2*)pInNeighborsGPUPtr,
+                pNumNeighbors, pInKernelInGPUPtr,
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::ELU){
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::ELU){
             compute_hproj_basis_proj_pt_coords<D, K, 2>
                 <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                pNumNeighbors, 
-                (const fpoint<D>*)pInPtsGPUPtr,
-                (const fpoint<D>*)pInSamplesGPUPtr,
-                (const fpoint<D>*)pInInvRadiiGPUPtr,
-                (const int2*)pInNeighborsGPUPtr,
+                pNumNeighbors, pInKernelInGPUPtr,
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::EXP){
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::EXP){
             compute_hproj_basis_proj_pt_coords<D, K, 3>
                 <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                pNumNeighbors, 
-                (const fpoint<D>*)pInPtsGPUPtr,
-                (const fpoint<D>*)pInSamplesGPUPtr,
-                (const fpoint<D>*)pInInvRadiiGPUPtr,
-                (const int2*)pInNeighborsGPUPtr,
+                pNumNeighbors, pInKernelInGPUPtr,
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
         }
         pDevice->check_error(__FILE__, __LINE__);
@@ -380,29 +310,18 @@ namespace mccnn{
 #endif
     }
 
-    template<int D, int K, int U>
-    void HProjBasis<D, K, U>::compute_grads_basis_proj_pt_coords(
+    template<int D, int K>
+    void HProjBasis<D, K>::compute_grads_basis_proj_pt_coords(
         std::unique_ptr<IGPUDevice>& pDevice,
         const unsigned int pNumNeighbors,       
-        const float* pInPtsGPUPtr,
-        const float* pInSamplesGPUPtr,
-        const float* pInInvRadiiGPUPtr,
-        const int* pInNeighborsGPUPtr,
+        const float* pInKernelInGPUPtr,
         const float* pInPDFsGPUPtr,
-        const float* pInXNeighValsGPUPtr,
         const float* pInBasisGPUPtr,
         const float* pInGradsGPUPtr,
         float* pOutBasisGradsGPUPtr,
-        float* pOutPtsGradsGPUPtr,
-        float* pOutSampleGradsGPUPtr,
-        float* pOutPDFGradsGPUPtr,
-        float* pOutXNeighGradsGPUPtr)
-    {
-        //Check if the gradietns of the points should be computed.
-        bool pointGrads = (pOutPtsGradsGPUPtr != nullptr) &&
-            (pOutSampleGradsGPUPtr != nullptr) &&
-            (pOutPDFGradsGPUPtr != nullptr);
-        
+        float* pOutKernelInsGradsGPUPtr,
+        float* pOutPDFGradsGPUPtr)
+    {        
         //Get the device properties.
         const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 
@@ -417,26 +336,14 @@ namespace mccnn{
 
         //Get the current function pointer.
         const void* cFunct = nullptr;
-        if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::RELU){
-            if(pointGrads)
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 0, true>;
-            else
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 0, false>;
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::LRELU){
-            if(pointGrads)
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 1, true>;
-            else
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 1, false>;
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::ELU){
-            if(pointGrads)
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 2, true>;
-            else
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 2, false>;
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::EXP){
-            if(pointGrads)
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 3, true>;
-            else
-                cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 3, false>;
+        if(acFunc_ == HProjBasis<D, K>::ActivationFunction::RELU){
+            cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 0>;
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::LRELU){
+            cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 1>;
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::ELU){
+            cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 2>;
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::EXP){
+            cFunct = (const void*)compute_hproj_basis_proj_pt_coords_grads<D, K, 3>;
         }
 
 #ifdef DEBUG_INFO
@@ -447,8 +354,8 @@ namespace mccnn{
 #endif
 
         //Calculate the shared memory needed.
-        unsigned int sharedMemSize = ((K + blockSize)*(D+1) + 
-            (blockSize/K)*D + blockSize*(D*2 + 1))*sizeof(float);
+        unsigned int sharedMemSize = 
+            (K*(D+1) + blockSize*(D+1)*2 + (blockSize/K)*D)*sizeof(float);
 
         //Compute the number of blocks
         unsigned int numBlocks = pDevice->get_max_active_block_x_sm(
@@ -460,72 +367,32 @@ namespace mccnn{
         execBlocks += ((pNumNeighbors*K)%blockSize != 0)?1:0;
         unsigned int totalNumBlocks = numMP*numBlocks;
         totalNumBlocks = (totalNumBlocks > execBlocks)?execBlocks:totalNumBlocks;
-        
+
         //Execute the kernel extensions.
-        if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::RELU){
-            if(pointGrads){
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 0, true>
+        if(acFunc_ == HProjBasis<D, K>::ActivationFunction::RELU){
+            compute_hproj_basis_proj_pt_coords_grads<D, K, 0>
                     <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
+                    pNumNeighbors, pInKernelInGPUPtr, pInPDFsGPUPtr, 
                     pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }else{
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 0, false>
+                    pOutKernelInsGradsGPUPtr, pOutPDFGradsGPUPtr);
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::LRELU){
+            compute_hproj_basis_proj_pt_coords_grads<D, K, 1>
                     <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
+                    pNumNeighbors, pInKernelInGPUPtr, pInPDFsGPUPtr, 
                     pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::LRELU){
-            if(pointGrads){
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 1, true>
+                    pOutKernelInsGradsGPUPtr, pOutPDFGradsGPUPtr);
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::ELU){
+            compute_hproj_basis_proj_pt_coords_grads<D, K, 2>
                     <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
+                    pNumNeighbors, pInKernelInGPUPtr, pInPDFsGPUPtr, 
                     pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }else{
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 1, false>
+                    pOutKernelInsGradsGPUPtr, pOutPDFGradsGPUPtr);
+        }else if(acFunc_ == HProjBasis<D, K>::ActivationFunction::EXP){
+            compute_hproj_basis_proj_pt_coords_grads<D, K, 3>
                     <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
+                    pNumNeighbors, pInKernelInGPUPtr, pInPDFsGPUPtr, 
                     pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::ELU){
-            if(pointGrads){
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 2, true>
-                    <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
-                    pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }else{
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 2, false>
-                    <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
-                    pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }
-        }else if(acFunc_ == HProjBasis<D, K, U>::ActivationFunction::EXP){
-            if(pointGrads){
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 3, true>
-                    <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
-                    pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }else{
-                compute_hproj_basis_proj_pt_coords_grads<D, K, 3, false>
-                    <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-                    pNumNeighbors, pInPtsGPUPtr, pInSamplesGPUPtr, 
-                    pInInvRadiiGPUPtr, (const int2*)pInNeighborsGPUPtr, pInPDFsGPUPtr, 
-                    pInBasisGPUPtr, pInGradsGPUPtr, pOutBasisGradsGPUPtr, 
-                    pOutPtsGradsGPUPtr, pOutSampleGradsGPUPtr, pOutPDFGradsGPUPtr);
-            }
+                    pOutKernelInsGradsGPUPtr, pOutPDFGradsGPUPtr);
         }
         
         pDevice->check_error(__FILE__, __LINE__);
@@ -555,6 +422,6 @@ namespace mccnn{
 }
 
 //DECLARE THE VALID INSTANCES OF THE TEMPLATE CLASS
-#define HPROJ_BASIS_CLASS_DECL(D, K, U)    \
-template class mccnn::HProjBasis<D, K, U>;
+#define HPROJ_BASIS_CLASS_DECL(D, K)    \
+template class mccnn::HProjBasis<D, K>;
 DECLARE_TEMPLATE_DIMS_BASIS(HPROJ_BASIS_CLASS_DECL)

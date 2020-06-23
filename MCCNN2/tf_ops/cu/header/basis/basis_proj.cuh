@@ -31,46 +31,36 @@ namespace mccnn{
      *  @param  pNumSamples             Number of samples.
      *  @param  pNumNeighbors           Number of neighbors.
      *  @param  pNumInFeatures          Number of input features.
-     *  @param  pInPtsGPUPtr            Input gpu pointer to the array
-     *      with the points.
+     *  @param  pInKernelInGPUPtr       Input gpu pointer to the array
+     *      with the inputs to the kernel.
      *  @param  pInPtFeaturesGPUPtr     Input gpu pointer to the array
      *      with the input features.
-     *  @param  pInSamplesGPUPtr        Input gpu pointer to the array
-     *      with the samples.
      *  @param  pInNeighborsGPUPtr      Input gpu pointer with the list
      *      of neighbors.
      *  @param  pInSampleNeighIGPUPtr   Input gpu pointer with the 
      *      last neighbor index for each sample.
-     *  @param  pInInvRadiiGPUPtr       Input gpu pointer with the 
-     *      inverse of the radius used in each dimension.
      *  @param  pInBasisGPUPtr          Input gpu pointer with the basis
      *      functions.
      *  @param  pInPDFsGPUPtr           Input gpu pointer with the
      *      pdf values for each neighbor.
-     *  @param  pInXNeighValGPUPtr      Input gpu pointer with the
-     *      x neighbor values.
      *  @param  pOutFeaturesGPUPtr      Output gpu pointer in which
      *      the new features will be stored.
      *  @paramt D                       Number of dimensions.
      *  @paramt K                       Number of basis functions.
-     *  @paramt U                       Number of values per neighbor.
      */
-    template<int D, int K, int U>
+    template<int D, int K>
     void basis_proj_gpu(
         std::unique_ptr<IGPUDevice>& pDevice,
         const BasisFunctType pBasisType,
         const unsigned int pNumSamples,
         const unsigned int pNumNeighbors,
         const unsigned int pNumInFeatures,
-        const float* pInPtsGPUPtr,
+        const float* pInKernelInGPUPtr,
         const float* pInPtFeaturesGPUPtr,
-        const float* pInSamplesGPUPtr,
         const int* pInNeighborsGPUPtr,
         const int* pInSampleNeighIGPUPtr,
-        const float* pInInvRadiiGPUPtr,
         const float* pInBasisGPUPtr,
         const float* pInPDFsGPUPtr,
-        const float* pInXNeighValGPUPtr,
         float*  pOutFeaturesGPUPtr);
 }
 

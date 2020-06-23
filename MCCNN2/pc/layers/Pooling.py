@@ -20,7 +20,7 @@ from MCCNN2.pc import PointCloud
 
 class GlobalMaxPooling:
 
-  def _call__(self, features, point_cloud: PointCloud, name=None):
+  def __call__(self, features, point_cloud: PointCloud, name=None):
     with tf.compat.v1.name_scope(
         name, "global max pooling ", [features, point_cloud]):
       features = _flatten_features(features, point_cloud)
@@ -31,7 +31,7 @@ class GlobalMaxPooling:
 
 class GlobalAveragePooling:
 
-  def _call__(self, features, point_cloud: PointCloud, name=None):
+  def __call__(self, features, point_cloud: PointCloud, name=None):
     """ performs a global average pooling on a point cloud
     Args:
       features: A float `Tensor` of shape [N,D] or [A1,...,An,V,D].
@@ -49,7 +49,7 @@ class GlobalAveragePooling:
 
 class MaxPooling:
 
-  def _call__(self, features, point_cloud_in: PointCloud,
+  def __call__(self, features, point_cloud_in: PointCloud,
               point_cloud_out: PointCloud, name=None):
     """ performs a global average pooling on a point cloud
     Args:

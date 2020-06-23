@@ -151,7 +151,7 @@ __global__ void compute_grads_in_features(
 ///////////////////////// CPU
           
 
-template<int D, int K, int U>
+template<int D, int K>
 void mccnn::basis_proj_grads_gpu(
     std::unique_ptr<IGPUDevice>& pDevice,
     const BasisFunctType pBasisType,
@@ -159,31 +159,18 @@ void mccnn::basis_proj_grads_gpu(
     const unsigned int pNumSamples,
     const unsigned int pNumNeighbors,
     const unsigned int pNumInFeatures, 
-    const float* pInPtsGPUPtr,
+    const float* pInKernelInGPUPtr,
     const float* pInPtFeaturesGPUPtr,
-    const float* pInSamplesGPUPtr,
     const int* pInNeighborsGPUPtr,
     const int* pInSampleNeighIGPUPtr,
-    const float* pInInvRadiiGPUPtr,
     const float* pInBasisGPUPtr,
     const float* pInPDFsGPUPtr,
-    const float* pInXNeighValGPUPtr,
     const float* pInGradGPUPtr,
     float* pOutFeatGradsGPUPtr,
     float* pOutBasisGradsGPUPtr,
-    float* pOutPtGradsGPUPtr,
-    float* pOutSampleGradsGPUPtr,
-    float* pOutPDFGradsGPUPtr,
-    float* pOutXNeighValGradsGPUPtr)
+    float* pOutKernelsInGradsGPUPtr,
+    float* pOutPDFGradsGPUPtr)
 {
-    //Check if the gradietns of the points should be computed.
-    bool pointGrads = (pOutPtGradsGPUPtr != nullptr) &&
-        (pOutSampleGradsGPUPtr != nullptr) &&
-        (pOutPDFGradsGPUPtr != nullptr);
-
-    //Check if there is x neigh values.
-    bool xNeighVals = (pInXNeighValGPUPtr != nullptr) && U > 0;
-
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
@@ -194,19 +181,13 @@ void mccnn::basis_proj_grads_gpu(
 #endif
 
     //Get the number of parameters per basis function.
-    unsigned int numParamsBasis = mccnn::get_num_params_x_basis(pBasisType, D, U);
+    unsigned int numParamsBasis = mccnn::get_num_params_x_basis(pBasisType, D);
 
     //Initialize to zero the output array.
     pDevice->memset(pOutFeatGradsGPUPtr, 0, sizeof(float)*pNumPts*pNumInFeatures);
     pDevice->memset(pOutBasisGradsGPUPtr, 0, sizeof(float)*K*numParamsBasis);
-    if(pointGrads){
-        pDevice->memset(pOutPtGradsGPUPtr, 0, sizeof(float)*D*pNumPts);
-        pDevice->memset(pOutSampleGradsGPUPtr, 0, sizeof(float)*D*pNumSamples);
-        pDevice->memset(pOutPDFGradsGPUPtr, 0, sizeof(float)*pNumNeighbors);
-        if(xNeighVals){
-            pDevice->memset(pOutXNeighValGradsGPUPtr, 0, sizeof(float)*pNumNeighbors*U);
-        }
-    }
+    pDevice->memset(pOutKernelsInGradsGPUPtr, 0, sizeof(float)*D*pNumNeighbors);
+    pDevice->memset(pOutPDFGradsGPUPtr, 0, sizeof(float)*pNumNeighbors);
     pDevice->check_error(__FILE__, __LINE__);
 
     //Get the device properties.
@@ -223,11 +204,10 @@ void mccnn::basis_proj_grads_gpu(
     pDevice->check_error(__FILE__, __LINE__);
 
     //The the projector object and project the points.
-    std::unique_ptr<BasisInterface<D, K, U>> basis = 
-        mccnn::basis_function_factory<D, K, U>(pBasisType);
-    basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, pInPtsGPUPtr,
-        pInSamplesGPUPtr, pInInvRadiiGPUPtr, pInNeighborsGPUPtr, pInPDFsGPUPtr,
-        pInXNeighValGPUPtr, pInBasisGPUPtr, tmpBuffer);
+    std::unique_ptr<BasisInterface<D, K>> basis = 
+        mccnn::basis_function_factory<D, K>(pBasisType);
+    basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, 
+        pInKernelInGPUPtr, pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer);
 
 #ifdef DEBUG_INFO
     cudaEventRecord(start, cudaStream);
@@ -263,11 +243,9 @@ void mccnn::basis_proj_grads_gpu(
 #endif
 
     //Compute the gradients of the basis and the point coordinates.
-    basis->compute_grads_basis_proj_pt_coords(pDevice, pNumNeighbors, pInPtsGPUPtr,
-        pInSamplesGPUPtr, pInInvRadiiGPUPtr, pInNeighborsGPUPtr,
-        pInPDFsGPUPtr, pInXNeighValGPUPtr, pInBasisGPUPtr, tmpBuffer2, 
-        pOutBasisGradsGPUPtr, pOutPtGradsGPUPtr, pOutSampleGradsGPUPtr, 
-        pOutPDFGradsGPUPtr, pOutXNeighValGradsGPUPtr);
+    basis->compute_grads_basis_proj_pt_coords(pDevice, pNumNeighbors, 
+        pInKernelInGPUPtr, pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer2, 
+        pOutBasisGradsGPUPtr, pOutKernelsInGradsGPUPtr, pOutPDFGradsGPUPtr);
 
 #ifdef DEBUG_INFO
     cudaEventSynchronize(stop);
@@ -297,29 +275,24 @@ void mccnn::basis_proj_grads_gpu(
 
 ///////////////////////// CPU Template declaration
 
-#define COMPUTE_BASIS_PROJ_GRADS_TEMP_DECL(Dims, K, U)      \
-    template void mccnn::basis_proj_grads_gpu<Dims, K, U>(  \
+#define COMPUTE_BASIS_PROJ_GRADS_TEMP_DECL(Dims, K)         \
+    template void mccnn::basis_proj_grads_gpu<Dims, K>(     \
         std::unique_ptr<IGPUDevice>& pDevice,               \
         const BasisFunctType pBasisType,                    \
         const unsigned int pNumPts,                         \
         const unsigned int pNumSamples,                     \
         const unsigned int pNumNeighbors,                   \
         const unsigned int pNumInFeatures,                  \
-        const float* pInPtsGPUPtr,                          \
+        const float* pInKernelInGPUPtr,                     \
         const float* pInPtFeaturesGPUPtr,                   \
-        const float* pInSamplesGPUPtr,                      \
         const int* pInNeighborsGPUPtr,                      \
         const int* pInSampleNeighIGPUPtr,                   \
-        const float* pInInvRadiiGPUPtr,                     \
         const float* pInBasisGPUPtr,                        \
         const float* pInPDFsGPUPtr,                         \
-        const float* pInXNeighValGPUPtr,                    \
         const float* pInGradGPUPtr,                         \
-        float*  pOutFeatGradsGPUPtr,                        \
-        float*  pOutBasisGradsGPUPtr,                       \
-        float* pOutPtGradsGPUPtr,                           \
-        float* pOutSampleGradsGPUPtr,                       \
-        float* pOutPDFGradsGPUPtr,                          \
-        float* pOutXNeighValGradsGPUPtr);   
+        float* pOutFeatGradsGPUPtr,                         \
+        float* pOutBasisGradsGPUPtr,                        \
+        float* pOutKernelsInGradsGPUPtr,                    \
+        float* pOutPDFGradsGPUPtr);   
 
 DECLARE_TEMPLATE_DIMS_BASIS(COMPUTE_BASIS_PROJ_GRADS_TEMP_DECL)

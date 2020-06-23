@@ -23,49 +23,36 @@
 //Include different basis functions.
 #include "basis/basis_kp.cuh"
 #include "basis/basis_hproj.cuh"
-#include "basis/basis_hproj_bilateral.cuh"
 
-template<int D, int K, int U>
-std::unique_ptr<mccnn::BasisInterface<D, K, U>> 
+template<int D, int K>
+std::unique_ptr<mccnn::BasisInterface<D, K>> 
 mccnn::basis_function_factory(mccnn::BasisFunctType pBasisType)
 {
     if(pBasisType == mccnn::BasisFunctType::KERNEL_POINT_LINEAR){
-        return make_unique<mccnn::KPBasis<D, K, U>>(
-            mccnn::KPBasis<D, K, U>::PointCorrelation::LINEAR);
+        return make_unique<mccnn::KPBasis<D, K>>(
+            mccnn::KPBasis<D, K>::PointCorrelation::LINEAR);
     }else if(pBasisType == mccnn::BasisFunctType::KERNEL_POINT_GAUSS){
-        return make_unique<mccnn::KPBasis<D, K, U>>(
-            mccnn::KPBasis<D, K, U>::PointCorrelation::GAUSS);
+        return make_unique<mccnn::KPBasis<D, K>>(
+            mccnn::KPBasis<D, K>::PointCorrelation::GAUSS);
     }else if(pBasisType == mccnn::BasisFunctType::HPROJ_RELU){
-        return make_unique<mccnn::HProjBasis<D, K, U>>(
-            mccnn::HProjBasis<D, K, U>::ActivationFunction::RELU);
+        return make_unique<mccnn::HProjBasis<D, K>>(
+            mccnn::HProjBasis<D, K>::ActivationFunction::RELU);
     }else if(pBasisType == mccnn::BasisFunctType::HPROJ_LRELU){
-        return make_unique<mccnn::HProjBasis<D, K, U>>(
-            mccnn::HProjBasis<D, K, U>::ActivationFunction::LRELU);
+        return make_unique<mccnn::HProjBasis<D, K>>(
+            mccnn::HProjBasis<D, K>::ActivationFunction::LRELU);
     }else if(pBasisType == mccnn::BasisFunctType::HPROJ_ELU){
-        return make_unique<mccnn::HProjBasis<D, K, U>>(
-            mccnn::HProjBasis<D, K, U>::ActivationFunction::ELU);
+        return make_unique<mccnn::HProjBasis<D, K>>(
+            mccnn::HProjBasis<D, K>::ActivationFunction::ELU);
     }else if(pBasisType == mccnn::BasisFunctType::HPROJ_EXP){
-        return make_unique<mccnn::HProjBasis<D, K, U>>(
-            mccnn::HProjBasis<D, K, U>::ActivationFunction::EXP);
-    }else if(pBasisType == mccnn::BasisFunctType::HPROJ_BIL_RELU){
-        return make_unique<mccnn::HProjBilateralBasis<D, K, U>>(
-            mccnn::HProjBilateralBasis<D, K, U>::ActivationFunction::RELU);
-    }else if(pBasisType == mccnn::BasisFunctType::HPROJ_BIL_LRELU){
-        return make_unique<mccnn::HProjBilateralBasis<D, K, U>>(
-            mccnn::HProjBilateralBasis<D, K, U>::ActivationFunction::LRELU);
-    }else if(pBasisType == mccnn::BasisFunctType::HPROJ_BIL_ELU){
-        return make_unique<mccnn::HProjBilateralBasis<D, K, U>>(
-            mccnn::HProjBilateralBasis<D, K, U>::ActivationFunction::ELU);
-    }else if(pBasisType == mccnn::BasisFunctType::HPROJ_BIL_EXP){
-        return make_unique<mccnn::HProjBilateralBasis<D, K, U>>(
-            mccnn::HProjBilateralBasis<D, K, U>::ActivationFunction::EXP);
+        return make_unique<mccnn::HProjBasis<D, K>>(
+            mccnn::HProjBasis<D, K>::ActivationFunction::EXP);
     }
-    return std::unique_ptr<mccnn::BasisInterface<D, K, U>>(nullptr);
+    return std::unique_ptr<mccnn::BasisInterface<D, K>>(nullptr);
 }
 
-#define BASIS_FUNCTION_FACTORY_DECL(D, K, U)                   \
-    template std::unique_ptr<mccnn::BasisInterface<D, K, U>>   \
-    mccnn::basis_function_factory<D, K, U>                     \
+#define BASIS_FUNCTION_FACTORY_DECL(D, K)                   \
+    template std::unique_ptr<mccnn::BasisInterface<D, K>>   \
+    mccnn::basis_function_factory<D, K>                     \
     (mccnn::BasisFunctType pBasisType);
 
 DECLARE_TEMPLATE_DIMS_BASIS(BASIS_FUNCTION_FACTORY_DECL)

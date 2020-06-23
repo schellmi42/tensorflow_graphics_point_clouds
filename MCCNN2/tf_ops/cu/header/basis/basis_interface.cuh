@@ -28,9 +28,8 @@ namespace mccnn{
      *  Interface for a basis function projection.
      *  @paramt D   Number of dimensions.
      *  @paramt K   Number of basis function used.
-     *  @paramt U   Number of values per neighbor.
      */
-    template<int D, int K, int U>
+    template<int D, int K>
     class BasisInterface{
 
         public:
@@ -50,40 +49,26 @@ namespace mccnn{
              *  of basis functions.
              *  @param  pDevice             Device object.
              *  @param  pNumNeighbors       Number of neighbors.
-             *  @param  pInPtsGPUPtr        Input gpu pointer to the points.
-             *  @param  pInSamplesGPUPtr    Input gpu pointer to the samples.
-             *  @param  pInInvRadiiGPUPtr   Inverse radius of the receptive field.
-             *  @param  pInNeighborsGPUPtr  Input gpu pointer to the neighbor list.
+             *  @param  pInKernelInGPUPtr   Input gpu pointer to the kernel inputs.
              *  @param  pInPDFsGPUPtr       Input gpu pointer to the pdf values.
-             *  @param  pInXNeighValsGPUPtr Input gpu pointer to the per neighbor
-             *      information.
              *  @param  pInBasisGPUPtr      Input gpu pointer to the kernel points.
              *  @param  pOutProjGPUPtr      Output pointer to the influences. 
              */
             virtual void compute_basis_proj_pt_coords(
                 std::unique_ptr<IGPUDevice>& pDevice,
                 const unsigned int pNumNeighbors,       
-                const float* pInPtsGPUPtr,
-                const float* pInSamplesGPUPtr,
-                const float* pInInvRadiiGPUPtr,
-                const int* pInNeighborsGPUPtr,
+                const float* pInKernelInGPUPtr,
                 const float* pInPDFsGPUPtr,
-                const float* pInXNeighValsGPUPtr,
                 const float* pInBasisGPUPtr,
                 float* pOutProjGPUPtr) = 0;
 
             /**
              *  Method to compute the gradients of the projection of each point into a set
              *  of basis functions.
-             *  @param  pDevice             Device object.
+             *  @param  pDevice                 Device object.
              *  @param  pNumNeighbors           Number of neighbors.
-             *  @param  pInPtsGPUPtr            Input gpu pointer to the points.
-             *  @param  pInSamplesGPUPtr        Input gpu pointer to the samples.
-             *  @param  pInInvRadiiGPUPtr       Inverse radius of the receptive field.
-             *  @param  pInNeighborsGPUPtr      Input gpu pointer to the neighbor list.
+             *  @param  pInKernelInGPUPtr       Input gpu pointer to the kernel inputs.
              *  @param  pInPDFsGPUPtr           Input gpu pointer to the pdf values.
-             *  @param  pInXNeighValsGPUPtr Input gpu pointer to the per neighbor
-             *      information.
              *  @param  pInBasisGPUPtr          Input gpu pointer to the kernel points.
              *  @param  pInGradsGPUPtr          Input gpu pointer to the input gradients.
              *  @param  pOutBasisGradsGPUPtr    Output pointer to the basis gradients. 
@@ -99,19 +84,13 @@ namespace mccnn{
             virtual void compute_grads_basis_proj_pt_coords(
                 std::unique_ptr<IGPUDevice>& pDevice,
                 const unsigned int pNumNeighbors,       
-                const float* pInPtsGPUPtr,
-                const float* pInSamplesGPUPtr,
-                const float* pInInvRadiiGPUPtr,
-                const int* pInNeighborsGPUPtr,
+                const float* pInKernelInGPUPtr,
                 const float* pInPDFsGPUPtr,
-                const float* pInXNeighValsGPUPtr,
                 const float* pInBasisGPUPtr,
                 const float* pInGradsGPUPtr,
                 float* pOutBasisGradsGPUPtr,
-                float* pOutPtsGradsGPUPtr,
-                float* pOutSampleGradsGPUPtr,
-                float* pOutPDFGradsGPUPtr,
-                float* pOutXNeighGradsGPUPtr) = 0;
+                float* pOutKernelInsGradsGPUPtr,
+                float* pOutPDFGradsGPUPtr) = 0;
     };
 }
 
