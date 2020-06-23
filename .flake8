@@ -10,6 +10,7 @@ exclude = .git,
           tensorflow_graphics/submodules/*
           test*.py
           genCompileScript.py
+          modelnet40.py
 ignore = C901,
          E101,
          E111,
