@@ -112,7 +112,7 @@ class ComputePDFTest(test_case.TestCase):
     for i in range(batch_size):
       cur_choice = np.random.choice(num_points, num_samples, replace=True)
       samples[num_samples * i:num_samples * (i + 1), :] = \
-            points[cur_choice + i * num_points]
+          points[cur_choice + i * num_points]
     samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
     def compute_pdf(points_in):
       point_cloud = PointCloud(points_in, batch_ids, batch_size)

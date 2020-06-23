@@ -35,10 +35,11 @@ from MCCNN2.pc.tests import utils
 class SamplingTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (1000, 32, [0.1, 0.1, 0.1])
+    (1000, 32, 0.1)
   )
   def test_sampling_poisson_disk_on_random(
-        self, num_points, batch_size, cell_sizes):
+        self, num_points, batch_size, cell_size):
+    cell_sizes = np.float32(np.repeat(cell_size, 3))
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size,
         sizes=np.ones(batch_size, dtype=int) * num_points)
@@ -60,10 +61,10 @@ class SamplingTest(test_case.TestCase):
       dists = np.sort(dists, axis=1)
       min_dist = min(min_dist, np.amin(dists[:, 1]))
 
-    self.assertTrue(np.all(min_dist < cell_sizes))
+    self.assertLess(min_dist, cell_size + 1e-5)
 
   @parameterized.parameters(
-    (600, 1),
+    (6, 1),
     (100, 5)
   )
   def test_sampling_poisson_disk_on_uniform(self, num_points_sqrt, scale):
