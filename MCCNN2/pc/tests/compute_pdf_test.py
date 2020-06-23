@@ -56,7 +56,6 @@ class ComputePDFTest(test_case.TestCase):
     grid = Grid(point_cloud, aabb, cell_sizes)
 
     point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
-    print(cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     neighborhood.compute_pdf(bandwidths, KDEMode.constant)
 
@@ -98,6 +97,41 @@ class ComputePDFTest(test_case.TestCase):
     pdf_tf = np.asarray(pdf_tf / float(len(accum_points)))
     pdf_skl = np.asarray(pdf_real)[neighbor_ids[:, 0]]
     self.assertAllClose(pdf_tf, pdf_skl)
+
+  @parameterized.parameters(
+    (2, 200, 1, 4, 3)
+  )
+  def test_compute_pdf_jacobian(self, batch_size, num_points, num_samples,
+                                radius, dimension):
+    cell_sizes = np.float32(np.repeat(radius, dimension))
+    bandwidths = np.float32(np.repeat(radius, dimension))
+    points, batch_ids = utils._create_random_point_cloud_segmented(
+        batch_size, batch_size * num_points, dimension,
+        equal_sized_batches=True)
+    samples = np.full((batch_size * num_samples, 3), 0.0, dtype=float)
+    for i in range(batch_size):
+        cur_choice = np.random.choice(num_points, num_samples, replace=True)
+        samples[num_samples * i:num_samples * (i + 1), :] = \
+            points[cur_choice + i * num_points]
+    samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
+    def compute_pdf(points_in):
+      point_cloud = PointCloud(points_in, batch_ids, batch_size)
+      aabb = AABB(point_cloud)
+      grid = Grid(point_cloud, aabb, cell_sizes)
+
+      point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
+      neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
+      neighborhood.compute_pdf(bandwidths, KDEMode.constant)
+      norm_factors = tf.math.unsorted_segment_sum(
+          tf.ones_like(neighborhood.pdf_),
+          neighborhood.neighbors_[:, 1],
+          batch_size * num_samples)
+      norm_pdf = neighborhood.pdf_ / tf.gather(norm_factors,
+                                               neighborhood.neighbors_[:, 1])
+      return norm_pdf
+
+    self.assert_jacobian_is_correct_fn(
+        compute_pdf, [np.float32(points)], atol=1e-4)
 
 
 if __name__ == '__main__':
