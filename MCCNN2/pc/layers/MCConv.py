@@ -168,7 +168,7 @@ class MCConv2Sampled:
       return convolution_result
 
 
-class MCConv(MCConv):
+class MCConv(MCConv2Sampled):
   """ Class to represent a Monte-Carlo convolution layer on one point cloud
 
     Attributes:
