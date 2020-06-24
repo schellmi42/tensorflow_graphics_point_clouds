@@ -50,7 +50,7 @@ class GlobalAveragePooling:
 class MaxPooling:
 
   def __call__(self, features, point_cloud_in: PointCloud,
-              point_cloud_out: PointCloud, name=None):
+               point_cloud_out: PointCloud, name=None):
     """ performs a global average pooling on a point cloud
     Args:
       features: A float `Tensor` of shape [N,D] or [A1,...,An,V,D].
