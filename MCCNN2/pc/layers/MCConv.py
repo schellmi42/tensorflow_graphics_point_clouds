@@ -158,7 +158,8 @@ class MCConv2Sampled:
       #Compute kernel inputs.
       neighPtCoords = tf.gather(grid.sortedPts_, neigh.neighbors_[:, 0])
       centerPtCoords = tf.gather(pOutPC.pts_, neigh.neighbors_[:, 1])
-      diffPts = (neighPtCoords - centerPtCoords)/tf.reshape(radiiTensor, [1, self.numDims_])
+      diffPts = (neighPtCoords - centerPtCoords) / \
+          tf.reshape(radiiTensor, [1, self.numDims_])
 
       #Compute convolution (RELU - 2, LRELU - 3, ELU - 4)
       inWeightFeat = basis_proj(diffPts, neigh, pInFeatures, self.basisTF_, 3)
@@ -201,8 +202,8 @@ class MCConv(MCConv2Sampled):
     pNumDims: Integer, dimensionality of the point cloud
     pConvName: String, name for the operation
     """
-    super(self).__init__(pNumInFeatures, pNumOutFeatures, pHiddenSize,
-                         pNumDims, pConvName)
+    super(MCConv, self).__init__(pNumInFeatures, pNumOutFeatures, pHiddenSize,
+                                 pNumDims, pConvName)
 
   def __call__(self,
                pInFeatures,
@@ -218,7 +219,7 @@ class MCConv(MCConv2Sampled):
       D_in is the number of input features.
 
     Args:
-      pInFeatures: A float Tensor of shape [N,D_in] or [A1,...,An,V,D],
+      pInFeatures: A float Tensor of shape [N,D_in] or [A1,...,An,V,D_in],
         the size must be the same as the points in the input point cloud.
       pPC: A PointCloud instance
       pRadius: A float, the convolution radius.
@@ -232,4 +233,3 @@ class MCConv(MCConv2Sampled):
     """
     return super(self).__call__(self, pInFeatures, pPC, pPC, pRadius,
                                 pBandWidth, return_sorted, name)
-                                

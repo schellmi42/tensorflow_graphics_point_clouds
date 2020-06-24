@@ -148,7 +148,6 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
       return points, features, sizes, labels
 
     def on_epoch_end(self):
-      # chooses random subset of point pairs per epoch
       shuffle = np.random.permutation(np.arange(0,len(self.points)))
       self.points = self.points[shuffle]
       self.label_list = self.label_list[shuffle]

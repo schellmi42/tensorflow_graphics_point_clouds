@@ -89,6 +89,8 @@ def compute_pdf(pNeighborhood, pBandwidth, pMode, name=None):
       tf.math.reciprocal(pBandwidth),
       tf.math.reciprocal(pNeighborhood.radii_),
       pMode)
+
+
 @tf.RegisterGradient("ComputePdfWithPtGrads")
 def _compute_pdf_grad(op, *grads):
   inPtsGrad = MCCNN2_module.compute_pdf_pt_grads(
@@ -113,6 +115,8 @@ def basis_proj(pKernelInputs, pNeighborhood, pInFeatures,
       curPDF,
       pBasis,
       pBasisType)
+
+
 @tf.RegisterGradient("BasisProj")
 def _basis_proj_grad(op, *grads):
   featGrads, basisGrads, kernelInGrads, pdfGrads = \
