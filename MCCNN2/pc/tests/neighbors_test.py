@@ -76,5 +76,35 @@ class NeighborsTest(test_case.TestCase):
         allFound = allFound and found
     self.assertTrue(allFound)
 
+  @parameterized.parameters(
+    (12, 100, 24, np.sqrt(2), 2),
+    (32, 10000, 32, 0.7, 2),
+    (12, 100, 24, np.sqrt(3), 3),
+    (32, 10000, 32, 0.7, 3),
+    (12, 100, 24, np.sqrt(4), 4),
+    (32, 10000, 32, 0.7, 4),
+  )
+  def test_neighbors_are_from_same_batch(self, batch_size, num_points,
+                                         num_samples, radius, dimension):
+    points, batch_ids = utils._create_random_point_cloud_segmented(
+      batch_size, num_points, dimension=dimension)
+    samples, batch_ids_samples = utils._create_random_point_cloud_segmented(
+      batch_size, num_samples, dimension=dimension)
+    radius = np.float32(np.repeat([radius], dimension))
+
+    point_cloud = PointCloud(points, batch_ids)
+    point_cloud_samples = PointCloud(samples, batch_ids_samples)
+    grid = Grid(point_cloud, AABB(point_cloud), radius)
+    neighborhood = Neighborhood(grid, radius, point_cloud_samples)
+
+    batch_ids_in = tf.gather(
+        point_cloud.batchIds_, neighborhood.originalNeighIds_[:, 0])
+    batch_ids_out = tf.gather(
+        point_cloud_samples.batchIds_, neighborhood.originalNeighIds_[:, 1])
+    batch_check = batch_ids_in == batch_ids_out
+
+    self.assertTrue(np.all(batch_check))
+
+
 if __name__ == '__main__':
   test_case.main()

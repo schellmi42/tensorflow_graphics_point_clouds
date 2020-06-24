@@ -68,7 +68,8 @@ class _LocalPointPooling:
     Args:
       pool_op: A function of type `tf.math.unsorted_segmented_*`
       features: A float `Tensor` of shape [N_in,D] or [A1,...,An,V,D].
-      point_cloud_in: A `PointCloud` instance on which the features are defined.
+      point_cloud_in: A `PointCloud` instance on which the features are
+        defined.
       point_cloud_out: A `PointCloud` instance, on which the output features
         are defined.
       pooling_radius: A float or a float `Tensor` of shape [D]
