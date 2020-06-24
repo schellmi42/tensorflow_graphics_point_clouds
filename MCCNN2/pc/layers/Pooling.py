@@ -59,17 +59,17 @@ class GlobalAveragePooling:
           num_segments=point_cloud.batchSize_)
 
 
-class _PointPooling:
+class _LocalPointPooling:
 
   def __call__(self, pool_op, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
-               return_sorted=False, name=None):
+               return_sorted=False, name=None, default_name="custom pooling"):
     """ Computes a local pooling between two point clouds specified by pool_op
     Args:
-      pool_op: A function of type `tf.math.unsegmented_*`
+      pool_op: A function of type `tf.math.unsorted_segmented_*`
       features: A float `Tensor` of shape [N_in,D] or [A1,...,An,V,D].
-      point_cloud_in: A PointCloud instance on which the features are defined.
-      point_cloud_out: A PointCloud instance, on which the output features
+      point_cloud_in: A `PointCloud` instance on which the features are defined.
+      point_cloud_out: A `PointCloud` instance, on which the output features
         are defined.
       pooling_radius: A float or a float `Tensor` of shape [D]
       return_sorted: A boolean, if 'True' the output tensor is sorted
@@ -78,7 +78,7 @@ class _PointPooling:
       A float `Tensor` of shape [N_out,D].
     """
     with tf.compat.v1.name_scope(
-        name, "max pooling ",
+        name, default_name,
         [features, point_cloud_in, point_cloud_out, return_sorted,
          pooling_radius]):
       features = _flatten_features(features, point_cloud_in)
@@ -109,7 +109,7 @@ class _PointPooling:
 
       # Pool the features in the neighborhoods
       features_out = pool_op(
-          features_on_neighbors,
+          data=features_on_neighbors,
           segment_ids=neigh_out,
           num_segments=point_cloud_out.pts_.shape[0])
       if return_sorted:
@@ -118,7 +118,7 @@ class _PointPooling:
       return features_out
 
 
-class MaxPooling(_PointPooling):
+class MaxPooling(_LocalPointPooling):
 
   def __call__(self, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
@@ -138,10 +138,10 @@ class MaxPooling(_PointPooling):
     return super(MaxPooling, self).__call__(
         tf.math.unsorted_segment_max,
         features, point_cloud_in, point_cloud_out, pooling_radius,
-        return_sorted, name)
+        return_sorted, name, default_name="max pooling")
 
 
-class AveragePooling(_PointPooling):
+class AveragePooling(_LocalPointPooling):
 
   def __call__(self, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
@@ -161,4 +161,4 @@ class AveragePooling(_PointPooling):
     return super(AveragePooling, self).__call__(
         tf.math.unsorted_segment_mean,
         features, point_cloud_in, point_cloud_out, pooling_radius,
-        return_sorted, name)
+        return_sorted, name, default_name="average pooling")
