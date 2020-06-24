@@ -24,17 +24,19 @@ class AABB:
     In the following, A1 to An are optional batch dimensions.
 
   Attributes:
-    aabbMin_ (float tensor bxd): List of minimum points of the bounding boxes.
-    aabbMax_ (float tensor bxd): List of maximum points of the bounding boxes.
-    batchSize_ (int): Size of the batch.
-    batchShape_: An int tensor of shape [A1,...,An]
+    aabbMin_: A float 'Tensor' of shape [B,D], list of minimum points of the
+      bounding boxes.
+    aabbMax_: A float 'Tensor' of shape [B,D], list of maximum points of the
+      bounding boxes.
+    batchSize_: An integer, size of the batch.
+    batchShape_: An int 'Tensor' of shape [B], the batch shape [A1,...,An]
   """
 
   def __init__(self, point_cloud: PointCloud, name=None):
     """Constructor.
 
     Args:
-      Pointcloud (PointCloud):  Point cloud from which to compute the
+      Pointcloud: A 'PointCloud' instance from which to compute the
         bounding box.
     """
     with tf.compat.v1.name_scope(
@@ -61,7 +63,8 @@ class AABB:
           `1`, `2`, `np.inf` and any positive real number yielding the
           corresponding p-norm. Default is `'euclidean'`.
     Return:
-      diam:   tensor [A1,..An] diameters of the bound boxes
+      diam: A float 'Tensor' of shape [A1,..An], diameters of the
+        bounding boxes
     """
 
     with tf.compat.v1.name_scope(

@@ -177,7 +177,7 @@ gen_train = modelnet_data_generator(train_data_points, train_labels, batch_size)
 gen_test = modelnet_data_generator(test_data_points, test_labels, batch_size)
 
 lr_decay=tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=0.001,
-    decay_steps=gen_train.__len__(),
+    decay_steps=len(gen_train),
     decay_rate=0.95)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 

@@ -103,16 +103,13 @@ class PointCloud:
             tf.range(0, self.batchSize_),
             repeats=tf.reshape(self.sizes_, [-1]))
       else:
-        # if input is already 2D tensor with segmentation ids
+        # if input is already 2D tensor with segmentation ids or given sizes
         if self.batchIds_ is None:
           if self.batchSize_ is None:
-            self.batchSize_ = tf.reduce_prod(self.sizes.shape)
-          self.batchIds_ = tf.repeat(tf.range(0, self.batchSize_), sizes)
+            self.batchSize_ = tf.reduce_prod(self.sizes_.shape)
+          self.batchIds_ = tf.repeat(tf.range(0, self.batchSize_), self.sizes_)
         if self.batchSize_ is None:
           self.batchSize_ = tf.reduce_max(self.batchIds_) + 1
-        else:
-          self.batchSize_ = pBatchSize
-        self.batchIds_ = pBatchIds
         self.pts_ = pPts
 
       #Sort the points based on the batch ids in incremental order.

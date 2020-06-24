@@ -18,12 +18,12 @@ from MCCNN2.pc import PointCloud
 
 
 def check_valid_point_cloud_input(points, sizes, batch_ids):
-  """Cheks that the inputs to the constructor of class 'PointCloud' are valid
+  """Checks that the inputs to the constructor of class 'PointCloud' are valid
 
   Args:
-    points: float tensor of shape [N,D] or [A1,...,An,V,D]
-    sizes:  int tensor of shape [A1,...,An] or None
-    batch_ids: int tensor of shape [N] or None
+    points: float `tensor` of shape [N,D] or [A1,...,An,V,D]
+    sizes:  int `tensor` of shape [A1,...,An] or None
+    batch_ids: int `tensor` of shape [N] or None
 
   Raises:
     Value Error: If input dimensions are invalid or no valid segmentation
@@ -31,13 +31,15 @@ def check_valid_point_cloud_input(points, sizes, batch_ids):
   """
 
   if len(points.shape) == 2 and sizes is None and batch_ids is None:
-    raise ValueError('Missing input! Either sizes or pBatchIds must be given.')
+    raise ValueError('Missing input! Either sizes or batch_ids must be given.')
   if len(points.shape) == 1:
     raise ValueError(
         'Invalid input! Point tensor is of dimension 1 \
         but should be at least 2!')
-  elif len(points.shape) == 2 and batch_ids is None:
-    raise ValueError('Missing input! No segmentation ids given for input.')
+  if len(points.shape) == 2 and batch_ids is not None:
+    if len(points) != len(batch_ids):
+      raise AssertionError('Invalid sizes! Sizes of points and batch_ids are' +
+                           ' not equal.')
 
 
 def check_valid_point_hierarchy_input(point_cloud, cell_sizes, pool_mode):

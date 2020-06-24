@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" modules for neighborhoods in point coulds """
+""" modules for neighborhoods in point clouds """
 
 import os
 import sys
@@ -38,14 +38,20 @@ class KDEMode(enum.Enum):
 class Neighborhood:
   """Class to represent a neighborhood of points.
 
+  Note:
+    In the following D is the spatial dimensionality of the points,
+    N is the number of (samples) points, and M is the total number of
+    adjacencies.
+
   Attributes:
-    pcSamples_ (PointCloud): Samples point cloud.
-    grid_  (Grid): Regular grid data structure.
-    radii_ (float tensor d): Radii used to select the neighbors.
-    samplesNeighRanges_ (int tensor n): End of the ranges for each sample.
-    neighbors_ (int tensor mx2): Indices of the neighbor point and the
-      sample for each neighbor.
-    pdf_ (float tensor m): PDF value for each neighbor.
+    pcSamples_: 'PointCloud', samples point cloud.
+    grid_ : 'Grid', regular grid data structure.
+    radii_: float 'Tensor' of shape [D], radii used to select the neighbors.
+    samplesNeighRanges_: int 'Tensor' of shape [N], end of the ranges per
+      sample.
+    neighbors_: int 'Tensor' of shape [M,2], indices of the neighbor point and
+      the sample for each neighbor.
+    pdf_: float 'Tensor' of shape [M], PDF value for each neighbor.
   """
 
   def __init__(self,
@@ -57,11 +63,12 @@ class Neighborhood:
     """Constructor.
 
     Args:
-      pGrid  (Grid): Regular grid data structure.
-      pRadii (float tensor d): Radii used to select the neighbors.
-      pPCSample (PointCloud): Samples point cloud. If None, the sorted
-        points from the grid will be used.
-      pMaxNeighbors (int): Maximum number of neighbors per sample.
+      pGrid: A 'Grid' instance, the regular grid data structure.
+      pRadii: A float 'Tensor' of shape [D], the radii used to select the
+        neighbors.
+      pPCSample: A 'PointCloud' instance. Samples point cloud. If None, the
+        sorted points from the grid will be used.
+      pMaxNeighbors: Integer, maximum number of neighbors per sample.
     """
     with tf.compat.v1.name_scope(
         name, "constructor for neighbourhoods of point clouds",
@@ -99,8 +106,9 @@ class Neighborhood:
     """Method to compute the probability density function of a neighborhood.
 
     Args:
-      pBandwidth (float tensor d): Bandwidth used to compute the pdf.
-      pMode (KDEMode): Mode used to determine the bandwidth.
+      pBandwidth: float 'Tensor' of shape [D], bandwidth used to compute
+        the pdf.
+      pMode: 'KDEMode', mode used to determine the bandwidth.
     """
     with tf.compat.v1.name_scope(
         name, "compute pdf for neighbours",
