@@ -50,6 +50,8 @@ class MCConv2Sampled:
                pNumOutFeatures,
                pHiddenSize,
                pNumDims,
+               initializer_weights=None,
+               initializer_biases=None,
                pConvName=None):
     """ Constructior, initializes weights
 
@@ -59,6 +61,10 @@ class MCConv2Sampled:
     pHiddenSize: Integer, the number of neurons in the hidden layer of the
         kernel MLP
     pNumDims: Integer, dimensionality of the point cloud
+    initializer_weights: A `tf.initializer` for the weights,
+      default `TruncatedNormal`
+    initializer_biases: A `tf.initializer` for the biases,
+      default: `zeros`
     pConvName: String, name for the operation
     """
 
@@ -75,18 +81,22 @@ class MCConv2Sampled:
         self.convName_ = pConvName
 
       # initialize variables
+      if initializer_weights is None:
+        initializer_weights = tf.initializers.TruncatedNormal
+      if initializer_biases is None:
+        initializer_biases = tf.initializers.zeros
+
       stdDev = tf.math.sqrt(1.0 / float(self.numDims_))
       hProjVecTF = tf.compat.v1.get_variable(
           self.convName_ + '_hidden_vectors',
           shape=[self.numHidden_, self.numDims_],
-          initializer=tf.initializers.TruncatedNormal(
-              stddev=stdDev),
+          initializer=initializer_weights(stddev=stdDev),
           dtype=tf.float32,
           trainable=True)
       hProjBiasTF = tf.compat.v1.get_variable(
           self.convName_ + '_hidden_biases',
           shape=[self.numHidden_, 1],
-          initializer=tf.initializers.zeros(),
+          initializer=initializer_biases(),
           dtype=tf.float32,
           trainable=True)
       self.basisTF_ = tf.concat([hProjVecTF, hProjBiasTF], axis=1)
@@ -98,8 +108,7 @@ class MCConv2Sampled:
               shape=[self.numHidden_ * \
                      self.numInFeatures_,
                      self.numOutFeatures_],
-              initializer=tf.initializers.TruncatedNormal(
-                  stddev=stdDev),
+              initializer=initializer_weights(stddev=stdDev),
               dtype=tf.float32, trainable=True)
 
   def __call__(self,
@@ -203,7 +212,7 @@ class MCConv(MCConv2Sampled):
     pConvName: String, name for the operation
     """
     super(MCConv, self).__init__(pNumInFeatures, pNumOutFeatures, pHiddenSize,
-                                 pNumDims, pConvName)
+                                 pNumDims, None, None, pConvName)
 
   def __call__(self,
                pInFeatures,
@@ -219,9 +228,9 @@ class MCConv(MCConv2Sampled):
       D_in is the number of input features.
 
     Args:
-      pInFeatures: A float Tensor of shape [N,D_in] or [A1,...,An,V,D_in],
+      pInFeatures: A float `Tensor` of shape [N,D_in] or [A1,...,An,V,D_in],
         the size must be the same as the points in the input point cloud.
-      pPC: A PointCloud instance
+      pPC: A `PointCloud` instance
       pRadius: A float, the convolution radius.
       pBandWidth: The used bandwidth used in the kernel densitiy estimation on
         the input point cloud.
@@ -229,7 +238,7 @@ class MCConv(MCConv2Sampled):
         according to the batch_ids.
 
       Returns:
-        Tensor with shape [N,D_out]
+        `Tensor` with shape [N,D_out]
     """
     return super(self).__call__(self, pInFeatures, pPC, pPC, pRadius,
                                 pBandWidth, return_sorted, name)

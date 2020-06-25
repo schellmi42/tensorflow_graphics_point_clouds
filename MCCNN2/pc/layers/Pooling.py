@@ -96,6 +96,8 @@ class _LocalPointPooling:
 
       # Compute the neighborhood keys.
       neigh = Neighborhood(grid_in, pooling_radius, point_cloud_out)
+      # -----------------
+      # quick fix for 2D input
       # mask points with different batch_id
       features_on_neighbors = tf.gather(
           features, neigh.originalNeighIds_[:, 0])
@@ -107,6 +109,7 @@ class _LocalPointPooling:
       features_on_neighbors = tf.boolean_mask(
           features_on_neighbors, batch_mask)
       neigh_out = tf.boolean_mask(neigh.originalNeighIds_[:, 1], batch_mask)
+      # -------------
 
       # Pool the features in the neighborhoods
       features_out = pool_op(
