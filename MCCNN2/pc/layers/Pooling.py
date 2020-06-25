@@ -53,7 +53,7 @@ class GlobalAveragePooling:
     with tf.compat.v1.name_scope(
         name, "global average pooling ", [features, point_cloud]):
       features = _flatten_features(features, point_cloud)
-      return tf.math.unsorted_segment_max(
+      return tf.math.unsorted_segment_mean(
           features,
           segment_ids=point_cloud.batchIds_,
           num_segments=point_cloud.batchSize_)
