@@ -35,17 +35,24 @@ from MCCNN2.pc.tests import utils
 class NeighborsTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (1000, 10, 8, [0.025, 0.025, 0.025])
+    (100, 10, 8, 0.025, 2),
+    (1000, 10, 8, 0.025, 3),
+    (1000, 10, 8, 0.025, 4)
   )
-  def test_find_neighbors(self, num_points, num_samples,
-                          batch_size, cell_sizes):
+  def test_find_neighbors(self,
+                          num_points,
+                          num_samples,
+                          batch_size,
+                          radius,
+                          dimension):
+    cell_sizes = np.repeat(radius, dimension)
     points, batch_ids = utils._create_random_point_cloud_segmented(
-        batch_size, num_points * batch_size,
+        batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
     point_cloud = PointCloud(points, batch_ids)
     samples_points, batch_ids_samples = \
         utils._create_random_point_cloud_segmented(
-            batch_size, num_samples * batch_size,
+            batch_size, num_samples * batch_size, dimension=dimension,
             sizes=np.ones(batch_size, dtype=int) * num_samples)
     point_cloud_sampled = PointCloud(samples_points, batch_ids_samples)
     aabb = AABB(point_cloud)
@@ -79,13 +86,20 @@ class NeighborsTest(test_case.TestCase):
   @parameterized.parameters(
     (12, 100, 24, np.sqrt(2), 2),
     (32, 10000, 32, 0.7, 2),
+    (32, 10000, 32, 0.1, 2),
     (12, 100, 24, np.sqrt(3), 3),
     (32, 10000, 32, 0.7, 3),
+    (32, 10000, 32, 0.1, 3),
     (12, 100, 24, np.sqrt(4), 4),
     (32, 10000, 32, 0.7, 4),
+    (32, 10000, 32, 0.1, 4),
   )
-  def test_neighbors_are_from_same_batch(self, batch_size, num_points,
-                                         num_samples, radius, dimension):
+  def test_neighbors_are_from_same_batch(self,
+                                         batch_size,
+                                         num_points,
+                                         num_samples,
+                                         radius,
+                                         dimension):
     points, batch_ids = utils._create_random_point_cloud_segmented(
       batch_size, num_points, dimension=dimension)
     samples, batch_ids_samples = utils._create_random_point_cloud_segmented(

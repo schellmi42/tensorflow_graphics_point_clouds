@@ -35,21 +35,37 @@ from MCCNN2.pc.tests import utils
 class ComputePDFTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (32, 100, 10, 0.2, 0.1, 3)
+    # (32, 100, 10, 0.2, 0.1, 2),
+    # (32, 100, 10, 0.7, 0.1, 2),
+    # (32, 100, 10, np.sqrt(2), 0.1, 2),
+    (32, 100, 10, 0.2, 0.1, 3),
+    (32, 100, 10, 0.7, 0.1, 3),
+    (32, 100, 10, np.sqrt(3), 0.1, 3),
+    (32, 100, 10, 0.2, 0.1, 4),
+    # (32, 100, 10, 0.7, 0.1, 4),
+    (32, 100, 10, np.sqrt(4), 0.1, 4)
   )
-  def test_compute_pdf(self, batch_size, num_points, num_samples, cell_size,
-                       bandwidth, dimension):
+  def test_compute_pdf(self,
+                       batch_size,
+                       num_points,
+                       num_samples_per_batch,
+                       cell_size,
+                       bandwidth,
+                       dimension):
     cell_sizes = np.float32(np.repeat(cell_size, dimension))
     bandwidths = np.float32(np.repeat(bandwidth, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, batch_size * num_points, dimension,
         equal_sized_batches=True)
-    samples = np.full((batch_size * num_samples, 3), 0.0, dtype=float)
+    samples = np.full((batch_size * num_samples_per_batch, dimension),
+                      0.0, dtype=float)
     for i in range(batch_size):
-      cur_choice = np.random.choice(num_points, num_samples, replace=True)
-      samples[num_samples * i:num_samples * (i + 1), :] = \
+      cur_choice = np.random.choice(num_points, num_samples_per_batch,
+                                    replace=True)
+      samples[num_samples_per_batch * i:num_samples_per_batch * (i + 1), :] = \
           points[cur_choice + i * num_points]
-    samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
+    samples_batch_ids = np.repeat(np.arange(0, batch_size),
+                                  num_samples_per_batch)
 
     point_cloud = PointCloud(points, batch_ids, batch_size)
     aabb = AABB(point_cloud)
@@ -99,16 +115,22 @@ class ComputePDFTest(test_case.TestCase):
     self.assertAllClose(pdf_tf, pdf_skl)
 
   @parameterized.parameters(
-    (2, 200, 1, 4, 3)
+    # (1, 200, 1, 4, 2),
+    (1, 200, 1, 4, 3),
+    (1, 200, 1, 4, 4)
   )
-  def test_compute_pdf_jacobian(self, batch_size, num_points, num_samples,
-                                radius, dimension):
+  def test_compute_pdf_jacobian(self,
+                                batch_size,
+                                num_points,
+                                num_samples,
+                                radius,
+                                dimension):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     bandwidths = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, batch_size * num_points, dimension,
         equal_sized_batches=True)
-    samples = np.full((batch_size * num_samples, 3), 0.0, dtype=float)
+    samples = np.full((batch_size * num_samples, dimension), 0.0, dtype=float)
     for i in range(batch_size):
       cur_choice = np.random.choice(num_points, num_samples, replace=True)
       samples[num_samples * i:num_samples * (i + 1), :] = \

@@ -73,7 +73,7 @@ class Neighborhood:
     with tf.compat.v1.name_scope(
         name, "constructor for neighbourhoods of point clouds",
         [self, pGrid, pRadii, pPCSample, pMaxNeighbors]):
-      pRadii = tf.convert_to_tensor(value=pRadii)
+      pRadii = tf.convert_to_tensor(value=pRadii, dtype=tf.float32)
 
       #Save the attributes.
       if pPCSample is None:

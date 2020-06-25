@@ -39,8 +39,8 @@ def _create_random_point_cloud_segmented(batch_size,
     # adds points such that the aabb is [0,0,0] [1,1,1]*scale
     # to prevent rounding errors
     points = np.concatenate(
-        (points, scale * np.ones([batch_size, 3]) - 1e-9,
-         1e-9 + np.zeros([batch_size, 3])))
+        (points, scale * np.ones([batch_size, dimension]) - 1e-9,
+         1e-9 + np.zeros([batch_size, dimension])))
     batch_ids = np.concatenate(
         (batch_ids, np.arange(0, batch_size), np.arange(0, batch_size)))
   return points, batch_ids

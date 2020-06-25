@@ -28,13 +28,25 @@ from MCCNN2.pc.tests import utils
 class GridTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (10000, 32, 30, [0.1, 0.1, 0.1]),
-    (20000, 16, 30, [0.2, 0.2, 0.2])
+    # (10000, 32, 30, 0.1, 2), # currently corrupted in 2D
+    # (20000, 16, 1, 0.2, 2),
+    (20000, 8, 1, np.sqrt(2), 2),
+    (10000, 32, 30, 0.1, 3),
+    (20000, 16, 1, 0.2, 3),
+    (20000, 8, 1, np.sqrt(3), 3),
+    (10000, 32, 30, 0.1, 4),
+    (20000, 16, 1, 0.2, 4),
+    (20000, 8, 1, np.sqrt(4), 4)
   )
-  def test_compute_keys_with_sort(self, num_points, batch_size, scale, radius):
-    np.random.seed(10)
+  def test_compute_keys_with_sort(self, 
+                                  num_points,
+                                  batch_size,
+                                  scale,
+                                  radius,
+                                  dimension):
+    radius = np.repeat(radius, dimension)
     points, batch_ids = utils._create_random_point_cloud_segmented(
-        batch_size, num_points * batch_size,
+        batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
@@ -45,13 +57,25 @@ class GridTest(test_case.TestCase):
 
     aabb_min_per_point = aabb_min[batch_ids, :]
     cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
-    cell_ind = np.minimum(np.maximum(cell_ind, np.array([0, 0, 0])),
+    cell_ind = np.minimum(np.maximum(cell_ind, [0] * dimension),
                           total_num_cells)
-    keys = batch_ids * total_num_cells[0] * \
-        total_num_cells[1] * total_num_cells[2] + \
-        cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
-        cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
-
+    if dimension == 2:
+      keys = batch_ids * total_num_cells[0] * \
+          total_num_cells[1] + \
+          cell_ind[:, 0] * total_num_cells[1]
+    elif dimension == 3:
+      keys = batch_ids * total_num_cells[0] * \
+          total_num_cells[1] * total_num_cells[2] + \
+          cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
+          cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
+    elif dimension == 4:
+      keys = batch_ids * total_num_cells[0] * \
+          total_num_cells[1] * total_num_cells[2]  * total_num_cells[3] + \
+          cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] * \
+          total_num_cells[3] + \
+          cell_ind[:, 1] * total_num_cells[1] * total_num_cells[2] + \
+          cell_ind[:, 2] * total_num_cells[1] + cell_ind[:, 3]
+    # check unsorted keys
     self.assertAllEqual(grid.curKeys_, keys)
 
     # sort descending
@@ -60,12 +84,21 @@ class GridTest(test_case.TestCase):
     self.assertAllEqual(grid.sortedKeys_, sorted_keys)
 
   @parameterized.parameters(
-    (10000, 32, 1, [0.1, 0.2, 0.2]),
-    (2000, 16, 30, [0.2, 0.5, 0.2])
+    # currently numpy implementation only in 3D
+    # (10000, 32, 30, 0.1, 2),
+    # (20000, 16, 1, 0.2, 2),
+    # (20000, 8, 1, np.sqrt(2), 2),
+    (10000, 32, 30, 0.1, 3),
+    (20000, 16, 1, 0.2, 3),
+    (20000, 8, 1, np.sqrt(3), 3),
+    # (10000, 32, 30, 0.1, 4),
+    # (20000, 16, 1, 0.2, 4),
+    # (20000, 8, 1, np.sqrt(4), 4)
   )
-  def test_grid(self, num_points, batch_size, scale, radius):
+  def test_grid(self, num_points, batch_size, scale, radius, dimension):
+    radius = np.repeat(radius, dimension)
     points, batch_ids = utils._create_random_point_cloud_segmented(
-        batch_size, num_points * batch_size,
+        batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
@@ -75,12 +108,24 @@ class GridTest(test_case.TestCase):
     aabb_min = aabb.aabbMin_.numpy()
     aabb_min_per_point = aabb_min[batch_ids, :]
     cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
-    cell_ind = np.minimum(np.maximum(cell_ind, np.array([0, 0, 0])),
+    cell_ind = np.minimum(np.maximum(cell_ind, [0] * dimension),
                           total_num_cells)
-    keys = batch_ids * total_num_cells[0] * \
-        total_num_cells[1] * total_num_cells[2] + \
-        cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
-        cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
+    if dimension == 2:
+      keys = batch_ids * total_num_cells[0] * \
+          total_num_cells[1] + \
+          cell_ind[:, 0] * total_num_cells[1]
+    elif dimension == 3:
+      keys = batch_ids * total_num_cells[0] * \
+          total_num_cells[1] * total_num_cells[2] + \
+          cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
+          cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
+    elif dimension == 4:
+      keys = batch_ids * total_num_cells[0] * \
+          total_num_cells[1] * total_num_cells[2]  * total_num_cells[3] + \
+          cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] * \
+          total_num_cells[3] + \
+          cell_ind[:, 1] * total_num_cells[1] * total_num_cells[2] + \
+          cell_ind[:, 2] * total_num_cells[1] + cell_ind[:, 3]
 
     keys = np.flip(np.sort(keys))
     # check if the cell keys per point are equal

@@ -35,13 +35,15 @@ from MCCNN2.pc.tests import utils
 class SamplingTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (1000, 32, 0.1)
+    (1000, 32, 0.1, 2),
+    (1000, 32, 0.1, 3),
+    (1000, 32, 0.1, 4)
   )
   def test_sampling_poisson_disk_on_random(
-        self, num_points, batch_size, cell_size):
-    cell_sizes = np.float32(np.repeat(cell_size, 3))
+        self, num_points, batch_size, cell_size, dimension):
+    cell_sizes = np.float32(np.repeat(cell_size, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
-        batch_size, num_points * batch_size,
+        batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
@@ -84,12 +86,20 @@ class SamplingTest(test_case.TestCase):
     self.assertTrue(len(sampled_points) == expected_num_pts)
 
   @parameterized.parameters(
-    (100, 32, [0.1, 0.1, 0.1])
+    # currently only 3D supported
+    # (100, 2, 0.1, 2),
+    # (100, 8, 0.7, 2),
+    # (100, 32, np.sqrt(2), 2),
+    (100, 2, 0.1, 3),
+    (100, 8, 0.7, 3),
+    (100, 32, np.sqrt(3), 3),
+    # (40, 2, 0.1, 4)
   )
   def test_sampling_average_on_random(
-        self, num_points, batch_size, cell_sizes):
+        self, num_points, batch_size, cell_size, dimension):
+    cell_sizes = np.repeat(cell_size, dimension)
     points, batch_ids = utils._create_random_point_cloud_segmented(
-        batch_size, num_points * batch_size,
+        batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
     point_cloud = PointCloud(points, batch_ids)
     aabb = AABB(point_cloud)
@@ -102,35 +112,27 @@ class SamplingTest(test_case.TestCase):
     sorted_points = sample.neighborhood_.grid_.sortedPts_.numpy()
 
     sampled_points_numpy = []
-    cur_point = [0.0, 0.0, 0.0]
+    cur_point = np.repeat(0.0, dimension)
     cur_key = -1
     cur_num_points = 0.0
     for pt_id, cur_key_point in enumerate(sorted_keys):
       if cur_key_point != cur_key:
         if cur_key != -1:
-          cur_point[0] = cur_point[0] / cur_num_points
-          cur_point[1] = cur_point[1] / cur_num_points
-          cur_point[2] = cur_point[2] / cur_num_points
+          cur_point /= cur_num_points
           sampled_points_numpy.append(cur_point)
         cur_key = cur_key_point
         cur_point = [0.0, 0.0, 0.0]
         cur_num_points = 0.0
-      cur_point[0] += sorted_points[pt_id][0]
-      cur_point[1] += sorted_points[pt_id][1]
-      cur_point[2] += sorted_points[pt_id][2]
+      cur_point += sorted_points[pt_id]
       cur_num_points += 1.0
-    cur_point[0] = cur_point[0] / cur_num_points
-    cur_point[1] = cur_point[1] / cur_num_points
-    cur_point[2] = cur_point[2] / cur_num_points
+    cur_point /= cur_num_points
     sampled_points_numpy.append(cur_point)
 
     equal = True
     for point_numpy in sampled_points_numpy:
       found = False
       for point_tf in sampled_points_tf:
-        if np.abs(point_numpy[0] - point_tf[0]) < 0.0001 and \
-          np.abs(point_numpy[1] - point_tf[1]) < 0.0001 and \
-          np.abs(point_numpy[2] - point_tf[2]) < 0.0001:
+        if np.all(np.abs(point_numpy - point_tf) < 0.0001):
           found = True
       equal = equal and found
     self.assertTrue(equal)

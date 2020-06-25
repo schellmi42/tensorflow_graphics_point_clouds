@@ -73,7 +73,11 @@ class Pooling(test_case.TestCase):
     (2000, 200, 16, 0.7, 4),
     (4000, 400, 8, np.sqrt(4), 4)
   )
-  def test_local_pooling(self, num_points, num_samples, batch_size, radius,
+  def test_local_pooling(self,
+                         num_points,
+                         num_samples,
+                         batch_size,
+                         radius,
                          dimension):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
