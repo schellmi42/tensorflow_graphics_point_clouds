@@ -20,7 +20,6 @@ from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
 from MCCNN2.pc import PointCloud
-from MCCNN2.pc import AABB
 from MCCNN2.pc import Grid
 from MCCNN2.pc.tests import utils
 
@@ -49,7 +48,7 @@ class GridTest(test_case.TestCase):
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB
     grid = Grid(point_cloud, aabb, radius)
 
     total_num_cells = grid.numCells_.numpy()
@@ -101,7 +100,7 @@ class GridTest(test_case.TestCase):
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, radius)
 
     total_num_cells = grid.numCells_.numpy()

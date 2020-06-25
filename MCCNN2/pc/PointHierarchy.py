@@ -20,7 +20,6 @@ import tensorflow as tf
 
 from MCCNN2.pc.utils import check_valid_point_hierarchy_input
 
-from MCCNN2.pc import AABB
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
@@ -58,7 +57,7 @@ class PointHierarchy:
       # check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pSampleMode)
 
       #Initialize the attributes.
-      self.aabb_ = AABB(pPointCloud)
+      self.aabb_ = pPointCloud.get_AABB()
       self.pointClouds_ = [pPointCloud]
       self.sampleOps_ = []
       self.cellSizes_ = []

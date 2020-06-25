@@ -17,7 +17,6 @@ import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
 
 
-from MCCNN2.pc import AABB
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
@@ -155,7 +154,7 @@ class MCConv2Sampled:
       bwTensor = tf.repeat(pBandWidth, self.numDims_)
 
       #Compute the AABB.
-      aabbIn = AABB(pInPC)
+      aabbIn = pInPC.get_AABB()
 
       #Compute the grid.
       grid = Grid(pInPC, aabbIn, radiiTensor)

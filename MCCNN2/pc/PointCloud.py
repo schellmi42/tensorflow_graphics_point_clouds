@@ -46,6 +46,7 @@ class PointCloud:
     dimension_ (int): dimensionality of the point clouds
     get_segment_id_ (int tensor [A1,...,An]): tensor that returns the
       segment id given a relative id in [A1,...,An]
+    aabb_: A `AABB` instance, the bounding box of the point cloud.
   """
 
   def __init__(self,
@@ -66,7 +67,7 @@ class PointCloud:
       pBatchIds: An int tensor of shape [N] associated with the points of pPts
       sizes:      An `int` tensor of shape `[A1, ..., An]` indicating the
         true input sizes in case of padding (`sizes=None` indicates no padding)
-        Note that `sizes[A1, ..., An] <= V`.
+        Note that `sizes[A1, ..., An] <= V` or `sum(sizes) == N`.
       pBatchSize (int): Size of the batch.
     """
     with tf.compat.v1.name_scope(
@@ -83,34 +84,15 @@ class PointCloud:
       self.sizes_ = sizes
       self.batchSize_ = pBatchSize
       self.batchIds_ = pBatchIds
+      self.dimension_ = pPts.shape[-1]
       self.batchShape_ = None
       self.unflatten_ = None
-      self.dimension_ = pPts.shape[-1]
+      self.aabb_ = None
 
       if len(pPts.shape) > 2:
-        # converting padded [A1,...,An,V,D] tensor into a 2D tensor [N,D] with
-        # segmentation ids
-        self.batchShape_ = pPts.shape[:-2]
-        if self.batchSize_ is None:
-          self.batchSize_ = tf.reduce_prod(self.batchShape_)
-        if self.sizes_ is None:
-          self.sizes_ = tf.constant(
-              value=pPts.shape[-2], shape=self.batchShape_)
-        self.get_segment_id_ = tf.reshape(
-            tf.range(0, self.batchSize_), self.batchShape_)
-        self.pts_, self.unflatten_ = flatten_batch_to_2d(pPts, self.sizes_)
-        self.batchIds_ = tf.repeat(
-            tf.range(0, self.batchSize_),
-            repeats=tf.reshape(self.sizes_, [-1]))
+        self._init_from_padded(pPts)
       else:
-        # if input is already 2D tensor with segmentation ids or given sizes
-        if self.batchIds_ is None:
-          if self.batchSize_ is None:
-            self.batchSize_ = tf.reduce_prod(self.sizes_.shape)
-          self.batchIds_ = tf.repeat(tf.range(0, self.batchSize_), self.sizes_)
-        if self.batchSize_ is None:
-          self.batchSize_ = tf.reduce_max(self.batchIds_) + 1
-        self.pts_ = pPts
+        self._init_from_segmented(pPts)
 
       #Sort the points based on the batch ids in incremental order.
       self.sortedIndicesBatch_ = tf.argsort(self.batchIds_)
@@ -118,6 +100,34 @@ class PointCloud:
       # initialize grid and neighborhood_cache
       self._grid_cache = {}
       self._neighborhood_cache = {}
+
+  def _init_from_padded(self, points):
+    """converting padded [A1,...,An,V,D] tensor into a 2D tensor [N,D] with
+    segmentation ids
+    """
+    self.batchShape_ = points.shape[:-2]
+    if self.batchSize_ is None:
+      self.batchSize_ = tf.reduce_prod(self.batchShape_)
+    if self.sizes_ is None:
+      self.sizes_ = tf.constant(
+          value=points.shape[-2], shape=self.batchShape_)
+    self.get_segment_id_ = tf.reshape(
+        tf.range(0, self.batchSize_), self.batchShape_)
+    self.pts_, self.unflatten_ = flatten_batch_to_2d(points, self.sizes_)
+    self.batchIds_ = tf.repeat(
+        tf.range(0, self.batchSize_),
+        repeats=tf.reshape(self.sizes_, [-1]))
+
+  def _init_from_segmented(self, points):
+    """if input is already 2D tensor with segmentation ids or given sizes
+    """
+    if self.batchIds_ is None:
+      if self.batchSize_ is None:
+        self.batchSize_ = tf.reduce_prod(self.sizes_.shape)
+      self.batchIds_ = tf.repeat(tf.range(0, self.batchSize_), self.sizes_)
+    if self.batchSize_ is None:
+      self.batchSize_ = tf.reduce_max(self.batchIds_) + 1
+    self.pts_ = points
 
   def get_points(self, id=None, max_num_points=None, name=None):
     """ Returns the points.
@@ -202,6 +212,19 @@ class PointCloud:
             max_rows=max_num_points)
       return self.unflatten_
 
+  def get_AABB(self):
+    """ Returns the axis aligned bounding box of the point cloud.
+
+    Use this instead of accessing `self.aabb_`, as the bounding box
+    is initialized  with tthe first call of his method.
+
+    Returns:
+      A `AABB` instance
+    """
+    if self.aabb_ is None:
+      self.aabb_ = _AABB(point_cloud=self)
+    return self.aabb_
+
   def set_batch_shape(self, batchShape, name=None):
     """ Function to change the batch shape
 
@@ -254,3 +277,64 @@ class PointCloud:
     """
     with tf.compat.v1.name_scope(name, "hash point cloud", [self]):
       return hash((self.pts_.name, self.batchIds_.name, self.batchSize_))
+
+
+class _AABB:
+  """Class to represent axis aligned bounding box of point clouds.
+
+  Note:
+    In the following, A1 to An are optional batch dimensions.
+
+  Attributes:
+    aabbMin_: A float 'Tensor' of shape [B,D], list of minimum points of the
+      bounding boxes.
+    aabbMax_: A float 'Tensor' of shape [B,D], list of maximum points of the
+      bounding boxes.
+    batchSize_: An integer, size of the batch.
+    batchShape_: An int 'Tensor' of shape [B], the batch shape [A1,...,An]
+  """
+
+  def __init__(self, point_cloud: PointCloud, name=None):
+    """Constructor.
+
+    Args:
+      Pointcloud: A 'PointCloud' instance from which to compute the
+        bounding box.
+    """
+    with tf.compat.v1.name_scope(
+        name, "bounding box constructor", [self, point_cloud]):
+      self.batchSize_ = point_cloud.batchSize_
+      self.batchShape_ = point_cloud.batchShape_
+      self.point_cloud_ = point_cloud
+
+      self.aabbMin_ = tf.math.unsorted_segment_min(
+          data=point_cloud.pts_, segment_ids=point_cloud.batchIds_,
+          num_segments=self.batchSize_) - 1e-9
+      self.aabbMax_ = tf.math.unsorted_segment_max(
+          data=point_cloud.pts_, segment_ids=point_cloud.batchIds_,
+          num_segments=self.batchSize_) + 1e-9
+
+  def get_diameter(self, ord='euclidean', name=None):
+    """ Returns the diameter of the bounding box.
+
+    Note:
+      In the following, A1 to An are optional batch dimensions.
+
+    Args:
+      ord:    Order of the norm. Supported values are `'euclidean'`,
+          `1`, `2`, `np.inf` and any positive real number yielding the
+          corresponding p-norm. Default is `'euclidean'`.
+    Return:
+      diam: A float 'Tensor' of shape [A1,..An], diameters of the
+        bounding boxes
+    """
+
+    with tf.compat.v1.name_scope(
+        name, "Compute diameter of bounding box",
+        [self, ord]):
+      diam = tf.linalg.norm(self.aabbMax_ - self.aabbMin_, ord=ord, axis=-1)
+      if self.batchShape_ is None:
+        return diam
+      else:
+        return tf.reshape(diam, self.batchShape_)
+

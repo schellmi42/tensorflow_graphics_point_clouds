@@ -44,8 +44,8 @@ class AABB_test(test_case.TestCase):
       aabb_max_numpy[i] = np.amax(points[batch_ids == i], axis=0)
       aabb_min_numpy[i] = np.amin(points[batch_ids == i], axis=0)
 
-    aabb_tf = AABB(PointCloud(points, pBatchIds=batch_ids,
-                              pBatchSize=batch_size))
+    aabb_tf = PointCloud(points, pBatchIds=batch_ids,
+                              pBatchSize=batch_size).get_AABB()
 
     self.assertAllClose(aabb_max_numpy, aabb_tf.aabbMax_)
     self.assertAllClose(aabb_min_numpy, aabb_tf.aabbMin_)
@@ -68,7 +68,7 @@ class AABB_test(test_case.TestCase):
       diameter_numpy[i] = np.linalg.norm(diag)
     diameter_numpy = np.reshape(diameter_numpy, batch_shape)
 
-    aabb_tf = AABB(PointCloud(points, sizes=sizes))
+    aabb_tf = PointCloud(points, sizes=sizes).get_AABB()
     diameter_tf = aabb_tf.get_diameter()
     self.assertAllClose(diameter_numpy, diameter_tf)
 

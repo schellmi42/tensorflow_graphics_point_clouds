@@ -16,7 +16,6 @@
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
 from MCCNN2.pc import PointCloud
-from MCCNN2.pc import AABB
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 
@@ -89,7 +88,7 @@ class _LocalPointPooling:
         pooling_radius = tf.repeat(pooling_radius, point_cloud_in.dimension_)
 
       # Compute the AABB.
-      aabb_in = AABB(point_cloud_in)
+      aabb_in = point_cloud_in.get_AABB()
 
       # Compute the grid.
       grid_in = Grid(point_cloud_in, aabb_in, pooling_radius)

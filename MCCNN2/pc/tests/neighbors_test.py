@@ -24,7 +24,6 @@ ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2.pc import PointCloud
-from MCCNN2.pc import AABB
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Sample
 from MCCNN2.pc import SampleMode
@@ -55,7 +54,7 @@ class NeighborsTest(test_case.TestCase):
             batch_size, num_samples * batch_size, dimension=dimension,
             sizes=np.ones(batch_size, dtype=int) * num_samples)
     point_cloud_sampled = PointCloud(samples_points, batch_ids_samples)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_sampled)
     sorted_points = grid.sortedPts_
@@ -108,7 +107,7 @@ class NeighborsTest(test_case.TestCase):
 
     point_cloud = PointCloud(points, batch_ids)
     point_cloud_samples = PointCloud(samples, batch_ids_samples)
-    grid = Grid(point_cloud, AABB(point_cloud), radius)
+    grid = Grid(point_cloud, point_cloud.get_AABB(), radius)
     neighborhood = Neighborhood(grid, radius, point_cloud_samples)
 
     batch_ids_in = tf.gather(

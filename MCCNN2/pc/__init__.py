@@ -1,4 +1,4 @@
-from .AABB import AABB
+from .PointCloud import _AABB as AABB
 from .PointCloud import PointCloud
 from .Grid import Grid
 from .Neighborhood import Neighborhood

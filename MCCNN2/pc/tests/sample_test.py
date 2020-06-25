@@ -24,7 +24,6 @@ ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2.pc import PointCloud
-from MCCNN2.pc import AABB
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Sample
 from MCCNN2.pc import SampleMode
@@ -46,7 +45,7 @@ class SamplingTest(test_case.TestCase):
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
     point_cloud = PointCloud(points, batch_ids)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.pd)
@@ -76,7 +75,7 @@ class SamplingTest(test_case.TestCase):
         / num_points_sqrt
     batch_ids = np.zeros([len(points)])
     point_cloud = PointCloud(points, batch_ids)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB()
     grid  = Grid(point_cloud, aabb, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.pd)
@@ -102,7 +101,7 @@ class SamplingTest(test_case.TestCase):
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
     point_cloud = PointCloud(points, batch_ids)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.avg)

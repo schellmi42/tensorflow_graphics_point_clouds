@@ -25,7 +25,6 @@ ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2.pc import PointCloud
-from MCCNN2.pc import AABB
 from MCCNN2.pc import Grid
 from MCCNN2.pc import KDEMode
 from MCCNN2.pc import Neighborhood
@@ -68,7 +67,7 @@ class ComputePDFTest(test_case.TestCase):
                                   num_samples_per_batch)
 
     point_cloud = PointCloud(points, batch_ids, batch_size)
-    aabb = AABB(point_cloud)
+    aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, cell_sizes)
 
     point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
@@ -138,7 +137,7 @@ class ComputePDFTest(test_case.TestCase):
     samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
     def compute_pdf(points_in):
       point_cloud = PointCloud(points_in, batch_ids, batch_size)
-      aabb = AABB(point_cloud)
+      aabb = point_cloud.get_AABB()
       grid = Grid(point_cloud, aabb, cell_sizes)
 
       point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
