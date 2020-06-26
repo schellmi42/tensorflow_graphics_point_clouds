@@ -45,7 +45,7 @@ class AABB_test(test_case.TestCase):
       aabb_min_numpy[i] = np.amin(points[batch_ids == i], axis=0)
 
     aabb_tf = PointCloud(points, pBatchIds=batch_ids,
-                              pBatchSize=batch_size).get_AABB()
+                         pBatchSize=batch_size).get_AABB()
 
     self.assertAllClose(aabb_max_numpy, aabb_tf.aabbMax_)
     self.assertAllClose(aabb_min_numpy, aabb_tf.aabbMin_)

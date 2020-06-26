@@ -23,7 +23,6 @@ sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2Module import compute_keys
 from MCCNN2Module import build_grid_ds
-from MCCNN2.pc import AABB
 from MCCNN2.pc import PointCloud
 
 
@@ -49,7 +48,7 @@ class Grid:
 
     Args:
       pPointCloud (PointCloud): Point cloud to distribute in the grid.
-      pAABB (AABB): Bounding boxes.
+      pAABB (AABB): Bounding boxes. (deprecated)
       pCellSizes (tensor float n): Size of the grid cells in each
        dimension.
     """
@@ -66,7 +65,7 @@ class Grid:
         self.batchSize_ = pAABB.batchSize_
         self.cellSizes_ = pCellSizes
         self.pointCloud_ = pPointCloud
-        self.aabb_ = pAABB
+        self.aabb_ = pPointCloud.get_AABB()
 
         #Compute the number of cells in the grid.
         aabbSizes = self.aabb_.aabbMax_ - self.aabb_.aabbMin_

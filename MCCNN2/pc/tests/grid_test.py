@@ -37,7 +37,7 @@ class GridTest(test_case.TestCase):
     (20000, 16, 1, 0.2, 4),
     (20000, 8, 1, np.sqrt(4), 4)
   )
-  def test_compute_keys_with_sort(self, 
+  def test_compute_keys_with_sort(self,
                                   num_points,
                                   batch_size,
                                   scale,
@@ -48,7 +48,7 @@ class GridTest(test_case.TestCase):
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
-    aabb = point_cloud.get_AABB
+    aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, radius)
 
     total_num_cells = grid.numCells_.numpy()
