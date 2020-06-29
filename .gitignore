@@ -1,6 +1,7 @@
 # builds of CUDA ops
 compile.sh
 MCCNN2/tf_ops/build/
+*.so
 # local test script
 test*.py
 # pycache
@@ -13,3 +14,4 @@ test_point_clouds/
 *_copy.py
 # bazel build files
 bazel-*
+artifacts
