@@ -17,4 +17,5 @@ from tensorflow.python.platform import resource_loader
 
 sampling_ops = load_library.load_op_library(
     resource_loader.get_path_to_datafile('_sampling_ops.so'))
-sampling = sampling_ops.sampling
+# sampling = sampling_ops.sampling
+sampling = sampling_ops.pooling

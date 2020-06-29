@@ -27,7 +27,7 @@ __version__ = '0.0.1'
 REQUIRED_PACKAGES = [
     'tensorflow >= 2.1.0',
 ]
-project_name = 'tensorflow-custom-ops'
+project_name = 'tfg-custom-ops'
 
 
 from setuptools.command.install import install
