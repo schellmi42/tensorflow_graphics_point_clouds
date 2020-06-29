@@ -11,3 +11,5 @@ __pycache__/
 test_point_clouds/
 # copied files
 *_copy.py
+# bazel build files
+bazel-*
