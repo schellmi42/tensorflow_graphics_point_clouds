@@ -6,6 +6,7 @@ MCCNN2/tf_ops/build/
 test*.py
 # pycache
 __pycache__/
+*.pyc
 # visual studio code files
 .vscode/
 # test models
