@@ -11,12 +11,13 @@
 /// \author pedro hermosilla (pedro-1.hermosilla-casajus@uni-ulm.de)
 /////////////////////////////////////////////////////////////////////////////
 
-#include "defines.hpp"
-#include "tf_utils.hpp"
-#include "tf_gpu_device.hpp"
-#include "basis/basis_utils.cuh"
-#include "basis/basis_proj.cuh"
-#include "basis/basis_proj_grads.cuh"
+#include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
+#include "tfg_custom_ops/shared/cc/kernels/tf_utils.hpp"
+#include "tfg_custom_ops/shared/cc/kernels/tf_gpu_device.hpp"
+
+#include "tfg_custom_ops/basis_proj/cc/kernels/basis_utils.h"
+#include "tfg_custom_ops/basis_proj/cc/kernels/basis_proj.h"
+#include "tfg_custom_ops/basis_proj/cc/kernels/basis_proj_grads.h"
 
 /**
  *  Declaration of the tensorflow operations.

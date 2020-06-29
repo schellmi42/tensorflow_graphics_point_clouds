@@ -30,8 +30,21 @@ cc_library(
 )
 
 cc_library(
-    name = "compute_keys_ops_gpu",
-    srcs = ["cc/kernels/compute_keys.h", "cc/kernels/compute_keys_kernels.cu.cc"],
+    name = "find_neighbors_ops_gpu",
+    srcs = [
+        "cc/kernels/count_neighbors.h",
+        "cc/kernels/count_neighbors_kernels.cu.cc",
+        "cc/kernels/elem_wise_min.h",
+        "cc/kernels/elem_wise_min_kernels.cu.cc",
+        "cc/kernels/find_ranges_grid_ds.h",
+        "cc/kernels/find_ranges_grid_ds_kernels.cu.cc",
+        "cc/kernels/scan_alg.h",
+        "cc/kernels/scan_alg_kernels.cu.cc",
+        "cc/kernels/store_neighbors.h",
+        "cc/kernels/store_neighbors_kernels.cu.cc",
+        "cc/kernels/store_pooled_pts.h",
+        "cc/kernels/store_pooled_pts_kernels.cu.cc",
+    ],
     deps = [
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
@@ -47,11 +60,21 @@ cc_library(
 )
 
 cc_binary(
-    name = 'python/ops/_compute_keys_ops.so',
+    name = 'python/ops/_find_neighbors_ops.so',
     srcs = [
-        "cc/kernels/compute_keys.h",
-        "cc/kernels/compute_keys_kernels.cu.cc",
-        "cc/ops/compute_keys_ops.cpp",
+        "cc/kernels/count_neighbors.h",
+        "cc/kernels/count_neighbors_kernels.cu.cc",
+        "cc/kernels/elem_wise_min.h",
+        "cc/kernels/elem_wise_min_kernels.cu.cc",
+        "cc/kernels/find_ranges_grid_ds.h",
+        "cc/kernels/find_ranges_grid_ds_kernels.cu.cc",
+        "cc/kernels/scan_alg.h",
+        "cc/kernels/scan_alg_kernels.cu.cc",
+        "cc/kernels/store_neighbors.h",
+        "cc/kernels/store_neighbors_kernels.cu.cc",
+        "cc/kernels/store_pooled_pts.h",
+        "cc/kernels/store_pooled_pts_kernels.cu.cc",
+        "cc/ops/find_neighbors_ops.cpp",
     ],
     linkshared = 1,
     features = select({
@@ -61,7 +84,8 @@ cc_binary(
     deps = [
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
-    ] + if_cuda_is_configured([":compute_keys_ops_gpu"]),
+        "//tfg_custom_ops/compute_keys:compute_keys_ops_gpu",
+    ] + if_cuda_is_configured([":find_neighbors_ops_gpu"]),
     copts = select({
         ":windows": ["/D__CLANG_SUPPORT_DYN_ANNOTATION__", "/DEIGEN_MPL2_ONLY", "/DEIGEN_MAX_ALIGN_BYTES=64", "/DEIGEN_HAS_TYPE_TRAITS=0", "/DTF_USE_SNAPPY", "/showIncludes", "/MD", "/O2", "/DNDEBUG", "/w", "-DWIN32_LEAN_AND_MEAN", "-DNOGDI", "/d2ReducedOptimizeHugeFunctions", "/arch:AVX", "/std:c++14", "-DTENSORFLOW_MONOLITHIC_BUILD", "/DPLATFORM_WINDOWS", "/DEIGEN_HAS_C99_MATH", "/DTENSORFLOW_USE_EIGEN_THREADPOOL", "/DEIGEN_AVOID_STL_ARRAY", "/Iexternal/gemmlowp", "/wd4018", "/wd4577", "/DNOGDI", "/UTF_COMPILE_LIBRARY"],
         "//conditions:default": ["-pthread", "-std=c++11", "-D_GLIBCXX_USE_CXX11_ABI=0"],
@@ -69,37 +93,37 @@ cc_binary(
 )
 
 py_library(
-    name = "compute_keys_ops_py",
+    name = "find_neighbors_ops_py",
     srcs = ([
-        "python/ops/compute_keys_ops.py",
+        "python/ops/find_neighbors_ops.py",
     ]),
     data = [
-        ":python/ops/_compute_keys_ops.so"
+        ":python/ops/_find_neighbors_ops.so"
     ],
     srcs_version = "PY2AND3",
 )
 
 # py_test(
-#     name = "compute_keys_ops_py_test",
+#     name = "find_neighbors_ops_py_test",
 #     srcs = [
-#         "python/ops/compute_keys_ops_test.py"
+#         "python/ops/find_neighbors_ops_test.py"
 #     ],
-#     main = "python/ops/compute_keys_ops_test.py",
+#     main = "python/ops/find_neighbors_ops_test.py",
 #     deps = [
-#         ":compute_keys_ops_py",
+#         ":find_neighbors_ops_py",
 #     ],
 #     srcs_version = "PY2AND3",
 # )
 
 py_library(
-    name = "compute_keys_py",
+    name = "find_neighbors_py",
     srcs = ([
         "__init__.py",
         "python/__init__.py",
         "python/ops/__init__.py",
     ]),
     deps = [
-        ":compute_keys_ops_py"
+        ":find_neighbors_ops_py"
     ],
     srcs_version = "PY2AND3",
 )

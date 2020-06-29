@@ -16,5 +16,5 @@ from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
 find_neighbors_ops = load_library.load_op_library(
-    resource_loader.get_path_to_datafile('_find_neighbors.so'))
+    resource_loader.get_path_to_datafile('_find_neighbors_ops.so'))
 find_neighbors = find_neighbors_ops.find_neighbors
