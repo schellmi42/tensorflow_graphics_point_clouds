@@ -16,10 +16,11 @@
 /// \brief C++ operations definition to compute the pdf of each neighbor.
 /////////////////////////////////////////////////////////////////////////////
 
-#include "defines.hpp"
-#include "tf_utils.hpp"
-#include "tf_gpu_device.hpp"
-#include "compute_pdf.cuh"
+#include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
+#include "tfg_custom_ops/shared/cc/kernels/tf_utils.hpp"
+#include "tfg_custom_ops/shared/cc/kernels/tf_gpu_device.hpp"
+
+#include "tfg_custom_ops/compute_pdf/cc/kernels/compute_pdf.h"
 
 /**
  *  Declaration of the tensorflow operations.

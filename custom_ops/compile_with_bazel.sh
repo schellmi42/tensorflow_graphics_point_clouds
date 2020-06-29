@@ -8,5 +8,5 @@
 #     ebazel build 'tfg_custom_ops/'$dir":python/ops/_"$dir"_ops.so"
 #   fi
 # done
-op="basis_proj"
+op="compute_pdf"
 bazel build 'tfg_custom_ops/'$op":python/ops/_"$op"_ops.so" --verbose_failures

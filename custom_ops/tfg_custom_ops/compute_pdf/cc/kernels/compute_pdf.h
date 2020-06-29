@@ -20,7 +20,7 @@
 #ifndef COMPUTE_PDF_CUH_
 #define COMPUTE_PDF_CUH_
 
-#include "gpu_device.hpp"
+#include "tfg_custom_ops/shared/cc/kernels/gpu_device.hpp"
 #include <memory>
 
 namespace mccnn{

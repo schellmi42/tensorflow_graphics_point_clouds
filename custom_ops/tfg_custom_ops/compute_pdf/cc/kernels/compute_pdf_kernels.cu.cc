@@ -17,11 +17,11 @@
 ///     neighboring point. 
 /////////////////////////////////////////////////////////////////////////////
 
-#include "defines.hpp"
-#include "math_helper.cuh"
-#include "cuda_kernel_utils.cuh"
+#include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
+#include "tfg_custom_ops/shared/cc/kernels/math_helper.h"
+#include "tfg_custom_ops/shared/cc/kernels/cuda_kernel_utils.h"
 
-#include "compute_pdf.cuh"
+#include "tfg_custom_ops/compute_pdf/cc/kernels/compute_pdf.h"
 
 ///////////////////////// GPU
 

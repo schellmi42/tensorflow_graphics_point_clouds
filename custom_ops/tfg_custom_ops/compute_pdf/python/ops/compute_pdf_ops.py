@@ -16,5 +16,5 @@ from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
 compute_pdf_ops = load_library.load_op_library(
-    resource_loader.get_path_to_datafile('_compute_pdf.so'))
+    resource_loader.get_path_to_datafile('_compute_pdf_ops.so'))
 compute_pdf = compute_pdf_ops.compute_pdf
