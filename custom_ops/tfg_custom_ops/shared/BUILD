@@ -11,6 +11,7 @@ cc_library(
         "cc/kernels/gpu_device.hpp",
         "cc/kernels/tf_utils.hpp",
         "cc/kernels/tf_gpu_device.hpp",
+        "cc/kernels/tf_gpu_device.cpp",
         "cc/kernels/math_helper.h",
         "cc/kernels/grid_utils.h",
         "cc/kernels/rnd_utils.h",

@@ -71,6 +71,7 @@ cc_binary(
         "cc/kernels/basis_utils.h",
         "cc/kernels/basis_utils_kernels.cu.cc",
         "cc/kernels/basis_interface.h",
+        "cc/ops/basis_proj_ops.cpp"
     ],
     linkshared = 1,
     features = select({
