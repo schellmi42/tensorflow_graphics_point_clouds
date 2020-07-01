@@ -27,10 +27,12 @@ __version__ = '0.0.1'
 REQUIRED_PACKAGES = [
     'tensorflow >= 2.1.0',
 ]
-project_name = 'tfg-custom-ops'
+project_name = 'tfg_custom_ops'
 
 
 from setuptools.command.install import install
+
+
 class InstallPlatlib(install):
     def finalize_options(self):
         install.finalize_options(self)
@@ -49,7 +51,8 @@ class BinaryDistribution(Distribution):
 setup(
     name=project_name,
     version=__version__,
-    description=('tensorflow-custom-ops is an examples for custom ops for TensorFlow'),
+    description=(
+        'tensorflow-custom-ops is an examples for custom ops for TensorFlow'),
     author='Google Inc.',
     author_email='opensource@google.com',
     # Contained modules and scripts.
@@ -60,6 +63,7 @@ setup(
     zip_safe=False,
     distclass=BinaryDistribution,
     cmdclass={'install': InstallPlatlib},
+    use_2to3=True,
     # PyPI package information.
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -67,9 +71,9 @@ setup(
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        # 'Programming Language :: Python :: 2.7',
+        # 'Programming Language :: Python :: 3.4',
+        # 'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries :: Python Modules',
