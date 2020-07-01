@@ -1,5 +1,40 @@
-# TensorFlow Custom Op
-This is a guide for users who want to write custom c++ op for TensorFlow and distribute the op as a pip package. This repository serves as both a working example of the op building and packaging process, as well as a template/starting point for writing your own ops. The way this repository is set up allow you to build your custom ops from TensorFlow's pip package instead of building TensorFlow from scratch. This guarantee that the shared library you build will be binary compatible with TensorFlow's pip packages.
+# TFG-PointCloud Custom Ops
+
+This repository is based on the [TensorFlow-custom-op](https://github.com/tensorflow/custom-op) repository,
+for a detailed guide about how to add an op we refer to this template.
+
+## Setting up the environment
+The c++-toolchains are dependent on the latest tensorflow-custom-op docker container, to set it up run
+```bash
+  docker pull tensorflow/tensorflow:2.1.0-custom-op-gpu-ubuntu16
+  sudo docker run  --privileged -it -v ${PWD}:/working_dir -w /working_dir tensorflow/tensorflow:2.1.0-custom-op-gpu-ubuntu16
+  root@docker: ./configure.sh
+```
+
+and answer all question with yes `y` .
+
+## Building the PIP-Package
+
+To compile the pip package run
+``` bash
+  bazel build build_pip_pkg
+  bazel-bin/build_pip_pkg artifacts
+```
+
+The package `.whl` is located in `artifacts/`, by default it should be a python3 package.
+
+To install the package via pip run
+```bash
+  pip3 install artifacts/*.whl
+```
+
+To test out the package run
+```bash
+  cd ..
+  python3 -c 'import tfg_custom_ops'
+```
+
+<!-- This is a guide for users who want to write custom c++ op for TensorFlow and distribute the op as a pip package. This repository serves as both a working example of the op building and packaging process, as well as a template/starting point for writing your own ops. The way this repository is set up allow you to build your custom ops from TensorFlow's pip package instead of building TensorFlow from scratch. This guarantee that the shared library you build will be binary compatible with TensorFlow's pip packages.
 
 This guide currently supports Ubuntu and Windows custom ops, and it includes examples for both cpu and gpu ops.
 
@@ -339,4 +374,4 @@ Here are some issues our users have ran into and possible solutions. Feel free t
 |---|---|
 |  Do I need both the toolchain and the docker image? | Yes, you will need both to get the same setup we use to build TensorFlow's official pip package. |
 |  How do I also create a manylinux2010 binary? | You can use [auditwheel](https://github.com/pypa/auditwheel) version 2.0.0 or newer.  |
-|  What do I do if I get `ValueError: Cannot repair wheel, because required library "libtensorflow_framework.so.1" could not be located` or `ValueError: Cannot repair wheel, because required library "libtensorflow_framework.so.2" could not be located` with auditwheel? | Please see [this related issue](https://github.com/tensorflow/tensorflow/issues/31807).  |
+|  What do I do if I get `ValueError: Cannot repair wheel, because required library "libtensorflow_framework.so.1" could not be located` or `ValueError: Cannot repair wheel, because required library "libtensorflow_framework.so.2" could not be located` with auditwheel? | Please see [this related issue](https://github.com/tensorflow/tensorflow/issues/31807).  | -->
