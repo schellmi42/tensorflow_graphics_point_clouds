@@ -48,8 +48,6 @@ cc_library(
 cc_binary(
     name = 'python/ops/_compute_pdf_ops.so',
     srcs = [
-        "cc/kernels/compute_pdf.h",
-        "cc/kernels/compute_pdf_kernels.cu.cc",
         "cc/ops/compute_pdf_ops.cpp",
     ],
     linkshared = 1,

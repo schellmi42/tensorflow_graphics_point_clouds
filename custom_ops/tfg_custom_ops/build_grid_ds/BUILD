@@ -48,8 +48,6 @@ cc_library(
 cc_binary(
     name = 'python/ops/_build_grid_ds_ops.so',
     srcs = [
-        "cc/kernels/build_grid_ds.h",
-        "cc/kernels/build_grid_ds_kernels.cu.cc",
         "cc/ops/build_grid_ds_ops.cpp",
     ],
     linkshared = 1,

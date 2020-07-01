@@ -60,18 +60,6 @@ cc_library(
 cc_binary(
     name = 'python/ops/_find_neighbors_ops.so',
     srcs = [
-        "cc/kernels/count_neighbors.h",
-        "cc/kernels/count_neighbors_kernels.cu.cc",
-        "cc/kernels/elem_wise_min.h",
-        "cc/kernels/elem_wise_min_kernels.cu.cc",
-        "cc/kernels/find_ranges_grid_ds.h",
-        "cc/kernels/find_ranges_grid_ds_kernels.cu.cc",
-        "cc/kernels/scan_alg.h",
-        "cc/kernels/scan_alg_kernels.cu.cc",
-        "cc/kernels/store_neighbors.h",
-        "cc/kernels/store_neighbors_kernels.cu.cc",
-        "cc/kernels/store_pooled_pts.h",
-        "cc/kernels/store_pooled_pts_kernels.cu.cc",
         "cc/ops/find_neighbors_ops.cpp",
     ],
     linkshared = 1,

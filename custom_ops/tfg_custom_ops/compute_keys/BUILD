@@ -49,8 +49,6 @@ cc_library(
 cc_binary(
     name = 'python/ops/_compute_keys_ops.so',
     srcs = [
-        "cc/kernels/compute_keys.h",
-        "cc/kernels/compute_keys_kernels.cu.cc",
         "cc/ops/compute_keys_ops.cpp",
     ],
     linkshared = 1,
