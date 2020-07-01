@@ -23,6 +23,7 @@
 #include "defines.hpp"
 #include "gpu_device.hpp"
 #include <memory>
+#include <vector>
 
 namespace mccnn{
         
