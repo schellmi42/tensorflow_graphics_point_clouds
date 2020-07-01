@@ -5,6 +5,6 @@ sh_binary(
         "LICENSE",
         "MANIFEST.in",
         "setup.py",
-        "//tfg_custom_ops:tfg_custom_ops_py"
+        "//tfg_custom_ops:tfg_custom_ops_py",
     ],
 )
