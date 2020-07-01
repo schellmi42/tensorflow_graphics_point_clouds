@@ -33,6 +33,10 @@ To test out the package run
   cd ..
   python3 -c 'import tfg_custom_ops'
 ```
+## Additional Information
+
+You may use this software under the
+[Apache 2.0 License](https://github.com/schellmi42/tensorflow_graphics_point_clouds/blob/master/LICENSE).
 
 <!-- This is a guide for users who want to write custom c++ op for TensorFlow and distribute the op as a pip package. This repository serves as both a working example of the op building and packaging process, as well as a template/starting point for writing your own ops. The way this repository is set up allow you to build your custom ops from TensorFlow's pip package instead of building TensorFlow from scratch. This guarantee that the shared library you build will be binary compatible with TensorFlow's pip packages.
 
