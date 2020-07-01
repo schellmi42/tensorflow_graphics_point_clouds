@@ -23,6 +23,7 @@
 #include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
 #include "tfg_custom_ops/shared/cc/kernels/gpu_device.hpp"
 #include <memory>
+#include <vector>
 
 namespace mccnn{
         

@@ -24,6 +24,8 @@
 
 #include "tfg_custom_ops/find_neighbors/cc/kernels/find_ranges_grid_ds.h"
 
+#include <vector>
+
 ///////////////////////// GPU
 
 /**
