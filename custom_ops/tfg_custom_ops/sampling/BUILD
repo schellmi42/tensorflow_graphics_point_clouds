@@ -35,13 +35,13 @@ cc_library(
         "cc/kernels/count_sampling_pd.h",
         "cc/kernels/count_sampling_pd_kernels.cu.cc",
         "cc/kernels/count_unique_keys.h",
-        "cc/kernels/count_unique_keys_kernels.cu.cc",
+        # "cc/kernels/count_unique_keys_kernels.cu.cc",
         "cc/kernels/sampling_avg.h",
         "cc/kernels/sampling_avg_kernels.cu.cc",
         "cc/kernels/store_sampled_pts.h",
         "cc/kernels/store_sampled_pts_kernels.cu.cc",
         "cc/kernels/store_unique_keys.h",
-        "cc/kernels/store_unique_keys_kernels.cu.cc"
+        # "cc/kernels/store_unique_keys_kernels.cu.cc"
     ],
     deps = [
         "@local_config_tf//:libtensorflow_framework",
