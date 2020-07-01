@@ -23,7 +23,7 @@ sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
 
 from MCCNN2Module import compute_keys
 from MCCNN2Module import build_grid_ds
-from MCCNN2.pc import PointCloud
+from MCCNN2.pc import PointCloud, AABB
 
 
 class Grid:
