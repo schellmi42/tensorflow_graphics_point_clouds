@@ -16,5 +16,5 @@ from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
 build_grid_ds_ops = load_library.load_op_library(
-    resource_loader.get_path_to_datafile('_build_grid_ds.so'))
+    resource_loader.get_path_to_datafile('_build_grid_ds_ops.so'))
 build_grid_ds = build_grid_ds_ops.build_grid_ds
