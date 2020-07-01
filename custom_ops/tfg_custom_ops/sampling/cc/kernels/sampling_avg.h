@@ -13,12 +13,12 @@
 /// See the License for the specific language governing permissions and
 /// limitations under the License.
 /////////////////////////////////////////////////////////////////////////////
-/// \brief Declaraion of the CUDA operations to pool a set of points from
+/// \brief Declaraion of the CUDA operations to sample a set of points from
 ///     a point cloud. 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef POOLING_AVG_CUH_
-#define POOLING_AVG_CUH_
+#ifndef SAMPLING_AVG_CUH_
+#define SAMPLING_AVG_CUH_
 
 #include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
 #include "tfg_custom_ops/shared/cc/kernels/gpu_device.hpp"
@@ -27,10 +27,10 @@
 namespace mccnn{
         
     /**
-     *  Method to pool a set of points from a point cloud.
+     *  Method to sample a set of points from a point cloud.
      *  @param  pDevice                 Device.
      *  @param  pNumPts                 Number of input points.
-     *  @param  pNumPooledPts           Number of pooled points.
+     *  @param  pNumSampledPts           Number of sampled points.
      *  @param  pInKeysGPUPtr           Input pointer to the vector of keys  
      *      sorted from bigger to smaller residing on GPU memory.
      *  @param  pPts GPUPtr             Input point coordinates.
@@ -43,10 +43,10 @@ namespace mccnn{
      *  @paramt D                       Number of dimensions.
      */
      template <int D>
-    void pooling_avg_gpu(
+    void sampling_avg_gpu(
         std::unique_ptr<IGPUDevice>& pDevice,
         const unsigned int pNumPts,
-        const unsigned int pNumPooledPts,
+        const unsigned int pNumSampledPts,
         const mccnn::int64_m* pInKeysGPUPtr,
         const float* pPtsGPUPtr,
         const int* pNumCellsGPUPtr,

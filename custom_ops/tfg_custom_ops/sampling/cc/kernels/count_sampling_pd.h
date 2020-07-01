@@ -13,12 +13,12 @@
 /// See the License for the specific language governing permissions and
 /// limitations under the License.
 /////////////////////////////////////////////////////////////////////////////
-/// \brief Declaraion of the CUDA operations to pool a set of points from
+/// \brief Declaraion of the CUDA operations to sample a set of points from
 ///     a point cloud. 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef COUNT_POOLING_PD_CUH_
-#define COUNT_POOLING_PD_CUH_
+#ifndef COUNT_SAMPLING_PD_CUH_
+#define COUNT_SAMPLING_PD_CUH_
 
 #include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
 #include "tfg_custom_ops/shared/cc/kernels/gpu_device.hpp"
@@ -27,7 +27,7 @@
 namespace mccnn{
         
     /**
-     *  Method to pool a set of points from a point cloud.
+     *  Method to sample a set of points from a point cloud.
      *  @param  pDevice                 Device.
      *  @param  pNumPts                 Number of input points.
      *  @param  pNumUniqueKeys          Number of unique keys.
@@ -40,8 +40,8 @@ namespace mccnn{
      *  @param  pNeighStartIndex        Input list of indicies of each list
      *      of neighbors.
      *  @param  pNumCellsGPUPtr         Number of cells.
-     *  @param  pOutNumPooledPts        Output integer with the number
-     *      of pooled points.
+     *  @param  pOutNumSampledPts        Output integer with the number
+     *      of sampled points.
      *  @param  pOutPtsGPUPtr           Output array with the new point
      *      coordinates.
      *  @param  pBatchIdsGPUPtr         Output array with the batch ids
@@ -49,7 +49,7 @@ namespace mccnn{
      *  @paramt D                       Number of dimensions.
      */
     template <int D>
-    void count_pooling_pd_gpu(
+    void count_sampling_pd_gpu(
         std::unique_ptr<IGPUDevice>& pDevice,
         const unsigned int pNumPts,
         const unsigned int pNumUniqueKeys,
@@ -59,7 +59,7 @@ namespace mccnn{
         const int* pNeighbors,
         const int* pNeighStartIndex,
         const int* pNumCellsGPUPtr,
-        int& pOutNumPooledPts,
+        int& pOutNumSampledPts,
         int* pSelectedGPUPtr);
 }
 
