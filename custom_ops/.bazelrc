@@ -4,8 +4,8 @@ build:manylinux2010cuda101 --crosstool_top=//third_party/toolchains/preconfig/ub
 build --spawn_strategy=standalone
 build --strategy=Genrule=standalone
 build -c opt
-build --action_env TF_HEADER_DIR="/usr/local/lib/python2.7/dist-packages/tensorflow_core/include"
-build --action_env TF_SHARED_LIBRARY_DIR="/usr/local/lib/python2.7/dist-packages/tensorflow_core"
+build --action_env TF_HEADER_DIR="/usr/local/lib/python3.6/dist-packages/tensorflow/include"
+build --action_env TF_SHARED_LIBRARY_DIR="/usr/local/lib/python3.6/dist-packages/tensorflow"
 build --action_env TF_SHARED_LIBRARY_NAME="libtensorflow_framework.so.2"
 build --action_env TF_NEED_CUDA="1"
 build --action_env TF_CUDA_VERSION="10.1"

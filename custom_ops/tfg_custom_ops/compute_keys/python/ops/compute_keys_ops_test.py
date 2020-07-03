@@ -63,17 +63,22 @@ class GridTest(test.TestCase):
     batch_size = 32
     radius = 0.1
     dimension = 3
-    radius = np.repeat(radius, dimension)
+    radius_array = np.repeat(radius, dimension)
     points, batch_ids = _create_random_point_cloud_segmented(
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
-    aabb_min = np.amin(points, axis=0)
-    aabb_sizes = np.amax(points, axis=0) - aabb_min
-    total_num_cells = np.max(np.ceil(aabb_sizes / radius))
+    aabb_min_per_batch = np.empty([batch_size, dimension])
+    aabb_max_per_batch = np.empty([batch_size, dimension])
+    for i in range(batch_size):
+      aabb_min_per_batch[i] = np.amin(points[batch_ids == i], axis=0)
+      aabb_max_per_batch[i] = np.amax(points[batch_ids == i], axis=0)
+    print(aabb_min_per_batch.shape)
+    aabb_sizes = aabb_max_per_batch - aabb_min_per_batch
+    total_num_cells = np.max(np.ceil(aabb_sizes / radius), axis=0)
     custom_keys = compute_keys(
-        points, batch_ids, aabb_min / radius, total_num_cells, 1 / radius)
+        points, batch_ids, aabb_min_per_batch / radius, total_num_cells, 1 / radius_array)
 
-    aabb_min_per_point = aabb_min[batch_ids, :]
+    aabb_min_per_point = aabb_min_per_batch[batch_ids, :]
     cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
     cell_ind = np.minimum(np.maximum(cell_ind, [0] * dimension),
                           total_num_cells)
