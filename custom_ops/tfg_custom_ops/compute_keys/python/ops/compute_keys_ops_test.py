@@ -87,7 +87,7 @@ class GridTest(test.TestCase):
         total_num_cells[1] * total_num_cells[2] + \
         cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
         cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
-    
+
     # check unsorted keys
     self.assertAllEqual(custom_keys, ref_keys)
 
