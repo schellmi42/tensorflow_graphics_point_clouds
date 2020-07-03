@@ -7,6 +7,7 @@ test*.py
 # pycache
 __pycache__/
 *.pyc
+clean_pycache.sh
 # visual studio code files
 .vscode/
 # test models
