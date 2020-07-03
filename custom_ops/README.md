@@ -25,7 +25,7 @@ The package `.whl` is located in `artifacts/`, by default it should be a python3
 
 To install the package via pip run
 ```bash
-  pip3 install artifacts/*.whl
+  pip3 install pkg_builds/*.whl
 ```
 
 To test out the package run
