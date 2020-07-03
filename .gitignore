@@ -16,3 +16,4 @@ test_point_clouds/
 # bazel build files
 bazel-*
 artifacts
+.bazelrc

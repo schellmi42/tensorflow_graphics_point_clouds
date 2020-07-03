@@ -41,7 +41,6 @@ def _create_random_point_cloud_segmented(batch_size,
       batch_ids[:batch_size] = np.arange(0, batch_size)
     else:
       batch_ids = np.repeat(np.arange(0, batch_size), num_points // batch_size)
-    # batch_ids = np.sort(batch_ids)
   else:
     sizes = np.array(sizes, dtype=int)
     batch_ids = np.repeat(np.arange(0, batch_size), sizes)
@@ -67,7 +66,7 @@ class GridTest(test.TestCase):
     radius_array = np.repeat(radius, dimension)
     points, batch_ids = _create_random_point_cloud_segmented(
         batch_size, num_points * batch_size, dimension=dimension,
-        sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
+        sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=False)
     aabb_min_per_batch = np.empty([batch_size, dimension])
     aabb_max_per_batch = np.empty([batch_size, dimension])
     for i in range(batch_size):
@@ -84,22 +83,11 @@ class GridTest(test.TestCase):
     cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
     cell_ind = np.minimum(np.maximum(cell_ind, [0] * dimension),
                           total_num_cells)
-    if dimension == 2:
-      ref_keys = batch_ids * total_num_cells[0] * \
-          total_num_cells[1] + \
-          cell_ind[:, 0] * total_num_cells[1]
-    elif dimension == 3:
-      ref_keys = batch_ids * total_num_cells[0] * \
-          total_num_cells[1] * total_num_cells[2] + \
-          cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
-          cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
-    elif dimension == 4:
-      ref_keys = batch_ids * total_num_cells[0] * \
-          total_num_cells[1] * total_num_cells[2]  * total_num_cells[3] + \
-          cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] * \
-          total_num_cells[3] + \
-          cell_ind[:, 1] * total_num_cells[1] * total_num_cells[2] + \
-          cell_ind[:, 2] * total_num_cells[1] + cell_ind[:, 3]
+    ref_keys = batch_ids * total_num_cells[0] * \
+        total_num_cells[1] * total_num_cells[2] + \
+        cell_ind[:, 0] * total_num_cells[1] * total_num_cells[2] + \
+        cell_ind[:, 1] * total_num_cells[2] + cell_ind[:, 2]
+    
     # check unsorted keys
     self.assertAllEqual(custom_keys, ref_keys)
 
