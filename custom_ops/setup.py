@@ -25,7 +25,7 @@ from setuptools.dist import Distribution
 
 __version__ = '0.0.1'
 REQUIRED_PACKAGES = [
-    'tensorflow-gpu >= 2.1.0',
+     #'tensorflow-gpu >= 2.1.0',
 ]
 project_name = 'tfg_custom_ops'
 

@@ -21,7 +21,8 @@ from tensorflow.python.framework import ops
 from tensorflow.python.platform import test
 from tensorflow.python.framework import test_util
 try:
-  from tfg_custom_ops.compute_keys.python.ops.compute_keys_ops import compute_keys
+  from tfg_custom_ops.compute_keys.python.ops.compute_keys_ops import\
+       compute_keys
 except ImportError:
   import compute_keys
 
@@ -48,8 +49,8 @@ def _create_random_point_cloud_segmented(batch_size,
     # adds points such that the aabb is [0,0,0] [1,1,1]*scale
     # to prevent rounding errors
     points = np.concatenate(
-        (points, scale * np.ones([batch_size, dimension]) - 1e-9,
-         1e-9 + np.zeros([batch_size, dimension])))
+        (points, scale * np.ones([batch_size, dimension]),
+         np.zeros([batch_size, dimension])))
     batch_ids = np.concatenate(
         (batch_ids, np.arange(0, batch_size), np.arange(0, batch_size)))
   return points, batch_ids
