@@ -13,19 +13,13 @@
 # limitations under the License.
 """ modules for neighborhoods in point clouds """
 
-import os
-import sys
+
 import enum
 import tensorflow as tf
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
-from MCCNN2Module import find_neighbors
-from MCCNN2Module import compute_pdf
+from MCCNN2.pc.custom_ops import find_neighbors, compute_pdf
 
 
 class KDEMode(enum.Enum):

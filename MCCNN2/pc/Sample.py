@@ -13,17 +13,11 @@
 # limitations under the License.
 """ class to represent a sampling operation """
 
-import os
-import sys
+
 import enum
 import tensorflow as tf
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
-from MCCNN2Module import compute_keys
-from MCCNN2Module import sampling
+from MCCNN2.pc.custom_ops import compute_keys, sampling
 
 from MCCNN2.pc import PointCloud
 

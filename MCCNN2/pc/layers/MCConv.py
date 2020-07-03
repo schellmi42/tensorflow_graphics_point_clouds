@@ -22,14 +22,7 @@ from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
 
-import os
-import sys
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
-from MCCNN2Module import basis_proj
+from MCCNN2.pc.custom_ops import basis_proj
 
 
 class MCConv2Sampled:

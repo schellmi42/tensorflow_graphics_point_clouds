@@ -13,8 +13,7 @@
 # limitations under the License.
 """Class to represent hierarchical point clouds"""
 
-import os
-import sys
+
 import numpy as np
 import tensorflow as tf
 

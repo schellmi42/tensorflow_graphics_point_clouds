@@ -13,16 +13,10 @@
 # limitations under the License.
 """Class to represent a regular grid for point clouds"""
 
-import os
-import sys
+
 import tensorflow as tf
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
-from MCCNN2Module import compute_keys
-from MCCNN2Module import build_grid_ds
+from MCCNN2.pc.custom_ops import compute_keys, build_grid_ds
 from MCCNN2.pc import PointCloud, AABB
 
 
