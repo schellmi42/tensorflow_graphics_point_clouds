@@ -18,3 +18,4 @@ from tensorflow.python.platform import resource_loader
 basis_proj_ops = load_library.load_op_library(
     resource_loader.get_path_to_datafile('_basis_proj_ops.so'))
 basis_proj = basis_proj_ops.basis_proj
+basis_proj_grads = basis_proj_ops.basis_proj_grads

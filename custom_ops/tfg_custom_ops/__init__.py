@@ -13,13 +13,14 @@
 
 from __future__ import absolute_import
 
-from tfg_custom_ops.basis_proj.python.ops.basis_proj_ops import basis_proj
+from tfg_custom_ops.basis_proj.python.ops.basis_proj_ops import \
+    basis_proj, basis_proj_grads
 from tfg_custom_ops.build_grid_ds.python.ops.build_grid_ds_ops import \
     build_grid_ds
 from tfg_custom_ops.compute_keys.python.ops.compute_keys_ops import \
     compute_keys
 from tfg_custom_ops.compute_pdf.python.ops.compute_pdf_ops import \
-    compute_pdf
+    compute_pdf_with_pt_grads, compute_pdf_pt_grads
 from tfg_custom_ops.find_neighbors.python.ops.find_neighbors_ops import \
     find_neighbors
 from tfg_custom_ops.sampling.python.ops.sampling_ops import sampling
