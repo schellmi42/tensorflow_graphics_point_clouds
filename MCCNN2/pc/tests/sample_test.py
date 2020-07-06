@@ -19,10 +19,6 @@ import tensorflow as tf
 from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Sample
@@ -50,8 +46,8 @@ class SamplingTest(test_case.TestCase):
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.pd)
 
-    sampled_points = sample.sampledPointCloud_.pts_.numpy()
-    sampled_batch_ids = sample.sampledPointCloud_.batchIds_.numpy()
+    sampled_points = sample._sample_point_cloud._points.numpy()
+    sampled_batch_ids = sample._sample_point_cloud._batch_ids.numpy()
 
     min_dist = 1.0
     for i in range(batch_size):
@@ -80,7 +76,7 @@ class SamplingTest(test_case.TestCase):
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.pd)
 
-    sampled_points = sample.sampledPointCloud_.pts_.numpy()
+    sampled_points = sample._sample_point_cloud._points.numpy()
     expected_num_pts = num_points_sqrt ** 2 // 2
     self.assertTrue(len(sampled_points) == expected_num_pts)
 
@@ -100,15 +96,16 @@ class SamplingTest(test_case.TestCase):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
-    point_cloud = PointCloud(points, batch_ids)
+    print(points.shape, batch_ids.shape)
+    point_cloud = PointCloud(points=points, batch_ids=batch_ids)
     aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.avg)
 
-    sampled_points_tf = sample.sampledPointCloud_.pts_.numpy()
-    sorted_keys = sample.neighborhood_.grid_.sortedKeys_.numpy()
-    sorted_points = sample.neighborhood_.grid_.sortedPts_.numpy()
+    sampled_points_tf = sample._sample_point_cloud._points.numpy()
+    sorted_keys = sample._neighborhood._grid._sorted_keys.numpy()
+    sorted_points = sample._neighborhood._grid._sorted_points.numpy()
 
     sampled_points_numpy = []
     cur_point = np.repeat(0.0, dimension)

@@ -17,70 +17,71 @@ import tensorflow as tf
 import tfg_custom_ops
 
 
-def compute_keys(pPointCloud, pAABB, pNumCells, pCellSize, name=None):
+def compute_keys(point_cloud, aabb, num_cells, cell_size, name=None):
   with tf.compat.v1.name_scope(
-      name, "compute keys", [pPointCloud, pAABB, pNumCells, pCellSize]):
+      name, "compute keys", [point_cloud, aabb, num_cells, cell_size]):
     return tfg_custom_ops.compute_keys(
-      pPointCloud.pts_,
-      pPointCloud.batchIds_,
-      pAABB.aabbMin_ / pCellSize,
-      pNumCells,
-      tf.math.reciprocal(pCellSize))
+      point_cloud._points,
+      point_cloud._batch_ids,
+      aabb._aabb_min / cell_size,
+      num_cells,
+      tf.math.reciprocal(cell_size))
 tf.no_gradient('ComputeKeys')
 
 
-def build_grid_ds(pKeys, pNumCells, pbatch_size, name=None):
+def build_grid_ds(keys, num_cells, batch_size, name=None):
   with tf.compat.v1.name_scope(
-      name, "build grid ds", [pKeys, pNumCells, pbatch_size]):
+      name, "build grid ds", [keys, num_cells, batch_size]):
     return tfg_custom_ops.build_grid_ds(
-      pKeys,
-      pNumCells,
-      pNumCells,
-      pbatch_size)
+      keys,
+      num_cells,
+      num_cells,
+      batch_size)
 tf.no_gradient('BuildGridDs')
 
 
-def find_neighbors(pGrid, pPCSamples, pRadii, pMaxNeighbors, name=None):
+def find_neighbors(grid, point_cloud_sampled, radii, max_neighbors, name=None):
   with tf.compat.v1.name_scope(
-      name, "find neighbours", [pGrid, pPCSamples, pRadii, pMaxNeighbors]):
+      name, "find neighbours",
+      [grid, point_cloud_sampled, radii, max_neighbors]):
     return tfg_custom_ops.find_neighbors(
-      pPCSamples.pts_,
-      pPCSamples.batchIds_,
-      pGrid.sortedPts_,
-      pGrid.sortedKeys_,
-      pGrid.fastDS_,
-      pGrid.numCells_,
-      pGrid.aabb_.aabbMin_ / pGrid.cellSizes_,
-      tf.math.reciprocal(pGrid.cellSizes_),
-      tf.math.reciprocal(pRadii),
-      pMaxNeighbors)
+      point_cloud_sampled._points,
+      point_cloud_sampled._batch_ids,
+      grid._sorted_points,
+      grid._sorted_keys,
+      grid._fast_DS,
+      grid._num_cells,
+      grid._aabb._aabb_min / grid._cell_sizes,
+      tf.math.reciprocal(grid._cell_sizes),
+      tf.math.reciprocal(radii),
+      max_neighbors)
 tf.no_gradient('FindNeighbors')
 
 
-def sampling(pNeighborhood, pSampleMode, name=None):
-  with tf.compat.v1.name_scope(name, "sampling", [pNeighborhood, pSampleMode]):
+def sampling(neighborhood, sample_mode, name=None):
+  with tf.compat.v1.name_scope(name, "sampling", [neighborhood, sample_mode]):
     return tfg_custom_ops.sampling(
-      pNeighborhood.grid_.sortedPts_,
-      pNeighborhood.grid_.sortedBatchIds_,
-      pNeighborhood.grid_.sortedKeys_,
-      pNeighborhood.grid_.numCells_,
-      pNeighborhood.neighbors_,
-      pNeighborhood.samplesNeighRanges_,
-      pSampleMode)
+      neighborhood._grid._sorted_points,
+      neighborhood._grid._sorted_batch_ids,
+      neighborhood._grid._sorted_keys,
+      neighborhood._grid._num_cells,
+      neighborhood._neighbors,
+      neighborhood._samples_neigh_ranges,
+      sample_mode)
 tf.no_gradient('sampling')
 
 
-def compute_pdf(pNeighborhood, pBandwidth, pMode, name=None):
+def compute_pdf(neighborhood, bandwidth, mode, name=None):
   with tf.compat.v1.name_scope(
       name, "compute pdf with point gradients",
-      [pNeighborhood, pBandwidth, pMode]):
+      [neighborhood, bandwidth, mode]):
     return tfg_custom_ops.compute_pdf_with_pt_grads(
-      pNeighborhood.grid_.sortedPts_,
-      pNeighborhood.neighbors_,
-      pNeighborhood.samplesNeighRanges_,
-      tf.math.reciprocal(pBandwidth),
-      tf.math.reciprocal(pNeighborhood.radii_),
-      pMode)
+      neighborhood._grid._sorted_points,
+      neighborhood._neighbors,
+      neighborhood._samples_neigh_ranges,
+      tf.math.reciprocal(bandwidth),
+      tf.math.reciprocal(neighborhood._radii),
+      mode)
 
 
 @tf.RegisterGradient("ComputePdfWithPtGrads")
@@ -96,25 +97,25 @@ def _compute_pdf_grad(op, *grads):
   return [inPtsGrad, None, None, None, None]
 
 
-def basis_proj(pKernelInputs, pNeighborhood, pInFeatures,
-               pBasis, pBasisType):
-  curPDF = pNeighborhood.pdf_
+def basis_proj(kernel_inputs, neighborhood, features,
+               basis, basis_type):
+  pdf = neighborhood._pdf
   return tfg_custom_ops.basis_proj(
-      pKernelInputs,
-      pInFeatures,
-      pNeighborhood.originalNeighIds_,
-      pNeighborhood.samplesNeighRanges_,
-      curPDF,
-      pBasis,
-      pBasisType)
+      kernel_inputs,
+      features,
+      neighborhood._original_neigh_ids,
+      neighborhood._samples_neigh_ranges,
+      pdf,
+      basis,
+      basis_type)
 
 
 @tf.RegisterGradient("BasisProj")
 def _basis_proj_grad(op, *grads):
-  featGrads, basisGrads, kernelInGrads, pdfGrads = \
+  feature_grads, basis_grads, kernel_in_grads, pdf_grads = \
       tfg_custom_ops.basis_proj_grads(
           op.inputs[0], op.inputs[1], op.inputs[2],
           op.inputs[3], op.inputs[4], op.inputs[5],
           grads[0], op.get_attr("basis_type"))
-  return [kernelInGrads, featGrads, None, None,
-          pdfGrads, basisGrads]
+  return [kernel_in_grads, feature_grads, None, None,
+          pdf_grads, basis_grads]

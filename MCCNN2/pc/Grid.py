@@ -24,71 +24,73 @@ class Grid:
   """Class to represent a point cloud distributed in a regular grid.
 
   Attributes:
-    batchSize_ (int): Size of the batch.
-    cellSizes_ (float tensor d): Cell size.
-    pointCloud_ (PointCloud): Point cloud.
-    aabb_ (AABB): AABB.
-    numCells_ (int tensor d): Number of cells of the grids.
-    curKeys_ (int tensor n): Keys of each point.
-    sortedKeys_ (int tensor n): Keys of each point sorted.
-    sortedIndices_ (int tensor n): Original indices to the original
+    _batch_size (int): Size of the batch.
+    _cell_sizes (float tensor d): Cell size.
+    _point_cloud (PointCloud): Point cloud.
+    _aabb (AABB): AABB.
+    _num_cells (int tensor d): Number of cells of the grids.
+    _cur_keys (int tensor n): Keys of each point.
+    _sorted_keys (int tensor n): Keys of each point sorted.
+    _sorted_points (float tensor nxd):the sorted points.
+    _sorted_indices (int tensor n): Original indices to the original
       points.
-    fastDS_ (int tensor BxCXxCY): Fast access data structure.
+    _fast_DS (int tensor BxCXxCY): Fast access data structure.
   """
 
-  def __init__(self, pPointCloud: PointCloud, pAABB: AABB, pCellSizes,
+  def __init__(self, point_cloud: PointCloud, aabb: AABB, cell_sizes,
                name=None):
     """Constructor.
 
     Args:
-      pPointCloud (PointCloud): Point cloud to distribute in the grid.
-      pAABB (AABB): Bounding boxes. (deprecated)
-      pCellSizes (tensor float n): Size of the grid cells in each
+      point_cloud (PointCloud): Point cloud to distribute in the grid.
+      aabb (AABB): Bounding boxes. (deprecated)
+      cell_sizes (tensor float n): Size of the grid cells in each
        dimension.
     """
 
     with tf.compat.v1.name_scope(
         name, "constructor for point cloud regular grid",
-        [self, pPointCloud, pAABB, pCellSizes]):
-      pCellSizes = tf.convert_to_tensor(value=pCellSizes, dtype=tf.float32)
-      if False:  # pCellSizes in pPointCloud._grid_cache:
+        [self, point_cloud, aabb, cell_sizes]):
+      cell_sizes = tf.convert_to_tensor(value=cell_sizes, dtype=tf.float32)
+      if False:  # cell_sizes in point_cloud._grid_cache:
         # load from memory
-        self = pPointCloud._grid_cache[pCellSizes]
+        self = point_cloud._grid_cache[cell_sizes]
       else:
         #Save the attributes.
-        self.batchSize_ = pAABB.batchSize_
-        self.cellSizes_ = pCellSizes
-        self.pointCloud_ = pPointCloud
-        self.aabb_ = pPointCloud.get_AABB()
+        self._batch_size = aabb._batch_size
+        self._cell_sizes = cell_sizes
+        self._point_cloud = point_cloud
+        self._aabb = point_cloud.get_AABB()
 
         #Compute the number of cells in the grid.
-        aabbSizes = self.aabb_.aabbMax_ - self.aabb_.aabbMin_
-        batchNumCells = tf.cast(
-            tf.math.ceil(aabbSizes / self.cellSizes_), tf.int32)
-        self.numCells_ = tf.maximum(
-            tf.reduce_max(batchNumCells, axis=0), 1)
+        aabb_sizes = self._aabb._aabb_max - self._aabb._aabb_min
+        batch_num_cells = tf.cast(
+            tf.math.ceil(aabb_sizes / self._cell_sizes), tf.int32)
+        self._num_cells = tf.maximum(
+            tf.reduce_max(batch_num_cells, axis=0), 1)
 
         #Compute the key for each point.
-        self.curKeys_ = compute_keys(
-            self.pointCloud_, self.aabb_, self.numCells_,
-            self.cellSizes_)
+        self._cur_keys = compute_keys(
+            self._point_cloud, self._aabb, self._num_cells,
+            self._cell_sizes)
 
         #Sort the keys.
-        self.sortedIndices_ = tf.argsort(self.curKeys_, direction='DESCENDING')
-        self.sortedKeys_ = tf.gather(self.curKeys_, self.sortedIndices_)
+        self._sorted_indices = tf.argsort(
+            self._cur_keys, direction='DESCENDING')
+        self._sorted_keys = tf.gather(self._cur_keys, self._sorted_indices)
 
         #Compute the invert indexs.
-        # self.invertedIndices_ = tf.argsort(self.sortedIndices_)
+        # self.invertedIndices_ = tf.argsort(self._sorted_indices)
 
         #Get the sorted points and batch ids.
-        self.sortedPts_ = tf.gather(
-            self.pointCloud_.pts_, self.sortedIndices_)
-        self.sortedBatchIds_ = tf.gather(
-            self.pointCloud_.batchIds_, self.sortedIndices_)
+        self._sorted_points = tf.gather(
+            self._point_cloud._points, self._sorted_indices)
+        self._sorted_batch_ids = tf.gather(
+            self._point_cloud._batch_ids, self._sorted_indices)
 
         #Build the fast access data structure.
-        self.fastDS_ = build_grid_ds(
-            self.sortedKeys_, self.numCells_, self.batchSize_)
+        self._fast_DS = build_grid_ds(
+            self._sorted_keys, self._num_cells, self._batch_size)
 
         # add grid to the cache
-        # pPointCloud._grid_cache[hash(pCellSizes)] = self
+        # point_cloud._grid_cache[hash(cell_sizes)] = self

@@ -19,10 +19,6 @@ import tensorflow as tf
 from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc.tests import utils
 
@@ -69,15 +65,15 @@ class PointCloudTest(test_case.TestCase):
       cur_id += size
 
     pc_from_padded = PointCloud(points, sizes=sizes)
-    self.assertAllEqual(batch_ids, pc_from_padded.batchIds_)
-    self.assertAllClose(points_seg, pc_from_padded.pts_)
+    self.assertAllEqual(batch_ids, pc_from_padded._batch_ids)
+    self.assertAllClose(points_seg, pc_from_padded._points)
 
     pc_from_ids = PointCloud(points_seg, batch_ids)
     pc_from_ids.set_batch_shape(batch_shape)
 
     pc_from_sizes = PointCloud(points_seg, sizes=sizes_flat)
     pc_from_sizes.set_batch_shape(batch_shape)
-    self.assertAllEqual(batch_ids, pc_from_sizes.batchIds_)
+    self.assertAllEqual(batch_ids, pc_from_sizes._batch_ids)
 
     points_from_padded = pc_from_padded.get_points(
         max_num_points=max_num_points)

@@ -19,17 +19,17 @@ import tensorflow as tf
 def compute_keys_tf(point_cloud, aabb, num_cells, cell_size, name=None):
   with tf.compat.v1.name_scope(
       name, "compute keys", [point_cloud, aabb, num_cells, cell_size]):
-    abb_min_per_batch = aabb.aabbMin_
-    aabb_min_per_point = tf.gather(abb_min_per_batch, point_cloud.batchIds_)
+    abb_min_per_batch = aabb._aabb_min
+    aabb_min_per_point = tf.gather(abb_min_per_batch, point_cloud._batch_ids)
     cell_ind = tf.math.floor(
-        (point_cloud.pts_ - aabb_min_per_point) / cell_size)
+        (point_cloud._points - aabb_min_per_point) / cell_size)
     cell_ind = tf.cast(cell_ind, tf.int32)
     cell_ind = tf.minimum(
         tf.maximum(cell_ind, tf.zeros_like(cell_ind)),
         num_cells)
     cell_multiplier = tf.math.cumprod(num_cells, reverse=True)
     cell_multiplier = tf.concat((cell_multiplier, [1]), axis=0)
-    keys = point_cloud.batchIds_ * cell_multiplier[0] + \
+    keys = point_cloud._batch_ids * cell_multiplier[0] + \
         tf.math.reduce_sum(cell_ind * tf.reshape(cell_multiplier[1:], [1, -1]),
                            axis=1)
     return tf.cast(keys, tf.int64)
@@ -50,9 +50,9 @@ def compute_keys_tf(point_cloud, aabb, num_cells, cell_size, name=None):
 #   with tf.compat.v1.name_scope(
 #       name, "find neighbours", [pGrid, pPCSamples, pRadii, pMaxNeighbors]):
 #     return tfg_custom_ops.find_neighbors(
-#       pPCSamples.pts_,
-#       pPCSamples.batchIds_,
-#       pGrid.sortedPts_,
+#       pPCSamples._points,
+#       pPCSamples._batch_ids,
+#       pGrid.sorted_points,
 #       pGrid.sortedKeys_,
 #       pGrid.fastDS_,
 #       pGrid.numCells_,
@@ -67,8 +67,8 @@ def compute_keys_tf(point_cloud, aabb, num_cells, cell_size, name=None):
 #   with tf.compat.v1.name_scope(name, "sampling",
 #       [pNeighborhood, pSampleMode]):
 #     return tfg_custom_ops.sampling(
-#       pNeighborhood.grid_.sortedPts_,
-#       pNeighborhood.grid_.sortedBatchIds_,
+#       pNeighborhood.grid_.sorted_points,
+#       pNeighborhood.grid_.sorted_batch_ids,
 #       pNeighborhood.grid_.sortedKeys_,
 #       pNeighborhood.grid_.numCells_,
 #       pNeighborhood.neighbors_,
@@ -82,7 +82,7 @@ def compute_keys_tf(point_cloud, aabb, num_cells, cell_size, name=None):
 #       name, "compute pdf with point gradients",
 #       [pNeighborhood, pBandwidth, pMode]):
 #     return tfg_custom_ops.compute_pdf_with_pt_grads(
-#       pNeighborhood.grid_.sortedPts_,
+#       pNeighborhood.grid_.sorted_points,
 #       pNeighborhood.neighbors_,
 #       pNeighborhood.samplesNeighRanges_,
 #       tf.math.reciprocal(pBandwidth),

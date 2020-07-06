@@ -29,48 +29,48 @@ class MCConv2Sampled:
   """ Class to represent a Monte-Carlo convolution layer
 
     Attributes:
-      numInFeatures_: Integer, the number of features per input point
-      numoutFeatures_: Integer, the number of features to compute
-      numHidden_: Integer, the number of neurons in the hidden layer of the
+      _num_features_in: Integer, the number of features per input point
+      _num_features_out: Integer, the number of features to compute
+      _size_hidden: Integer, the number of neurons in the hidden layer of the
         kernel MLP
-      numDims_: Integer, dimensionality of the point cloud
-      convName_: String, name for the operation
+      _num_dims: Integer, dimensionality of the point cloud
+      _conv_name: String, name for the operation
   """
 
   def __init__(self,
-               pNumInFeatures,
-               pNumOutFeatures,
-               pHiddenSize,
-               pNumDims,
+               num_features_in,
+               num_features_out,
+               size_hidden,
+               num_dims,
                initializer_weights=None,
                initializer_biases=None,
-               pConvName=None):
+               conv_name=None):
     """ Constructior, initializes weights
 
     Args:
-    pNumInFeatures: Integer D_in, the number of features per input point
-    pNumOutFeatures: Integer D_out, the number of features to compute
-    pHiddenSize: Integer, the number of neurons in the hidden layer of the
+    num_features_in: Integer D_in, the number of features per input point
+    num_features_out: Integer D_out, the number of features to compute
+    size_hidden: Integer, the number of neurons in the hidden layer of the
         kernel MLP
-    pNumDims: Integer, dimensionality of the point cloud
+    num_dims: Integer, dimensionality of the point cloud
     initializer_weights: A `tf.initializer` for the weights,
       default `TruncatedNormal`
     initializer_biases: A `tf.initializer` for the biases,
       default: `zeros`
-    pConvName: String, name for the operation
+    conv_name: String, name for the operation
     """
 
-    with tf.compat.v1.name_scope(pConvName, "create Monte-Carlo convolution",
-                                 [self, pNumOutFeatures, pNumInFeatures,
-                                  pNumOutFeatures, pHiddenSize, pNumDims]):
-      self.numInFeatures_ = pNumInFeatures
-      self.numOutFeatures_ = pNumOutFeatures
-      self.numHidden_ = pHiddenSize
-      self.numDims_ = pNumDims
-      if pConvName is None:
-        self.convName_ = ''
+    with tf.compat.v1.name_scope(conv_name, "create Monte-Carlo convolution",
+                                 [self, num_features_out, num_features_in,
+                                  num_features_out, size_hidden, num_dims]):
+      self._num_features_in = num_features_in
+      self._num_features_out = num_features_out
+      self._size_hidden = size_hidden
+      self._num_dims = num_dims
+      if conv_name is None:
+        self._conv_name = ''
       else:
-        self.convName_ = pConvName
+        self._conv_name = conv_name
 
       # initialize variables
       if initializer_weights is None:
@@ -78,37 +78,38 @@ class MCConv2Sampled:
       if initializer_biases is None:
         initializer_biases = tf.initializers.zeros
 
-      stdDev = tf.math.sqrt(1.0 / float(self.numDims_))
+      std_dev = tf.math.sqrt(1.0 / float(self._num_dims))
       hProjVecTF = tf.compat.v1.get_variable(
-          self.convName_ + '_hidden_vectors',
-          shape=[self.numHidden_, self.numDims_],
-          initializer=initializer_weights(stddev=stdDev),
+          self._conv_name + '_hidden_vectors',
+          shape=[self._size_hidden, self._num_dims],
+          initializer=initializer_weights(std_dev=std_dev),
           dtype=tf.float32,
           trainable=True)
       hProjBiasTF = tf.compat.v1.get_variable(
-          self.convName_ + '_hidden_biases',
-          shape=[self.numHidden_, 1],
+          self._conv_name + '_hidden_biases',
+          shape=[self._size_hidden, 1],
           initializer=initializer_biases(),
           dtype=tf.float32,
           trainable=True)
-      self.basisTF_ = tf.concat([hProjVecTF, hProjBiasTF], axis=1)
+      self._basis_tf = tf.concat([hProjVecTF, hProjBiasTF], axis=1)
 
-      stdDev = tf.math.sqrt(2.0 / float(self.numHidden_ * self.numInFeatures_))
-      self.weights_ = \
+      std_dev = tf.math.sqrt(2.0 / \
+                             float(self._size_hidden * self._num_features_in))
+      self._weights = \
           tf.compat.v1.get_variable(
-              self.convName_ + '_conv_weights',
-              shape=[self.numHidden_ * \
-                     self.numInFeatures_,
-                     self.numOutFeatures_],
-              initializer=initializer_weights(stddev=stdDev),
+              self._conv_name + '_conv_weights',
+              shape=[self._size_hidden * \
+                     self._num_features_in,
+                     self._num_features_out],
+              initializer=initializer_weights(std_dev=std_dev),
               dtype=tf.float32, trainable=True)
 
   def __call__(self,
-               pInFeatures,
-               pInPC: PointCloud,
-               pOutPC: PointCloud,
-               pRadius,
-               pBandWidth=0.2,
+               features,
+               point_cloud_in: PointCloud,
+               point_cloud_out: PointCloud,
+               radius,
+               bandwidth=0.2,
                return_sorted=False,
                name=None):
     """ Computes the Monte-Carlo Convolution
@@ -119,12 +120,13 @@ class MCConv2Sampled:
       D_out is the number of output features.
 
     Args:
-      pInFeatures: A float Tensor of shape [N_in,D_in] or [A1,...,An,V,D_in],
+      features: A float Tensor of shape [N_in,D_in] or [A1,...,An,V,D_in],
         the size must be the same as the points in the input point cloud.
-      pInPC: A PointCloud instance, represents the input point cloud.
-      pOutPC: A PointCloud instance, represents the output point cloud.
-      pRadius: A float, the convolution radius.
-      pBandWidth: The used bandwidth used in the kernel densitiy estimation on
+      point_cloud_in: A PointCloud instance, represents the input point cloud.
+      point_cloud_out: A PointCloud instance, represents the output
+        point cloud.
+      radius: A float, the convolution radius.
+      bandwidth: The used bandwidth used in the kernel densitiy estimation on
         the input point cloud.
       return_sorted: A boolean, if 'True' the output tensor is sorted
         according to the batch_ids.
@@ -134,44 +136,47 @@ class MCConv2Sampled:
     """
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
-                                 [pInFeatures, pInPC, pOutPC, pRadius,
-                                  pBandWidth, return_sorted]):
-      pInFeatures = tf.convert_to_tensor(value=pInFeatures, dtype=tf.float32)
-      pInFeatures = _flatten_features(pInFeatures, pInPC)
-      pRadius = tf.convert_to_tensor(value=pRadius, dtype=tf.float32)
-      pBandWidth = tf.convert_to_tensor(value=pBandWidth)
+                                 [features, point_cloud_in, point_cloud_out,
+                                  radius, bandwidth, return_sorted]):
+      features = tf.convert_to_tensor(value=features, dtype=tf.float32)
+      features = _flatten_features(features, point_cloud_in)
+      radius = tf.convert_to_tensor(value=radius, dtype=tf.float32)
+      bandwidth = tf.convert_to_tensor(value=bandwidth)
 
       #Create the radii tensor.
-      radiiTensor = tf.repeat([pRadius], self.numDims_)
+      radii_tensor = tf.repeat([radius], self._num_dims)
       #Create the badnwidth tensor.
-      bwTensor = tf.repeat(pBandWidth, self.numDims_)
+      bwTensor = tf.repeat(bandwidth, self._num_dims)
 
       #Compute the AABB.
-      aabbIn = pInPC.get_AABB()
+      aabbIn = point_cloud_in.get_AABB()
 
       #Compute the grid.
-      grid = Grid(pInPC, aabbIn, radiiTensor)
+      grid = Grid(point_cloud_in, aabbIn, radii_tensor)
 
       #Compute the neighborhood key.
-      neigh = Neighborhood(grid, radiiTensor, pOutPC)
-      neigh.compute_pdf(bwTensor, pMode=KDEMode.constant)
+      neigh = Neighborhood(grid, radii_tensor, point_cloud_out)
+      neigh.compute_pdf(bwTensor, mode=KDEMode.constant)
 
       #Compute kernel inputs.
-      neighPtCoords = tf.gather(grid.sortedPts_, neigh.neighbors_[:, 0])
-      centerPtCoords = tf.gather(pOutPC.pts_, neigh.neighbors_[:, 1])
-      diffPts = (neighPtCoords - centerPtCoords) / \
-          tf.reshape(radiiTensor, [1, self.numDims_])
+      neigh_point_coords = tf.gather(
+          grid._sorted_points, neigh._neighbors[:, 0])
+      center_point_coords = tf.gather(
+          point_cloud_out._points, neigh._neighbors[:, 1])
+      points_diff = (neigh_point_coords - center_point_coords) / \
+          tf.reshape(radii_tensor, [1, self._num_dims])
 
       #Compute convolution (RELU - 2, LRELU - 3, ELU - 4)
-      inWeightFeat = basis_proj(diffPts, neigh, pInFeatures, self.basisTF_, 3)
+      weighted_features = basis_proj(
+          points_diff, neigh, features, self._basis_tf, 3)
 
       #Compute the convolution.
       convolution_result = tf.matmul(tf.reshape(
-          inWeightFeat, [-1, self.numInFeatures_ * self.numHidden_]),
-          self.weights_)
+          weighted_features, [-1, self._num_features_in * self._size_hidden]),
+          self._weights)
       if return_sorted:
         convolution_result = tf.gather(convolution_result,
-                                       pOutPC.sortedIndicesBatch_)
+                                       point_cloud_out.sortedIndicesBatch_)
       return convolution_result
 
 
@@ -179,38 +184,38 @@ class MCConv(MCConv2Sampled):
   """ Class to represent a Monte-Carlo convolution layer on one point cloud
 
     Attributes:
-      numInFeatures_: Integer, the number of features per input point
-      numoutFeatures_: Integer, the number of features to compute
-      numHidden_: Integer, the number of neurons in the hidden layer of the
+      _num_features_in: Integer, the number of features per input point
+      _num_features_out: Integer, the number of features to compute
+      _size_hidden: Integer, the number of neurons in the hidden layer of the
         kernel MLP
-      numDims_: Integer, dimensionality of the point cloud
-      convName_: String, name for the operation
+      _num_dims: Integer, dimensionality of the point cloud
+      _conv_name: String, name for the operation
   """
 
   def __init__(self,
-               pNumInFeatures,
-               pNumOutFeatures,
-               pHiddenSize,
-               pNumDims,
-               pConvName=None):
+               num_features_in,
+               num_features_out,
+               size_hidden,
+               num_dims,
+               conv_name=None):
     """ Constructior, initializes weights
 
     Args:
-    pNumInFeatures: Integer D_in, the number of features per input point
-    pNumOutFeatures: Integer D_out, the number of features to compute
-    pHiddenSize: Integer, the number of neurons in the hidden layer of the
+    num_features_in: Integer D_in, the number of features per input point
+    num_features_out: Integer D_out, the number of features to compute
+    size_hidden: Integer, the number of neurons in the hidden layer of the
         kernel MLP
-    pNumDims: Integer, dimensionality of the point cloud
-    pConvName: String, name for the operation
+    num_dims: Integer, dimensionality of the point cloud
+    conv_name: String, name for the operation
     """
-    super(MCConv, self).__init__(pNumInFeatures, pNumOutFeatures, pHiddenSize,
-                                 pNumDims, None, None, pConvName)
+    super(MCConv, self).__init__(num_features_in, num_features_out,
+                                 size_hidden, num_dims, None, None, conv_name)
 
   def __call__(self,
-               pInFeatures,
+               features,
                pPC: PointCloud,
-               pRadius,
-               pBandWidth=0.2,
+               radius,
+               bandwidth=0.2,
                return_sorted=False,
                name=None):
     """ Computes the Monte-Carlo Convolution
@@ -220,11 +225,11 @@ class MCConv(MCConv2Sampled):
       D_in is the number of input features.
 
     Args:
-      pInFeatures: A float `Tensor` of shape [N,D_in] or [A1,...,An,V,D_in],
+      features: A float `Tensor` of shape [N,D_in] or [A1,...,An,V,D_in],
         the size must be the same as the points in the input point cloud.
       pPC: A `PointCloud` instance
-      pRadius: A float, the convolution radius.
-      pBandWidth: The used bandwidth used in the kernel densitiy estimation on
+      radius: A float, the convolution radius.
+      bandwidth: The used bandwidth used in the kernel densitiy estimation on
         the input point cloud.
       return_sorted: A boolean, if 'True' the output tensor is sorted
         according to the batch_ids.
@@ -232,5 +237,5 @@ class MCConv(MCConv2Sampled):
       Returns:
         `Tensor` with shape [N,D_out]
     """
-    return super(self).__call__(self, pInFeatures, pPC, pPC, pRadius,
-                                pBandWidth, return_sorted, name)
+    return super(self).__call__(self, features, pPC, pPC, radius,
+                                bandwidth, return_sorted, name)

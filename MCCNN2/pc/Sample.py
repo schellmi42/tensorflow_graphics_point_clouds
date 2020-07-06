@@ -31,38 +31,38 @@ class Sample:
   """Class to represent a sample operation on point clouds.
 
   Attributes:
-    neighborhood_ (Neighborhood): Neighborhood. The samples should
+    _neighborhood (Neighborhood): Neighborhood. The samples should
       be the same as the sorted points.
-    indices_ (int tensor): List of the indices of the selected points.
+    _indices (int tensor): List of the indices of the selected points.
       Only valid for the poisson disk sampling algorithm.
-    samplePointCloud_ (PointCloud): Sampleed point cloud.
-    sampleMode_ (SampleMode): Mode used to sample points, 1 for Poisson disk
+    _sample_point_cloud (PointCloud): Sampled point cloud.
+    _sample_mode (SampleMode): Mode used to sample points, 1 for Poisson disk
     sampling, 0 for average
   """
 
-  def __init__(self, pNeighborhood, pSampleMode=SampleMode.pd, name=None):
+  def __init__(self, neighborhood, sample_mode=SampleMode.pd, name=None):
     """Constructor.
 
     Args:
-      pNeighborhood (Neighborhood): Neighborhood.
-      pSampleMode (SampleMode): Mode used to sample points.
+      neighborhood (Neighborhood): Neighborhood.
+      sample_mode (SampleMode): Mode used to sample points.
     """
     with tf.compat.v1.name_scope(
-        name, "sample point cloud", [self, pNeighborhood, pSampleMode]):
+        name, "sample point cloud", [self, neighborhood, sample_mode]):
       #Save the attributes.
-      self.neighborhood_ = pNeighborhood
-      self.sampleMode_ = pSampleMode
+      self._neighborhood = neighborhood
+      self._sample_mode = sample_mode
 
       #Compute the sampleing.
-      samplePts, sampleBatchIds, sampleIndices = sampling(
-        self.neighborhood_, self.sampleMode_.value)
+      sampled_points, sampled_batch_ids, sampled_indices = sampling(
+        self._neighborhood, self._sample_mode.value)
 
       #Save the sampleed point cloud.
-      if pSampleMode == SampleMode.pd:
-        self.indices_ = tf.gather(
-            self.neighborhood_.grid_.sortedIndices_, sampleIndices)
+      if sample_mode == SampleMode.pd:
+        self._indices = tf.gather(
+            self._neighborhood._grid._sorted_indices, sampled_indices)
       else:
-        self.indices_ = None
-      self.sampledPointCloud_ = PointCloud(
-          pPts=samplePts, pBatchIds=sampleBatchIds,
-          pBatchSize=self.neighborhood_.pcSamples_.batchSize_)
+        self._indices = None
+      self._sample_point_cloud = PointCloud(
+          points=sampled_points, batch_ids=sampled_batch_ids,
+          batch_size=self._neighborhood._point_cloud_sampled._batch_size)

@@ -20,10 +20,6 @@ import tensorflow as tf
 from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
 from MCCNN2.pc import PointCloud, AABB
 from MCCNN2.pc.tests import utils
 
@@ -44,11 +40,11 @@ class AABB_test(test_case.TestCase):
       aabb_max_numpy[i] = np.amax(points[batch_ids == i], axis=0)
       aabb_min_numpy[i] = np.amin(points[batch_ids == i], axis=0)
 
-    aabb_tf = PointCloud(points, pBatchIds=batch_ids,
-                         pBatchSize=batch_size).get_AABB()
+    aabb_tf = PointCloud(points, batch_ids=batch_ids,
+                         batch_size=batch_size).get_AABB()
 
-    self.assertAllClose(aabb_max_numpy, aabb_tf.aabbMax_)
-    self.assertAllClose(aabb_min_numpy, aabb_tf.aabbMin_)
+    self.assertAllClose(aabb_max_numpy, aabb_tf._aabb_max)
+    self.assertAllClose(aabb_min_numpy, aabb_tf._aabb_min)
 
   @parameterized.parameters(
       ([1], 1000, 3),

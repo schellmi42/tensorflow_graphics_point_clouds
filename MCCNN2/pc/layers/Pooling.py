@@ -35,8 +35,8 @@ class GlobalMaxPooling:
       features = _flatten_features(features, point_cloud)
       return tf.math.unsorted_segment_max(
           features,
-          segment_ids=point_cloud.batchIds_,
-          num_segments=point_cloud.batchSize_)
+          segment_ids=point_cloud._batch_ids,
+          num_segments=point_cloud._batch_size)
 
 
 class GlobalAveragePooling:
@@ -54,8 +54,8 @@ class GlobalAveragePooling:
       features = _flatten_features(features, point_cloud)
       return tf.math.unsorted_segment_mean(
           features,
-          segment_ids=point_cloud.batchIds_,
-          num_segments=point_cloud.batchSize_)
+          segment_ids=point_cloud._batch_ids,
+          num_segments=point_cloud._batch_size)
 
 
 class _LocalPointPooling:
@@ -99,25 +99,25 @@ class _LocalPointPooling:
       # quick fix for 2D input
       # mask points with different batch_id
       features_on_neighbors = tf.gather(
-          features, neigh.originalNeighIds_[:, 0])
+          features, neigh._original_neigh_ids[:, 0])
       batch_ids_in = tf.gather(
-          point_cloud_in.batchIds_, neigh.originalNeighIds_[:, 0])
+          point_cloud_in._batch_ids, neigh._original_neigh_ids[:, 0])
       batch_ids_out = tf.gather(
-          point_cloud_out.batchIds_, neigh.originalNeighIds_[:, 1])
+          point_cloud_out._batch_ids, neigh._original_neigh_ids[:, 1])
       batch_mask = batch_ids_in == batch_ids_out
       features_on_neighbors = tf.boolean_mask(
           features_on_neighbors, batch_mask)
-      neigh_out = tf.boolean_mask(neigh.originalNeighIds_[:, 1], batch_mask)
+      neigh_out = tf.boolean_mask(neigh._original_neigh_ids[:, 1], batch_mask)
       # -------------
 
       # Pool the features in the neighborhoods
       features_out = pool_op(
           data=features_on_neighbors,
           segment_ids=neigh_out,
-          num_segments=point_cloud_out.pts_.shape[0])
+          num_segments=point_cloud_out._points.shape[0])
       if return_sorted:
         features_out = tf.gather(
-            features_out, point_cloud_out.sortedIndicesBatch_)
+            features_out, point_cloud_out._sorted_indices_batch)
       return features_out
 
 

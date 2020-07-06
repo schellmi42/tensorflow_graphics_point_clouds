@@ -51,8 +51,8 @@ class GridTest(test_case.TestCase):
     aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, radius)
 
-    total_num_cells = grid.numCells_.numpy()
-    aabb_min = aabb.aabbMin_.numpy()
+    total_num_cells = grid._num_cells.numpy()
+    aabb_min = aabb._aabb_min.numpy()
 
     aabb_min_per_point = aabb_min[batch_ids, :]
     cell_ind = np.floor((points - aabb_min_per_point) / radius).astype(int)
@@ -62,12 +62,12 @@ class GridTest(test_case.TestCase):
     cell_multiplier = np.concatenate((cell_multiplier, [1]), axis=0)
     keys = batch_ids * cell_multiplier[0] + np.sum(cell_ind * cell_multiplier[1:].reshape([1, -1]), axis=1)
     # check unsorted keys
-    self.assertAllEqual(grid.curKeys_, keys)
+    self.assertAllEqual(grid._cur_keys, keys)
 
     # sort descending
     sorted_keys = np.flip(np.sort(keys))
     # check if the cell keys per point are equal
-    self.assertAllEqual(grid.sortedKeys_, sorted_keys)
+    self.assertAllEqual(grid._sorted_keys, sorted_keys)
 
   @parameterized.parameters(
     # currently numpy implementation only in 3D
@@ -90,8 +90,8 @@ class GridTest(test_case.TestCase):
     aabb = point_cloud.get_AABB()
     grid = Grid(point_cloud, aabb, radius)
 
-    total_num_cells = grid.numCells_.numpy()
-    keys = grid.sortedKeys_.numpy()
+    total_num_cells = grid._num_cells.numpy()
+    keys = grid._sorted_keys.numpy()
     ds_numpy = np.full((batch_size, total_num_cells[0],
                         total_num_cells[1], 2), 0)
 
@@ -120,7 +120,7 @@ class GridTest(test_case.TestCase):
           ds_numpy[curbatch_ids, xIndex, yIndex, 1] = key_iter + 1
 
     # check if the data structure is equal
-    self.assertAllEqual(grid.fastDS_, ds_numpy)
+    self.assertAllEqual(grid._fast_DS, ds_numpy)
 
 if __name__ == '__main__':
   test_case.main()

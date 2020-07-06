@@ -25,8 +25,8 @@ from MCCNN2.pc.custom_ops import find_neighbors, compute_pdf
 class KDEMode(enum.Enum):
   """ Parameters for kernel density estimation (KDE) """
   constant = 0
-  numPts = 1
-  noPDF = 2
+  num_points = 1
+  no_pdf = 2
 
 
 class Neighborhood:
@@ -38,85 +38,85 @@ class Neighborhood:
     adjacencies.
 
   Attributes:
-    pcSamples_: 'PointCloud', samples point cloud.
-    grid_ : 'Grid', regular grid data structure.
-    radii_: float 'Tensor' of shape [D], radii used to select the neighbors.
-    samplesNeighRanges_: int 'Tensor' of shape [N], end of the ranges per
+    _point_cloud_sampled: 'PointCloud', samples point cloud.
+    _grid : 'Grid', regular grid data structure.
+    _radii: float 'Tensor' of shape [D], radii used to select the neighbors.
+    _samples_neigh_ranges: int 'Tensor' of shape [N], end of the ranges per
       sample.
-    neighbors_: int 'Tensor' of shape [M,2], indices of the neighbor point and
+    _neighbors: int 'Tensor' of shape [M,2], indices of the neighbor point and
       the sample for each neighbor.
-    pdf_: float 'Tensor' of shape [M], PDF value for each neighbor.
+    _pdf: float 'Tensor' of shape [M], PDF value for each neighbor.
   """
 
   def __init__(self,
-               pGrid: Grid,
-               pRadii,
-               pPCSample=None,
-               pMaxNeighbors=0,
+               grid: Grid,
+               radii,
+               point_cloud_sample=None,
+               max_neighbors=0,
                name=None):
     """Constructor.
 
     Args:
-      pGrid: A 'Grid' instance, the regular grid data structure.
-      pRadii: A float 'Tensor' of shape [D], the radii used to select the
+      grid: A 'Grid' instance, the regular grid data structure.
+      radii: A float 'Tensor' of shape [D], the radii used to select the
         neighbors.
-      pPCSample: A 'PointCloud' instance. Samples point cloud. If None, the
-        sorted points from the grid will be used.
-      pMaxNeighbors: Integer, maximum number of neighbors per sample.
+      point_cloud_sample: A 'PointCloud' instance. Samples point cloud.
+        If None, the sorted points from the grid will be used.
+      max_neighbors: Integer, maximum number of neighbors per sample.
     """
     with tf.compat.v1.name_scope(
         name, "constructor for neighbourhoods of point clouds",
-        [self, pGrid, pRadii, pPCSample, pMaxNeighbors]):
-      pRadii = tf.convert_to_tensor(value=pRadii, dtype=tf.float32)
+        [self, grid, radii, point_cloud_sample, max_neighbors]):
+      radii = tf.convert_to_tensor(value=radii, dtype=tf.float32)
 
       #Save the attributes.
-      if pPCSample is None:
-        self.equalSamples_ = True
-        self.pcSamples_ = PointCloud(
-            pGrid.sortedPts_, pGrid.sortedBatchIds_,
-            pGrid.batchSize_)
+      if point_cloud_sample is None:
+        self._equal_samples = True
+        self._point_cloud_sampled = PointCloud(
+            grid._sorted_points, grid._sorted_batch_ids,
+            grid._batch_size)
       else:
-        self.equalSamples_ = False
-        self.pcSamples_ = pPCSample
-      self.grid_ = pGrid
-      self.radii_ = pRadii
-      self.pMaxNeighbors_ = pMaxNeighbors
+        self._equal_samples = False
+        self._point_cloud_sampled = point_cloud_sample
+      self._grid = grid
+      self._radii = radii
+      self.max_neighbors = max_neighbors
 
       #Find the neighbors.
-      self.samplesNeighRanges_, self.neighbors_ = find_neighbors(
-        self.grid_, self.pcSamples_, self.radii_, pMaxNeighbors)
+      self._samples_neigh_ranges, self._neighbors = find_neighbors(
+        self._grid, self._point_cloud_sampled, self._radii, max_neighbors)
 
       #Original neighIds.
-      auxOriginalNeighsIds = tf.gather(
-          self.grid_.sortedIndices_, self.neighbors_[:, 0])
-      self.originalNeighIds_ = tf.concat([
-        tf.reshape(auxOriginalNeighsIds, [-1, 1]),
-        tf.reshape(self.neighbors_[:, 1], [-1, 1])], axis=-1)
+      aux_original_neigh_ids = tf.gather(
+          self._grid._sorted_indices, self._neighbors[:, 0])
+      self._original_neigh_ids = tf.concat([
+        tf.reshape(aux_original_neigh_ids, [-1, 1]),
+        tf.reshape(self._neighbors[:, 1], [-1, 1])], axis=-1)
 
       #Initialize the pdf
-      self.pdf_ = None
+      self._pdf = None
 
-  def compute_pdf(self, pBandwidth, pMode=0, name=None):
+  def compute_pdf(self, bandwidth, mode=0, name=None):
     """Method to compute the probability density function of a neighborhood.
 
     Args:
-      pBandwidth: float 'Tensor' of shape [D], bandwidth used to compute
+      bandwidth: float 'Tensor' of shape [D], bandwidth used to compute
         the pdf.
-      pMode: 'KDEMode', mode used to determine the bandwidth.
+      mode: 'KDEMode', mode used to determine the bandwidth.
     """
     with tf.compat.v1.name_scope(
         name, "compute pdf for neighbours",
-        [self, pBandwidth, pMode]):
-      pBandwidth = tf.convert_to_tensor(value=pBandwidth)
+        [self, bandwidth, mode]):
+      bandwidth = tf.convert_to_tensor(value=bandwidth)
 
-      if pMode == KDEMode.noPDF:
-        self.pdf_ = tf.ones_like(
-            self.neighbors_[:, 0], dtype=tf.float32)
+      if mode == KDEMode.no_pdf:
+        self._pdf = tf.ones_like(
+            self._neighbors[:, 0], dtype=tf.float32)
       else:
-        if self.equalSamples_:
-          auxNeigh = self
+        if self._equal_samples:
+          aux_neighbors = self
         else:
-          auxNeigh = Neighborhood(self.grid_, self.radii_, None)
-        tmpPDF = compute_pdf(
-              auxNeigh, pBandwidth, pMode.value)
-        self.pdf_ = tf.gather(tmpPDF, self.neighbors_[:, 0])
+          aux_neighbors = Neighborhood(self._grid, self._radii, None)
+        _pdf = compute_pdf(
+              aux_neighbors, bandwidth, mode.value)
+        self._pdf = tf.gather(_pdf, self._neighbors[:, 0])

@@ -30,70 +30,71 @@ class PointHierarchy:
   """Class to represent a point cloud hierarchy.
 
   Attributes:
-    aabb_ (AABB): Bounding box of the point cloud.
-    pointClouds_ (array of PointCloud): List of point clouds.
-    sampleOps_ (arraz of Sample): List of sampling operations used to
+    _aabb (AABB): Bounding box of the point cloud.
+    _point_clouds (array of PointCloud): List of point clouds.
+    _sample_ops (array of Sample): List of sampling operations used to
       create the point hierarchy.
   """
 
   def __init__(self,
-               pPointCloud: PointCloud,
-               pCellSizes,
-               pSampleMode=SampleMode.pd,
+               point_cloud: PointCloud,
+               cell_sizes,
+               sample_mode=SampleMode.pd,
                name=None):
     """Constructor.
 
     Args:
-      pPointCloud (PointCloud): Input point cloud.
-      pCellSizes (array of numpy arrays of floats): List of cell sizes for
+      point_cloud (PointCloud): Input point cloud.
+      cell_sizes (array of numpy arrays of floats): List of cell sizes for
         each dimension.
-      pSampleMode (SampleMode): Mode used to sample the points.
+      sample_mode (SampleMode): Mode used to sample the points.
     """
     with tf.compat.v1.name_scope(
         name, "hierarchical point cloud constructor",
-        [self, pPointCloud, pCellSizes, pSampleMode]):
+        [self, point_cloud, cell_sizes, sample_mode]):
 
-      # check_valid_point_hierarchy_input(pPointCloud,pCellSizes,pSampleMode)
+      # check_valid_point_hierarchy_input(point_cloud,cell_sizes,sample_mode)
 
       #Initialize the attributes.
-      self.aabb_ = pPointCloud.get_AABB()
-      self.pointClouds_ = [pPointCloud]
-      self.sampleOps_ = []
-      self.cellSizes_ = []
+      self._aabb = point_cloud.get_AABB()
+      self._point_clouds = [point_cloud]
+      self._sample_ops = []
+      self._cell_sizes = []
 
-      self.dimensions_ = pPointCloud.dimension_
-      self.batchShape_ = pPointCloud.batchShape_
+      self._dimension = point_cloud._dimension
+      self._batch_shape = point_cloud._batch_shape
 
       #Create the different sampling operations.
-      curPC = pPointCloud
-      for sampleIter, curCellSizes in enumerate(pCellSizes):
-        curCellSizes  = tf.convert_to_tensor(curCellSizes, dtype=tf.float32)
+      cur_point_cloud = point_cloud
+      for sample_iter, cur_cell_sizes in enumerate(cell_sizes):
+        cur_cell_sizes  = tf.convert_to_tensor(
+            value=cur_cell_sizes, dtype=tf.float32)
 
         # Check if the cell size is defined for all the dimensions.
         # If not, the last cell size value is tiled until all the dimensions
         # have a value.
-        curNumDims = curCellSizes.shape[0]
-        if curNumDims < self.dimensions_:
-          curCellSizes = np.concatenate(
-              (curCellSizes, np.tile(curCellSizes[-1],
-                                     self.dimensions_ - curNumDims)))
-        elif curNumDims > self.dimensions_:
+        cur_num_dims = cur_cell_sizes.shape[0]
+        if cur_num_dims < self._dimension:
+          cur_cell_sizes = np.concatenate(
+              (cur_cell_sizes, np.tile(cur_cell_sizes[-1],
+               self._dimension - cur_num_dims)))
+        elif cur_num_dims > self._dimension:
           raise ValueError(
-              f'Too many dimensions in cell sizes {curNumDims} \
-                instead of max. {self.dimensions_}')
-        self.cellSizes_.append(curCellSizes)
+              f'Too many dimensions in cell sizes {cur_num_dims} \
+                instead of max. {self._dimension}')
+        self._cell_sizes.append(cur_cell_sizes)
 
         #Create the sampling operation.
-        cellSizesTensor = tf.convert_to_tensor(curCellSizes, np.float32)
+        cell_sizes_tensor = tf.convert_to_tensor(cur_cell_sizes, np.float32)
 
-        curGrid = Grid(curPC, self.aabb_, cellSizesTensor)
-        curNeighborhood = Neighborhood(curGrid, cellSizesTensor)
-        curSampleOp = Sample(curNeighborhood, pSampleMode)
+        cur_grid = Grid(cur_point_cloud, self._aabb, cell_sizes_tensor)
+        cur_neighborhood = Neighborhood(cur_grid, cell_sizes_tensor)
+        cur_sample_op = Sample(cur_neighborhood, sample_mode)
 
-        self.sampleOps_.append(curSampleOp)
-        curSampleOp.sampledPointCloud_.set_batch_shape(self.batchShape_)
-        self.pointClouds_.append(curSampleOp.sampledPointCloud_)
-        curPC = curSampleOp.sampledPointCloud_
+        self._sample_ops.append(cur_sample_op)
+        cur_sample_op._sampled_point_cloud.set_batch_shape(self._batch_shape)
+        self._point_clouds.append(cur_sample_op._sampled_point_cloud)
+        cur_point_cloud = cur_sample_op._sampled_point_cloud
 
   def get_points(self, id=None, max_num_points=None, name=None):
     """ Returns the points.
@@ -114,7 +115,7 @@ class PointHierarchy:
     with tf.compat.v1.name_scope(
         name, "get points of specific batch id", [self, id]):
       points = []
-      for point_cloud in self.pointClouds_:
+      for point_cloud in self._point_clouds:
         points.append(point_cloud.get_points(id))
       return points
 
@@ -130,32 +131,32 @@ class PointHierarchy:
 
     with tf.compat.v1.name_scope(name, "get point hierarchy sizes", [self]):
       sizes = []
-      for point_cloud in self.pointClouds_:
+      for point_cloud in self._point_clouds:
         sizes.append(point_cloud.get_sizes())
       return sizes
 
-  def set_batch_shape(self, batchShape, name=None):
+  def set_batch_shape(self, batch_shape, name=None):
     """ Function to change the batch shape
 
-      Use this to set a batch shape instead of using 'self.batchShape_'
+      Use this to set a batch shape instead of using 'self._batch_shape'
       to also change dependent variables.
 
     Note:
       In the following, A1 to An are optional batch dimensions.
 
     Args:
-      batchShape: float tensor of shape [A1,...,An]
+      batch_shape: float tensor of shape [A1,...,An]
 
     Raises:
       ValueError: if shape does not sum up to batch size.
     """
     with tf.compat.v1.name_scope(
-        name, "set batch shape of point hierarchy", [self, batchShape]):
-      for point_cloud in self.pointClouds_:
-        point_cloud.set_batch_shape(batchShape)
+        name, "set batch shape of point hierarchy", [self, batch_shape]):
+      for point_cloud in self._point_clouds:
+        point_cloud.set_batch_shape(batch_shape)
 
   def __getitem__(self, index):
-    return self.pointClouds_[index]
+    return self._point_clouds[index]
 
   def __len__(self):
-    return len(self.pointClouds_)
+    return len(self._point_clouds)
