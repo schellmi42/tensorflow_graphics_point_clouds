@@ -14,8 +14,6 @@
 """ Wrappers for point cloud CUDA functions """
 
 import tensorflow as tf
-import sys
-import os
 import tfg_custom_ops
 
 
