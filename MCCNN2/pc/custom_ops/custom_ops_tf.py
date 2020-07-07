@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Wrappers for point cloud CUDA functions """
+""" Non-GPU implemetations of the custom ops """
 
 import tensorflow as tf
 from MCCNN2.pc import PointCloud
