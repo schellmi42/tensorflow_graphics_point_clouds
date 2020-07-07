@@ -120,7 +120,7 @@ class MCConv2Sampled:
       D_out is the number of output features.
 
     Args:
-      features: A float Tensor of shape [N_in,D_in] or [A1,...,An,V,D_in],
+      features: A float Tensor of shape [N_in, C_in] or [A1, ..., An,V, C_in],
         the size must be the same as the points in the input point cloud.
       point_cloud_in: A PointCloud instance, represents the input point cloud.
       point_cloud_out: A PointCloud instance, represents the output
@@ -201,8 +201,8 @@ class MCConv(MCConv2Sampled):
     """ Constructior, initializes weights
 
     Args:
-    num_features_in: Integer D_in, the number of features per input point
-    num_features_out: Integer D_out, the number of features to compute
+    num_features_in: Integer C_in, the number of features per input point
+    num_features_out: Integer C_out, the number of features to compute
     size_hidden: Integer, the number of neurons in the hidden layer of the
         kernel MLP
     num_dims: Integer, dimensionality of the point cloud
@@ -213,7 +213,7 @@ class MCConv(MCConv2Sampled):
 
   def __call__(self,
                features,
-               pPC: PointCloud,
+               point_cloud: PointCloud,
                radius,
                bandwidth=0.2,
                return_sorted=False,
@@ -225,9 +225,9 @@ class MCConv(MCConv2Sampled):
       D_in is the number of input features.
 
     Args:
-      features: A float `Tensor` of shape [N,D_in] or [A1,...,An,V,D_in],
+      features: A float `Tensor` of shape [N, C_in] or [A1, ..., An, V, C_in],
         the size must be the same as the points in the input point cloud.
-      pPC: A `PointCloud` instance
+      point_cloud: A `PointCloud` instance
       radius: A float, the convolution radius.
       bandwidth: The used bandwidth used in the kernel densitiy estimation on
         the input point cloud.
@@ -237,5 +237,5 @@ class MCConv(MCConv2Sampled):
       Returns:
         `Tensor` with shape [N,D_out]
     """
-    return super(self).__call__(self, features, pPC, pPC, radius,
-                                bandwidth, return_sorted, name)
+    return super(self).__call__(self, features, point_cloud, point_cloud,
+                                radius, bandwidth, return_sorted, name)
