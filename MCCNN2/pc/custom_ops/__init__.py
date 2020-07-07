@@ -18,13 +18,21 @@ from __future__ import division
 from __future__ import print_function
 
 try:
+  import tfg_custom_ops
+  CUSTOM = 1
+except ImportError:
+  CUSTOM = 0
+
+CUSTOM=1
+
+if CUSTOM:
   from .custom_ops_wrapper import basis_proj
   from .custom_ops_wrapper import build_grid_ds
   from .custom_ops_wrapper import compute_keys
   from .custom_ops_wrapper import compute_pdf
   from .custom_ops_wrapper import find_neighbors
   from .custom_ops_wrapper import sampling
-except ImportError:
+else:
   # from .custom_ops_tf import basis_proj
   # from .custom_ops_tf import build_grid_ds
   from .custom_ops_tf import compute_keys_tf as compute_keys

@@ -15,7 +15,6 @@
 
 import tensorflow as tf
 import tfg_custom_ops
-# from MCCNN2.pc import PointCloud, Neighborhood
 
 
 def compute_keys(point_cloud, num_cells, cell_size, name=None):
