@@ -71,7 +71,7 @@ class Grid:
 
         #Compute the key for each point.
         self._cur_keys = compute_keys(
-            self._point_cloud, self._aabb, self._num_cells,
+            self._point_cloud, self._num_cells,
             self._cell_sizes)
 
         #Sort the keys.

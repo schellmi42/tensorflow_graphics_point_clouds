@@ -15,9 +15,10 @@
 
 import tensorflow as tf
 import tfg_custom_ops
+from MCCNN2.pc import PointCloud, Neighborhood
 
 
-def compute_keys(point_cloud, num_cells, cell_size, name=None):
+def compute_keys(point_cloud: PointCloud, num_cells, cell_size, name=None):
   """ Method to compute the regular grid keys of a point cloud.
 
     For a point in cell `c` the key is computed as
@@ -69,7 +70,7 @@ tf.no_gradient('BuildGridDs')
 
 
 def find_neighbors(grid,
-                   point_cloud_centers,
+                   point_cloud_centers: PointCloud,
                    radii,
                    max_neighbors=0,
                    name=None):
@@ -105,7 +106,7 @@ def find_neighbors(grid,
 tf.no_gradient('FindNeighbors')
 
 
-def sampling(neighborhood, sample_mode, name=None):
+def sampling(neighborhood: Neighborhood, sample_mode, name=None):
   """ Method to sample the points of a point cloud.
 
   Args:
@@ -132,7 +133,7 @@ def sampling(neighborhood, sample_mode, name=None):
 tf.no_gradient('sampling')
 
 
-def compute_pdf(neighborhood, bandwidth, mode, name=None):
+def compute_pdf(neighborhood: Neighborhood, bandwidth, mode, name=None):
   """ Method to compute the density distribution inside the neighborhoods of a
   point cloud in euclidean space using kernel density estimation (KDE).
 
@@ -170,7 +171,7 @@ def _compute_pdf_grad(op, *grads):
   return [inPtsGrad, None, None, None, None]
 
 
-def basis_proj(kernel_inputs, neighborhood, features,
+def basis_proj(kernel_inputs, neighborhood: Neighborhood, features,
                basis, basis_type):
   """ Method to compute the convolution using a basis projection, i.e. a one
   hidden layer MLP, as convolution kernel and Monte-Carlo integration.

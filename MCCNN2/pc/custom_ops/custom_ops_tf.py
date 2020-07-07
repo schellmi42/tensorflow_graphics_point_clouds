@@ -16,9 +16,23 @@
 import tensorflow as tf
 
 
-def compute_keys_tf(point_cloud, aabb, num_cells, cell_size, name=None):
+def compute_keys_tf(point_cloud, num_cells, cell_size, name=None):
+  """
+    For a point in cell `c` the key is computed as
+        \\(key = batch_id * prod_{d=0}^{D} num_cells_{d} + \\)
+        \\(sum_{d=0}^{D}( c_{d} prod_{d'=d+1}^{D} num_cells_{d'} ) \\).
+    Args:
+      point_cloud: A `PointCloud` instance.
+      num_cells: An `int` tensor of shape [D], the total number of cells
+        per dimension.
+      cell_size: An `int` tensor of shape [D], the cell sizes per dimension.
+
+    Returns:
+      An `int` tensor of shape [N], the keys per point.
+  """
   with tf.compat.v1.name_scope(
-      name, "compute keys", [point_cloud, aabb, num_cells, cell_size]):
+      name, "compute keys", [point_cloud, num_cells, cell_size]):
+    aabb = point_cloud.get_AABB()
     abb_min_per_batch = aabb._aabb_min
     aabb_min_per_point = tf.gather(abb_min_per_batch, point_cloud._batch_ids)
     cell_ind = tf.math.floor(
