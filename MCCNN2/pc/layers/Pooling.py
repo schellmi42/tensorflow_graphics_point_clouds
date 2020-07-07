@@ -24,9 +24,11 @@ class GlobalMaxPooling:
 
   def __call__(self, features, point_cloud: PointCloud, name=None):
     """ Performs a global max pooling on a point cloud
+
     Args:
       features: A float `Tensor` of shape [N,D] or [A1,...,An,V,D].
       point_cloud: A PointCloud instance.
+
     Returns:
       A float `Tensor` of shape [batch_size,D]
     """
@@ -43,9 +45,11 @@ class GlobalAveragePooling:
 
   def __call__(self, features, point_cloud: PointCloud, name=None):
     """ performs a global average pooling on a point cloud
+
     Args:
       features: A float `Tensor` of shape [N,D] or [A1,...,An,V,D].
       point_cloud: A PointCloud instance.
+
     Returns:
       A float `Tensor` of shape [batch_size,D].
     """
@@ -63,7 +67,8 @@ class _LocalPointPooling:
   def __call__(self, pool_op, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
                return_sorted=False, name=None, default_name="custom pooling"):
-    """ Computes a local pooling between two point clouds specified by pool_op
+    """ Computes a local pooling between two point clouds specified by pool_op.
+
     Args:
       pool_op: A function of type `tf.math.unsorted_segmented_*`
       features: A float `Tensor` of shape [N_in,D] or [A1,...,An,V,D].
@@ -71,9 +76,10 @@ class _LocalPointPooling:
         defined.
       point_cloud_out: A `PointCloud` instance, on which the output features
         are defined.
-      pooling_radius: A float or a float `Tensor` of shape [D]
+      pooling_radius: A float or a float `Tensor` of shape [D].
       return_sorted: A boolean, if 'True' the output tensor is sorted
         according to the batch_ids.
+
     Returns:
       A float `Tensor` of shape [N_out,D].
     """
@@ -126,15 +132,17 @@ class MaxPooling(_LocalPointPooling):
   def __call__(self, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
                return_sorted=False, name=None):
-    """ Computes a local max pooling between two point clouds
+    """ Computes a local max pooling between two point clouds.
+
     Args:
       features: A float `Tensor` of shape [N_in,D] or [A1,...,An,V,D].
       point_cloud_in: A PointCloud instance on which the features are defined.
       point_cloud_out: A PointCloud instance, on which the output features
         are defined.
-      pooling_radius: A float or a float `Tensor` of shape [D]
+      pooling_radius: A float or a float `Tensor` of shape [D].
       return_sorted: A boolean, if 'True' the output tensor is sorted
         according to the batch_ids.
+
     Returns:
       A float `Tensor` of shape [N_out,D].
     """
@@ -149,15 +157,18 @@ class AveragePooling(_LocalPointPooling):
   def __call__(self, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
                return_sorted=False, name=None):
-    """ Computes a local average pooling between two point clouds
+    """ Computes a local average pooling between two point clouds.
+
     Args:
       features: A float `Tensor` of shape [N_in,D] or [A1,...,An,V,D].
       point_cloud_in: A PointCloud instance on which the features are defined.
       point_cloud_out: A PointCloud instance, on which the output features
         are defined.
-      pooling_radius: A float or a float `Tensor` of shape [D]
+
+      pooling_radius: A float or a float `Tensor` of shape [D].
       return_sorted: A boolean, if 'True' the output tensor is sorted
         according to the batch_ids.
+
     Returns:
       A float `Tensor` of shape [N_out,D].
     """
