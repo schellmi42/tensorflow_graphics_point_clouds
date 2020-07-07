@@ -14,9 +14,10 @@
 """ Wrappers for point cloud CUDA functions """
 
 import tensorflow as tf
+from MCCNN2.pc import PointCloud
 
 
-def compute_keys_tf(point_cloud, num_cells, cell_size, name=None):
+def compute_keys_tf(point_cloud: PointCloud, num_cells, cell_size, name=None):
   """
     For a point in cell `c` the key is computed as
         \\(key = batch_id * prod_{d=0}^{D} num_cells_{d} + \\)
