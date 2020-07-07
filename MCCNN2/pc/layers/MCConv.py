@@ -29,12 +29,12 @@ class MCConv2Sampled:
   """ Class to represent a Monte-Carlo convolution layer
 
     Attributes:
-      _num_features_in: Integer, the number of features per input point
-      _num_features_out: Integer, the number of features to compute
-      _size_hidden: Integer, the number of neurons in the hidden layer of the
+      _num_features_in: An `ìnt`, the number of features per input point
+      _num_features_out: An `ìnt`, the number of features to compute
+      _size_hidden: An `ìnt`, the number of neurons in the hidden layer of the
         kernel MLP
-      _num_dims: Integer, dimensionality of the point cloud
-      _conv_name: String, name for the operation
+      _num_dims: An `ìnt`, dimensionality of the point cloud
+    conv_name: A `string`, name for the operation
   """
 
   def __init__(self,
@@ -48,16 +48,16 @@ class MCConv2Sampled:
     """ Constructior, initializes weights
 
     Args:
-    num_features_in: Integer D_in, the number of features per input point
-    num_features_out: Integer D_out, the number of features to compute
-    size_hidden: Integer, the number of neurons in the hidden layer of the
+    num_features_in: An `int` C_in, the number of features per input point
+    num_features_out: An `int` C_out, the number of features to compute
+    size_hidden: An ìnt`, the number of neurons in the hidden layer of the
         kernel MLP
-    num_dims: Integer, dimensionality of the point cloud
+    num_dims: An `int`, dimensionality of the point cloud
     initializer_weights: A `tf.initializer` for the weights,
       default `TruncatedNormal`
     initializer_biases: A `tf.initializer` for the biases,
       default: `zeros`
-    conv_name: String, name for the operation
+    conv_name: A `string`, name for the operation
     """
 
     with tf.compat.v1.name_scope(conv_name, "create Monte-Carlo convolution",
@@ -116,23 +116,25 @@ class MCConv2Sampled:
 
     Note:
       In the following, A1 to An are optional batch dimensions.
-      D_in is the number of input features.
-      D_out is the number of output features.
+      C_in is the number of input features.
+      C_out is the number of output features.
 
     Args:
-      features: A float Tensor of shape [N_in, C_in] or [A1, ..., An,V, C_in],
+      features: A `float` Tensor of shape [N_in, C_in] or
+        [A1, ..., An,V, C_in],
         the size must be the same as the points in the input point cloud.
-      point_cloud_in: A PointCloud instance, represents the input point cloud.
-      point_cloud_out: A PointCloud instance, represents the output
+      point_cloud_in: A 'PointCloud' instance, represents the input
         point cloud.
-      radius: A float, the convolution radius.
-      bandwidth: The used bandwidth used in the kernel densitiy estimation on
-        the input point cloud.
-      return_sorted: A boolean, if 'True' the output tensor is sorted
+      point_cloud_out: A `PointCloud` instance, represents the output
+        point cloud.
+      radius: A `float`, the convolution radius.
+      bandwidth: An `int`, the bandwidth used in the kernel density
+        estimation on the input point cloud.
+      return_sorted: A `boolean`, if `True` the output tensor is sorted
         according to the batch_ids.
 
       Returns:
-        Tensor with shape [N_out,D_out]
+        Tensor with shape [N_out, C_out]
     """
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
@@ -222,20 +224,19 @@ class MCConv(MCConv2Sampled):
 
     Note:
       In the following, A1 to An are optional batch dimensions.
-      D_in is the number of input features.
 
     Args:
       features: A float `Tensor` of shape [N, C_in] or [A1, ..., An, V, C_in],
         the size must be the same as the points in the input point cloud.
       point_cloud: A `PointCloud` instance
-      radius: A float, the convolution radius.
-      bandwidth: The used bandwidth used in the kernel densitiy estimation on
-        the input point cloud.
+      radius: A `float`, the convolution radius.
+      bandwidth: An `int`, the bandwidth used in the kernel density
+        estimation on the input point cloud.
       return_sorted: A boolean, if 'True' the output tensor is sorted
         according to the batch_ids.
 
       Returns:
-        `Tensor` with shape [N,D_out]
+        `Tensor` with shape [N,C_out]
     """
     return super(self).__call__(self, features, point_cloud, point_cloud,
                                 radius, bandwidth, return_sorted, name)

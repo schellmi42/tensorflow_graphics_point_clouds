@@ -18,19 +18,19 @@ import tfg_custom_ops
 
 
 def compute_keys(point_cloud, num_cells, cell_size, name=None):
-  """ Method to compute the regular grid keys of a point cloud
+  """ Method to compute the regular grid keys of a point cloud.
 
     For a point in cell `c` the key is computed as
         \\(key = batch_id * prod_{d=0}^{D} num_cells_{d} + \\)
-        \\(sum_{d=0}^{D}( c_{d} prod_{d'=d+1}^{D} num_cells_{d'} ) \\)
+        \\(sum_{d=0}^{D}( c_{d} prod_{d'=d+1}^{D} num_cells_{d'} ) \\).
     Args:
       point_cloud: A `PointCloud` instance.
       num_cells: An `int` tensor of shape [D], the total number of cells
-        per dimension
-      cell_size: An `int` tensor of shape [D], the cell sizes per dimension
+        per dimension.
+      cell_size: An `int` tensor of shape [D], the cell sizes per dimension.
 
     Returns:
-      An `int` tensor of shape [N], the keys per point
+      An `int` tensor of shape [N], the keys per point.
   """
   with tf.compat.v1.name_scope(
       name, "compute keys", [point_cloud, num_cells, cell_size]):
@@ -52,11 +52,11 @@ def build_grid_ds(sorted_keys, num_cells, batch_size, name=None):
   Args:
     sorted_keys: An `int` tensor of shape [N], the sorted keys.
     num_cells: An `int` tensor of shape [D], the total number of cells
-      per dimension
-    batch_size: An `int`
+      per dimension.
+    batch_size: An `int`.
 
   Returns:
-    An `int` tensor of shape [num_cells[0], num_cells[1], 2]
+    An `int` tensor of shape [num_cells[0], num_cells[1], 2].
   """
   with tf.compat.v1.name_scope(
       name, "build grid ds", [sorted_keys, num_cells, batch_size]):
@@ -79,7 +79,7 @@ def find_neighbors(grid,
   Args:
     grid: A Grid instance, from which the neighbors are chosen.
     point_cloud_centers: A `PointCloud` instance, containing the center points.
-    radii: An `int` tensor of shape [D], the radii to select neighbors from
+    radii: An `int` tensor of shape [D], the radii to select neighbors from.
     max_neighbors: An `int`, if `0` all neighbors are selected.
 
   Returns:
@@ -114,11 +114,11 @@ def sampling(neighborhood, sample_mode, name=None):
     sample_mode: A `SampleMode` value.
 
   Returns:
-    sampled_points: A `float` tensor of shape [S, D], the sampled points
-    sampled_batch_ids: An `int` tensor of shape [S], the batch ids
+    sampled_points: A `float` tensor of shape [S, D], the sampled points.
+    sampled_batch_ids: An `int` tensor of shape [S], the batch ids.
     sampled_indices: An `int` tensor of shape [S], the indices to the
       unsampled points.
-      Following the order of neighborhood._grid._sorted_points
+      Following the order of neighborhood._grid._sorted_points.
   """
   with tf.compat.v1.name_scope(name, "sampling", [neighborhood, sample_mode]):
     return tfg_custom_ops.sampling(
@@ -181,11 +181,11 @@ def basis_proj(kernel_inputs, neighborhood, features,
     features: A `float`tensor of shape [N, C], the input features.
     basis: A list of two `tf.Variables`, the weights and biases of the
       hidden layer of the MLP.
-    basis_type: An `int`, type of the activation function used
+    basis_type: An `int`, type of the activation function used.
       (RELU - 2, LRELU - 3, ELU - 4)
 
   Returns:
-    A `float` tensor
+    A `float` tensor.
   """
   pdf = neighborhood._pdf
   return tfg_custom_ops.basis_proj(
