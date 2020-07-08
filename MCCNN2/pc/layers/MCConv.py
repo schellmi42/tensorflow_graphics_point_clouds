@@ -82,7 +82,7 @@ class MCConv2Sampled:
       hProjVecTF = tf.compat.v1.get_variable(
           self._conv_name + '_hidden_vectors',
           shape=[self._size_hidden, self._num_dims],
-          initializer=initializer_weights(std_dev=std_dev),
+          initializer=initializer_weights(stddev=std_dev),
           dtype=tf.float32,
           trainable=True)
       hProjBiasTF = tf.compat.v1.get_variable(
@@ -101,7 +101,7 @@ class MCConv2Sampled:
               shape=[self._size_hidden * \
                      self._num_features_in,
                      self._num_features_out],
-              initializer=initializer_weights(std_dev=std_dev),
+              initializer=initializer_weights(stddev=std_dev),
               dtype=tf.float32, trainable=True)
 
   def __call__(self,
@@ -250,6 +250,6 @@ class MCConv(MCConv2Sampled):
       Returns:
         `Tensor` with shape [N,C_out]
     """
-    return super(self).__call__(self, features, point_cloud, point_cloud,
+    return super(MCConv, self).__call__(features, point_cloud, point_cloud,
                                 radius, neighborhood, bandwidth, return_sorted,
                                 name)
