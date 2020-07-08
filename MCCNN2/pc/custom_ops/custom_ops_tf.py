@@ -50,7 +50,7 @@ def compute_keys_tf(point_cloud: PointCloud, num_cells, cell_size, name=None):
     return tf.cast(keys, tf.int64)
 
 
-def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
+def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
   """ Method to build a fast access data structure for point clouds.
 
   Creates a 2D regular grid in the first two dimension, saving the first and
@@ -65,12 +65,12 @@ def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
     An `int` tensor of shape [batch_size, num_cells[0], num_cells[1], 2].
   """
   with tf.compat.v1.name_scope(
-    name, 'build_grid_ds', [keys, num_cells, batch_size]):
+    name, 'build_grid_ds', [sorted_keys, num_cells, batch_size]):
 
-    keys = tf.cast(tf.convert_to_tensor(value=keys), tf.int32)
+    sorted_keys = tf.cast(tf.convert_to_tensor(value=sorted_keys), tf.int32)
     num_cells = tf.cast(tf.convert_to_tensor(value=num_cells), tf.int32)
 
-    num_keys = keys.shape[0]
+    num_keys = sorted_keys.shape[0]
     num_cells_2D = batch_size * num_cells[0] * num_cells[1]
 
     if num_cells.shape[0] > 2:
@@ -78,11 +78,7 @@ def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
     elif num_cells.shape[0] == 2:
         cells_per_2D_cell = 1
 
-    ds_indices = tf.cast(tf.floor(keys / cells_per_2D_cell), dtype=tf.int32)
-    # y_indices = tf.math.mod(ds_indices, num_cells[1])
-    # y_remainder = tf.floor(ds_indices / num_cells[1])
-    # x_index = tf.math.mod(y_remainder, num_cells[0])
-    # batch_ids = tf.floor(y_remainder / num_cells[0])
+    ds_indices = tf.cast(tf.floor(sorted_keys / cells_per_2D_cell), dtype=tf.int32)
 
     indices = tf.range(0, num_keys, dtype=tf.int32)
 
@@ -101,12 +97,6 @@ def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
         empty_cells, tf.zeros_like(first_per_cell), first_per_cell)
     last_per_cell = tf.where(
         empty_cells, tf.zeros_like(last_per_cell), last_per_cell)
-    # cell_change = ds_indices[1:] != ds_indices[:-1]
-
-    # last_per_cell = tf.boolean_mask(tf.range(0, num_keys - 1), cell_change)
-    # first_per_cell = last_per_cell + 1
-    # last_per_cell = tf.concat((last_per_cell, [num_keys]), axis=0)
-    # first_per_cell = tf.concat(([0], first_per_cell), axis=0)
 
     return tf.stack([tf.reshape(first_per_cell,
                                 [batch_size, num_cells[0], num_cells[1]]),
