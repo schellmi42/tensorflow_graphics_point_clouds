@@ -30,7 +30,7 @@ from MCCNN2.pc.tests import utils
 class NeighborsTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (100, 10, 8, 0.025, 2),
+    # (100, 10, 8, 0.025, 2),
     (1000, 10, 8, 0.025, 3),
     (1000, 10, 8, 0.025, 4)
   )
@@ -78,15 +78,15 @@ class NeighborsTest(test_case.TestCase):
     self.assertTrue(allFound)
 
   @parameterized.parameters(
-    (12, 100, 24, np.sqrt(2), 2),
-    (32, 10000, 32, 0.7, 2),
-    (32, 10000, 32, 0.1, 2),
+    # (12, 100, 24, np.sqrt(2), 2),
+    # (32, 1000, 32, 0.7, 2),
+    (32, 1000, 32, 0.1, 2),
     (12, 100, 24, np.sqrt(3), 3),
-    (32, 10000, 32, 0.7, 3),
-    (32, 10000, 32, 0.1, 3),
+    (32, 1000, 32, 0.7, 3),
+    (32, 1000, 32, 0.1, 3),
     (12, 100, 24, np.sqrt(4), 4),
     (32, 10000, 32, 0.7, 4),
-    (32, 10000, 32, 0.1, 4),
+    (32, 1000, 32, 0.1, 4),
   )
   def test_neighbors_are_from_same_batch(self,
                                          batch_size,

@@ -71,16 +71,15 @@ class GridTest(test_case.TestCase):
     self.assertAllEqual(grid._sorted_keys, sorted_keys)
 
   @parameterized.parameters(
-    # currently numpy implementation only in 3D
-    # (10000, 32, 30, 0.1, 2),
-    # (20000, 16, 1, 0.2, 2),
-    # (20000, 8, 1, np.sqrt(2), 2),
+    (100, 32, 30, 0.1, 2),
+    (200, 16, 1, 0.2, 2),
+    (200, 8, 1, np.sqrt(2), 2),
     (100, 32, 30, 0.1, 3),
     (200, 16, 1, 0.2, 3),
     (200, 8, 1, np.sqrt(3), 3),
-    # (10000, 32, 30, 0.1, 4),
-    # (20000, 16, 1, 0.2, 4),
-    # (20000, 8, 1, np.sqrt(4), 4)
+    (100, 32, 30, 0.1, 4),
+    (200, 16, 1, 0.2, 4),
+    (200, 8, 1, np.sqrt(4), 4)
   )
   def test_grid_datastructure(self,
                               num_points,
@@ -100,9 +99,12 @@ class GridTest(test_case.TestCase):
     keys = grid._sorted_keys.numpy()
     ds_numpy = np.full((batch_size, total_num_cells[0],
                         total_num_cells[1], 2), 0)
-
+    if dimension == 2:                        
+      cells_per_2D_cell = 1
+    elif dimension > 2:
+      cells_per_2D_cell = np.prod(total_num_cells[2:])
     for key_iter, key in enumerate(keys):
-      curDSIndex = key // total_num_cells[2]
+      curDSIndex = key // cells_per_2D_cell
       yIndex = curDSIndex % total_num_cells[1]
       auxInt = curDSIndex // total_num_cells[1]
       xIndex = auxInt % total_num_cells[0]
@@ -112,7 +114,7 @@ class GridTest(test_case.TestCase):
         ds_numpy[curbatch_ids, xIndex, yIndex, 0] = key_iter
       else:
         prevKey = keys[key_iter - 1]
-        prevDSIndex = prevKey // total_num_cells[2]
+        prevDSIndex = prevKey // cells_per_2D_cell
         if prevDSIndex != curDSIndex:
             ds_numpy[curbatch_ids, xIndex, yIndex, 0] = key_iter
 
@@ -121,7 +123,7 @@ class GridTest(test_case.TestCase):
         ds_numpy[curbatch_ids, xIndex, yIndex, 1] = len(keys)
       else:
         nextKey = keys[key_iter + 1]
-        nextDSIndex = nextKey // total_num_cells[2]
+        nextDSIndex = nextKey // cells_per_2D_cell
         if nextDSIndex != curDSIndex:
           ds_numpy[curbatch_ids, xIndex, yIndex, 1] = key_iter + 1
 

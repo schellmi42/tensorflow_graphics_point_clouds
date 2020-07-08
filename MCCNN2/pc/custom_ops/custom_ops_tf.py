@@ -71,13 +71,14 @@ def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
     num_cells = tf.cast(tf.convert_to_tensor(value=num_cells), tf.int32)
 
     num_keys = keys.shape[0]
+    num_cells_2D = batch_size * num_cells[0] * num_cells[1]
 
     if num_cells.shape[0] > 2:
-        cells_in_ds = tf.reduce_prod(num_cells[2:])
+        cells_per_2D_cell = tf.reduce_prod(num_cells[2:])
     elif num_cells.shape[0] == 2:
-        cells_in_ds = 1
+        cells_per_2D_cell = 1
 
-    ds_indices = tf.cast(tf.floor(keys / cells_in_ds), dtype=tf.int32)
+    ds_indices = tf.cast(tf.floor(keys / cells_per_2D_cell), dtype=tf.int32)
     # y_indices = tf.math.mod(ds_indices, num_cells[1])
     # y_remainder = tf.floor(ds_indices / num_cells[1])
     # x_index = tf.math.mod(y_remainder, num_cells[0])
@@ -86,10 +87,10 @@ def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
     indices = tf.range(0, num_keys, dtype=tf.int32)
 
     first_per_cell = tf.math.unsorted_segment_min(
-        indices, ds_indices, tf.reduce_max(ds_indices) + 1)
+        indices, ds_indices, num_cells_2D)
     last_per_cell = tf.math.unsorted_segment_max(
-        indices, ds_indices, tf.reduce_max(ds_indices) + 1)
-    
+        indices + 1, ds_indices, num_cells_2D)
+
     empty_cells = first_per_cell < 0
     first_per_cell = tf.where(
         empty_cells, tf.zeros_like(first_per_cell), first_per_cell)
@@ -109,7 +110,7 @@ def build_grid_ds_tf(keys, num_cells, batch_size, name=None):
 
     return tf.stack([tf.reshape(first_per_cell,
                                 [batch_size, num_cells[0], num_cells[1]]),
-                     tf.reshape(last_per_cell + 1,
+                     tf.reshape(last_per_cell,
                                 [batch_size, num_cells[0], num_cells[1]])],
                     axis=3)
 
