@@ -109,6 +109,7 @@ class MCConv2Sampled:
                point_cloud_in: PointCloud,
                point_cloud_out: PointCloud,
                radius,
+               neighborhood=None,
                bandwidth=0.2,
                return_sorted=False,
                name=None):
@@ -128,10 +129,13 @@ class MCConv2Sampled:
       point_cloud_out: A `PointCloud` instance, represents the output
         point cloud.
       radius: A `float`, the convolution radius.
+      neighborhood: A `Neighborhood` instance, defining the neighborhood
+        with centers from `point_cloud_out` and neighbors in `point_cloud_in`.
+        If `None` it is computed internally. (optional)
       bandwidth: An `int`, the bandwidth used in the kernel density
         estimation on the input point cloud.
       return_sorted: A `boolean`, if `True` the output tensor is sorted
-        according to the batch_ids.
+        according to the batch_ids. (default: False)
 
       Returns:
         Tensor with shape [N_out, C_out]
@@ -139,7 +143,8 @@ class MCConv2Sampled:
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
                                  [features, point_cloud_in, point_cloud_out,
-                                  radius, bandwidth, return_sorted]):
+                                  radius, neighborhood, bandwidth,
+                                  return_sorted]):
       features = tf.convert_to_tensor(value=features, dtype=tf.float32)
       features = _flatten_features(features, point_cloud_in)
       radius = tf.convert_to_tensor(value=radius, dtype=tf.float32)
@@ -152,12 +157,15 @@ class MCConv2Sampled:
 
       #Compute the AABB.
       aabbIn = point_cloud_in.get_AABB()
+      if neighborhood is None:
+        #Compute the grid.
+        grid = Grid(point_cloud_in, aabbIn, radii_tensor)
 
-      #Compute the grid.
-      grid = Grid(point_cloud_in, aabbIn, radii_tensor)
-
-      #Compute the neighborhood key.
-      neigh = Neighborhood(grid, radii_tensor, point_cloud_out)
+        #Compute the neighborhood key.
+        neigh = Neighborhood(grid, radii_tensor, point_cloud_out)
+      else:
+        neigh = neighborhood
+        grid = neigh._grid
       neigh.compute_pdf(bwTensor, mode=KDEMode.constant)
 
       #Compute kernel inputs.
@@ -217,6 +225,7 @@ class MCConv(MCConv2Sampled):
                features,
                point_cloud: PointCloud,
                radius,
+               neighborhood=None,
                bandwidth=0.2,
                return_sorted=False,
                name=None):
@@ -230,6 +239,9 @@ class MCConv(MCConv2Sampled):
         the size must be the same as the points in the input point cloud.
       point_cloud: A `PointCloud` instance
       radius: A `float`, the convolution radius.
+      neighborhood: A `Neighborhood` instance, defining the neighborhood
+        inside `point_cloud`.
+        If `None` it is computed internally. (optional)
       bandwidth: An `int`, the bandwidth used in the kernel density
         estimation on the input point cloud.
       return_sorted: A boolean, if 'True' the output tensor is sorted
@@ -239,4 +251,5 @@ class MCConv(MCConv2Sampled):
         `Tensor` with shape [N,C_out]
     """
     return super(self).__call__(self, features, point_cloud, point_cloud,
-                                radius, bandwidth, return_sorted, name)
+                                radius, neighborhood, bandwidth, return_sorted,
+                                name)
