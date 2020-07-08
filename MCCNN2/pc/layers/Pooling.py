@@ -93,11 +93,8 @@ class _LocalPointPooling:
       if pooling_radius.shape[0] == 1:
         pooling_radius = tf.repeat(pooling_radius, point_cloud_in.dimension_)
 
-      # Compute the AABB.
-      aabb_in = point_cloud_in.get_AABB()
-
       # Compute the grid.
-      grid_in = Grid(point_cloud_in, aabb_in, pooling_radius)
+      grid_in = Grid(point_cloud_in, pooling_radius)
 
       # Compute the neighborhood keys.
       neigh = Neighborhood(grid_in, pooling_radius, point_cloud_out)

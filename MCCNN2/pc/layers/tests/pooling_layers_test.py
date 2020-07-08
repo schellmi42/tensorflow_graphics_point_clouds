@@ -91,7 +91,7 @@ class Pooling(test_case.TestCase):
 
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
 
-    grid = Grid(point_cloud, AABB(point_cloud), cell_sizes)
+    grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     neighbor_ids = neighborhood._original_neigh_ids.numpy()
     features_on_neighbors = features[neighbor_ids[:, 0]]

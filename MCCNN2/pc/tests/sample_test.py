@@ -41,8 +41,7 @@ class SamplingTest(test_case.TestCase):
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
     point_cloud = PointCloud(points, batch_ids)
-    aabb = point_cloud.get_AABB()
-    grid = Grid(point_cloud, aabb, cell_sizes)
+    grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.pd)
 
@@ -71,8 +70,7 @@ class SamplingTest(test_case.TestCase):
         / num_points_sqrt
     batch_ids = np.zeros([len(points)])
     point_cloud = PointCloud(points, batch_ids)
-    aabb = point_cloud.get_AABB()
-    grid  = Grid(point_cloud, aabb, cell_sizes)
+    grid  = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.pd)
 
@@ -98,8 +96,7 @@ class SamplingTest(test_case.TestCase):
         sizes=np.ones(batch_size, dtype=int) * num_points)
     print(points.shape, batch_ids.shape)
     point_cloud = PointCloud(points=points, batch_ids=batch_ids)
-    aabb = point_cloud.get_AABB()
-    grid = Grid(point_cloud, aabb, cell_sizes)
+    grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
     sample = Sample(neighborhood, SampleMode.avg)
 

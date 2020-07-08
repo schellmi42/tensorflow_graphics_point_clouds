@@ -23,10 +23,11 @@ try:
 except ImportError:
   CUSTOM = 0
 
-CUSTOM=1
+CUSTOM = 1
 
 if CUSTOM:
   from .custom_ops_wrapper import basis_proj
+  # from .custom_ops_tf import build_grid_ds_tf as build_grid_ds
   from .custom_ops_wrapper import build_grid_ds
   from .custom_ops_wrapper import compute_keys
   from .custom_ops_wrapper import compute_pdf

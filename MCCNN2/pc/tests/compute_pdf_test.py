@@ -67,8 +67,7 @@ class ComputePDFTest(test_case.TestCase):
                                   num_samples_per_batch)
 
     point_cloud = PointCloud(points, batch_ids, batch_size)
-    aabb = point_cloud.get_AABB()
-    grid = Grid(point_cloud, aabb, cell_sizes)
+    grid = Grid(point_cloud, cell_sizes)
 
     point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
@@ -137,8 +136,7 @@ class ComputePDFTest(test_case.TestCase):
     samples_batch_ids = np.repeat(np.arange(0, batch_size), num_samples)
     def compute_pdf(points_in):
       point_cloud = PointCloud(points_in, batch_ids, batch_size)
-      aabb = point_cloud.get_AABB()
-      grid = Grid(point_cloud, aabb, cell_sizes)
+      grid = Grid(point_cloud, cell_sizes)
 
       point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
       neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)

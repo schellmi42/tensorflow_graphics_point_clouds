@@ -49,7 +49,7 @@ class GridTest(test_case.TestCase):
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=False)
     point_cloud = PointCloud(points, batch_ids)
     aabb = point_cloud.get_AABB()
-    grid = Grid(point_cloud, aabb, radius)
+    grid = Grid(point_cloud, radius)
 
     total_num_cells = grid._num_cells.numpy()
     aabb_min = aabb._aabb_min.numpy()
@@ -81,14 +81,19 @@ class GridTest(test_case.TestCase):
     # (20000, 16, 1, 0.2, 4),
     # (20000, 8, 1, np.sqrt(4), 4)
   )
-  def test_grid_datastructure(self, num_points, batch_size, scale, radius, dimension):
+  def test_grid_datastructure(self,
+                              num_points,
+                              batch_size,
+                              scale,
+                              radius,
+                              dimension):
     radius = np.repeat(radius, dimension)
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points, clean_aabb=True)
     point_cloud = PointCloud(points, batch_ids)
     aabb = point_cloud.get_AABB()
-    grid = Grid(point_cloud, aabb, radius)
+    grid = Grid(point_cloud, radius, aabb)
 
     total_num_cells = grid._num_cells.numpy()
     keys = grid._sorted_keys.numpy()

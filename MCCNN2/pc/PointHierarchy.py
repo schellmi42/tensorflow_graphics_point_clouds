@@ -87,7 +87,7 @@ class PointHierarchy:
         #Create the sampling operation.
         cell_sizes_tensor = tf.convert_to_tensor(cur_cell_sizes, np.float32)
 
-        cur_grid = Grid(cur_point_cloud, self._aabb, cell_sizes_tensor)
+        cur_grid = Grid(cur_point_cloud, cell_sizes_tensor, self._aabb)
         cur_neighborhood = Neighborhood(cur_grid, cell_sizes_tensor)
         cur_sample_op = Sample(cur_neighborhood, sample_mode)
 

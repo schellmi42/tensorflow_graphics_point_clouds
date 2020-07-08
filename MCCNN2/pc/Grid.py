@@ -37,15 +37,16 @@ class Grid:
     _fast_DS (int tensor BxCXxCY): Fast access data structure.
   """
 
-  def __init__(self, point_cloud: PointCloud, aabb: AABB, cell_sizes,
+  def __init__(self, point_cloud: PointCloud, cell_sizes, aabb=None,
                name=None):
     """Constructor.
 
     Args:
-      point_cloud (PointCloud): Point cloud to distribute in the grid.
-      aabb (AABB): Bounding boxes. (deprecated)
-      cell_sizes (tensor float n): Size of the grid cells in each
-       dimension.
+      point_cloud : A `PointCloud` instance to distribute in the grid.
+      cell_sizes A `float` tensor of shape `[D]`, the sizes of the grid
+        cells in each dimension.
+      aabb: An `AABB` instance, the bounding box of the grid, if `None`
+        the bounding box of `point_cloud` is used. (optional)
     """
 
     with tf.compat.v1.name_scope(
@@ -57,7 +58,7 @@ class Grid:
         self = point_cloud._grid_cache[cell_sizes]
       else:
         #Save the attributes.
-        self._batch_size = aabb._batch_size
+        self._batch_size = point_cloud._batch_size
         self._cell_sizes = cell_sizes
         self._point_cloud = point_cloud
         self._aabb = point_cloud.get_AABB()

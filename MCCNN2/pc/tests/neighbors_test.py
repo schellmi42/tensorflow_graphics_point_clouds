@@ -54,8 +54,7 @@ class NeighborsTest(test_case.TestCase):
             batch_size, num_samples * batch_size, dimension=dimension,
             sizes=np.ones(batch_size, dtype=int) * num_samples)
     point_cloud_sampled = PointCloud(samples_points, batch_ids_samples)
-    aabb = point_cloud.get_AABB()
-    grid = Grid(point_cloud, aabb, cell_sizes)
+    grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_sampled)
     sorted_points = grid._sorted_points
 
@@ -107,7 +106,7 @@ class NeighborsTest(test_case.TestCase):
 
     point_cloud = PointCloud(points, batch_ids)
     point_cloud_samples = PointCloud(samples, batch_ids_samples)
-    grid = Grid(point_cloud, point_cloud.get_AABB(), radius)
+    grid = Grid(point_cloud, radius)
     neighborhood = Neighborhood(grid, radius, point_cloud_samples)
 
     batch_ids_in = tf.gather(

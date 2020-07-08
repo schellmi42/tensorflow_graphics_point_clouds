@@ -155,11 +155,9 @@ class MCConv2Sampled:
       #Create the badnwidth tensor.
       bwTensor = tf.repeat(bandwidth, self._num_dims)
 
-      #Compute the AABB.
-      aabbIn = point_cloud_in.get_AABB()
       if neighborhood is None:
         #Compute the grid.
-        grid = Grid(point_cloud_in, aabbIn, radii_tensor)
+        grid = Grid(point_cloud_in, radii_tensor)
 
         #Compute the neighborhood key.
         neigh = Neighborhood(grid, radii_tensor, point_cloud_out)
