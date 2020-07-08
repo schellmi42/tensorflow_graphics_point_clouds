@@ -20,10 +20,6 @@ import tensorflow as tf
 from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT_MODULE_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(os.path.join(ROOT_MODULE_DIR, "tf_ops"))
-
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import KDEMode

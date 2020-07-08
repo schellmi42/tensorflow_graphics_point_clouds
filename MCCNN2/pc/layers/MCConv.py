@@ -249,5 +249,5 @@ class MCConv(MCConv2Sampled):
         `Tensor` with shape [N,C_out]
     """
     return super(MCConv, self).__call__(features, point_cloud, point_cloud,
-                                radius, neighborhood, bandwidth, return_sorted,
-                                name)
+                                        radius, neighborhood, bandwidth,
+                                        return_sorted, name)

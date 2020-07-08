@@ -60,7 +60,8 @@ class GridTest(test_case.TestCase):
                           total_num_cells)
     cell_multiplier = np.flip(np.cumprod(np.flip(total_num_cells)))
     cell_multiplier = np.concatenate((cell_multiplier, [1]), axis=0)
-    keys = batch_ids * cell_multiplier[0] + np.sum(cell_ind * cell_multiplier[1:].reshape([1, -1]), axis=1)
+    keys = batch_ids * cell_multiplier[0] + \
+        np.sum(cell_ind * cell_multiplier[1:].reshape([1, -1]), axis=1)
     # check unsorted keys
     self.assertAllEqual(grid._cur_keys, keys)
 
