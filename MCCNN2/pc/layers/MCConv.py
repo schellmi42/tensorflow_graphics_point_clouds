@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent point cloud convolution"""
+"""Classes to represent point cloud convolutions"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
@@ -24,16 +24,31 @@ from MCCNN2.pc import KDEMode
 
 from MCCNN2.pc.custom_ops import basis_proj
 
+""" Class to represent a Monte-Carlo convolution layer
+
+  Attributes:
+    _num_features_in: An `ìnt`, the number of features per input point
+    _num_features_out: An `ìnt`, the number of features to compute
+    _size_hidden: An `ìnt`, the number of neurons in the hidden layer of the
+      kernel MLP
+    _num_dims: An `ìnt`, dimensionality of the point cloud
+  conv_name: A `string`, name for the operation
+"""
+
 
 class MCConv2Sampled:
-  """ Class to represent a Monte-Carlo convolution layer
+  """ Monte-Carlo convolution layer between two point clouds.
 
-    Attributes:
-      _num_features_in: An `ìnt`, the number of features per input point
-      _num_features_out: An `ìnt`, the number of features to compute
-      _size_hidden: An `ìnt`, the number of neurons in the hidden layer of the
+  Args:
+    num_features_in: An `int` C_in, the number of features per input point
+    num_features_out: An `int` C_out, the number of features to compute
+    size_hidden: An ìnt`, the number of neurons in the hidden layer of the
         kernel MLP
-      _num_dims: An `ìnt`, dimensionality of the point cloud
+    num_dims: An `int`, dimensionality of the point cloud
+    initializer_weights: A `tf.initializer` for the weights,
+      default `TruncatedNormal`
+    initializer_biases: A `tf.initializer` for the biases,
+      default: `zeros`
     conv_name: A `string`, name for the operation
   """
 
@@ -46,18 +61,6 @@ class MCConv2Sampled:
                initializer_biases=None,
                conv_name=None):
     """ Constructior, initializes weights
-
-    Args:
-    num_features_in: An `int` C_in, the number of features per input point
-    num_features_out: An `int` C_out, the number of features to compute
-    size_hidden: An ìnt`, the number of neurons in the hidden layer of the
-        kernel MLP
-    num_dims: An `int`, dimensionality of the point cloud
-    initializer_weights: A `tf.initializer` for the weights,
-      default `TruncatedNormal`
-    initializer_biases: A `tf.initializer` for the biases,
-      default: `zeros`
-    conv_name: A `string`, name for the operation
     """
 
     with tf.compat.v1.name_scope(conv_name, "create Monte-Carlo convolution",
@@ -187,17 +190,28 @@ class MCConv2Sampled:
                                        point_cloud_out.sortedIndicesBatch_)
       return convolution_result
 
+""" Class to represent a Monte-Carlo convolution layer on one point cloud
+
+  Attributes:
+    _num_features_in: Integer, the number of features per input point
+    _num_features_out: Integer, the number of features to compute
+    _size_hidden: Integer, the number of neurons in the hidden layer of the
+      kernel MLP
+    _num_dims: Integer, dimensionality of the point cloud
+    _conv_name: String, name for the operation
+"""
+
 
 class MCConv(MCConv2Sampled):
-  """ Class to represent a Monte-Carlo convolution layer on one point cloud
+  """ Monte-Carlo convolution layer on one point cloud.
 
-    Attributes:
-      _num_features_in: Integer, the number of features per input point
-      _num_features_out: Integer, the number of features to compute
-      _size_hidden: Integer, the number of neurons in the hidden layer of the
+  Args:
+    num_features_in: Integer C_in, the number of features per input point
+    num_features_out: Integer C_out, the number of features to compute
+    size_hidden: Integer, the number of neurons in the hidden layer of the
         kernel MLP
-      _num_dims: Integer, dimensionality of the point cloud
-      _conv_name: String, name for the operation
+    num_dims: Integer, dimensionality of the point cloud
+    conv_name: String, name for the operation
   """
 
   def __init__(self,
@@ -208,13 +222,6 @@ class MCConv(MCConv2Sampled):
                conv_name=None):
     """ Constructior, initializes weights
 
-    Args:
-    num_features_in: Integer C_in, the number of features per input point
-    num_features_out: Integer C_out, the number of features to compute
-    size_hidden: Integer, the number of neurons in the hidden layer of the
-        kernel MLP
-    num_dims: Integer, dimensionality of the point cloud
-    conv_name: String, name for the operation
     """
     super(MCConv, self).__init__(num_features_in, num_features_out,
                                  size_hidden, num_dims, None, None, conv_name)

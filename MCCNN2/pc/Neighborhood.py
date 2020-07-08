@@ -11,8 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" modules for neighborhoods in point clouds """
+"""Class to represent a neighborhood of points.
 
+Note:
+  In the following D is the spatial dimensionality of the points,
+  N is the number of (samples) points, and M is the total number of
+  adjacencies.
+
+Attributes:
+  _point_cloud_sampled: 'PointCloud', samples point cloud.
+  _grid : 'Grid', regular grid data structure.
+  _radii: float 'Tensor' of shape [D], radii used to select the neighbors.
+  _samples_neigh_ranges: int 'Tensor' of shape [N], end of the ranges per
+    sample.
+  _neighbors: int 'Tensor' of shape [M,2], indices of the neighbor point and
+    the sample for each neighbor.
+  _pdf: float 'Tensor' of shape [M], PDF value for each neighbor.
+"""
 
 import enum
 import tensorflow as tf
@@ -30,22 +45,16 @@ class KDEMode(enum.Enum):
 
 
 class Neighborhood:
-  """Class to represent a neighborhood of points.
+  """ Neighborhood of a point cloud.
 
-  Note:
-    In the following D is the spatial dimensionality of the points,
-    N is the number of (samples) points, and M is the total number of
-    adjacencies.
-
-  Attributes:
-    _point_cloud_sampled: 'PointCloud', samples point cloud.
-    _grid : 'Grid', regular grid data structure.
-    _radii: float 'Tensor' of shape [D], radii used to select the neighbors.
-    _samples_neigh_ranges: int 'Tensor' of shape [N], end of the ranges per
-      sample.
-    _neighbors: int 'Tensor' of shape [M,2], indices of the neighbor point and
-      the sample for each neighbor.
-    _pdf: float 'Tensor' of shape [M], PDF value for each neighbor.
+  Args:
+    grid: A 'Grid' instance, the regular grid data structure.
+    radii: A float 'Tensor' of shape [D], the radii used to select the
+      neighbors.
+    point_cloud_sample: A 'PointCloud' instance. Samples point cloud.
+      If None, the sorted points from the grid will be used.
+    max_neighbors: An `int, maximum number of neighbors per sample,
+      if `0` all neighbors are selected.
   """
 
   def __init__(self,
@@ -54,16 +63,6 @@ class Neighborhood:
                point_cloud_sample=None,
                max_neighbors=0,
                name=None):
-    """Constructor.
-
-    Args:
-      grid: A 'Grid' instance, the regular grid data structure.
-      radii: A float 'Tensor' of shape [D], the radii used to select the
-        neighbors.
-      point_cloud_sample: A 'PointCloud' instance. Samples point cloud.
-        If None, the sorted points from the grid will be used.
-      max_neighbors: Integer, maximum number of neighbors per sample.
-    """
     with tf.compat.v1.name_scope(
         name, "constructor for neighbourhoods of point clouds",
         [self, grid, radii, point_cloud_sample, max_neighbors]):

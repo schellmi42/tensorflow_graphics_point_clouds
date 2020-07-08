@@ -11,7 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent point clouds"""
+"""Class to represent a point cloud.
+
+Note:
+  In the following, A1 to An are optional batch dimensions.
+
+The internal representation is a 2D tensor of shape [N,D] with
+segmentation ids of shape [N]. Can be constructed by directly passing
+segmented inputs or by prividing a [A1,..,An,V,D] padded tensor with
+`sizes` indicating the first elements from V to select from each batch
+dimension.
+
+Attributes:
+  _points (float tensor [N,D]): List of points.
+  _sizes (int tensor [A1,,.An]): sizes of the point clouds, None if
+    constructed using segmented input
+  _batch_ids (int tensor n): List of batch ids associated with the points.
+  _batch_size (int): Size of the batch.
+  _batch_shape (int tensor): [A1,..,An] original shape of the batch, None
+    if constructed using segmented input
+  _unflatten (function): Function to reshape segmented [N,D] to
+    [A1,...,An,V,D], zero padded, None if constructed using
+    segmented input
+  _dimension (int): dimensionality of the point clouds
+  _get_segment_id (int tensor [A1,...,An]): tensor that returns the
+    segment id given a relative id in [A1,...,An]
+  _aabb: A `AABB` instance, the bounding box of the point cloud.
+"""
 
 import tensorflow as tf
 from tensorflow_graphics.geometry.convolution.utils import \
@@ -19,29 +45,31 @@ from tensorflow_graphics.geometry.convolution.utils import \
 
 from MCCNN2.pc.utils import check_valid_point_cloud_input
 
+"""Class to represent axis aligned bounding box of point clouds.
+
+Note:
+  In the following, A1 to An are optional batch dimensions.
+
+Attributes:
+  _aabb_min: A float 'Tensor' of shape [B,D], list of minimum points of the
+    bounding boxes.
+  _aabb_max: A float 'Tensor' of shape [B,D], list of maximum points of the
+    bounding boxes.
+  _batch_size: An integer, size of the batch.
+  _batch_shape: An int 'Tensor' of shape [B], the batch shape [A1,...,An]
+"""
+
 
 class _AABB:
-  """Class to represent axis aligned bounding box of point clouds.
+  """Axis aligned bounding box of a point cloud.
 
-  Note:
-    In the following, A1 to An are optional batch dimensions.
-
-  Attributes:
-    _aabb_min: A float 'Tensor' of shape [B,D], list of minimum points of the
-      bounding boxes.
-    _aabb_max: A float 'Tensor' of shape [B,D], list of maximum points of the
-      bounding boxes.
-    _batch_size: An integer, size of the batch.
-    _batch_shape: An int 'Tensor' of shape [B], the batch shape [A1,...,An]
+  Args:
+    Pointcloud: A 'PointCloud' instance from which to compute the
+      axis aligned bounding box.
   """
 
   def __init__(self, point_cloud, name=None):
-    """Constructor.
 
-    Args:
-      Pointcloud: A 'PointCloud' instance from which to compute the
-        bounding box.
-    """
     with tf.compat.v1.name_scope(
         name, "bounding box constructor", [self, point_cloud]):
       self._batch_size = point_cloud._batch_size
@@ -81,33 +109,6 @@ class _AABB:
 
 
 class PointCloud:
-  """Class to represent a point cloud.
-
-  Note:
-    In the following, A1 to An are optional batch dimensions.
-
-  The internal representation is a 2D tensor of shape [N,D] with
-  segmentation ids of shape [N]. Can be constructed by directly passing
-  segmented inputs or by prividing a [A1,..,An,V,D] padded tensor with
-  `sizes` indicating the first elements from V to select from each batch
-  dimension.
-
-  Attributes:
-    _points (float tensor [N,D]): List of points.
-    _sizes (int tensor [A1,,.An]): sizes of the point clouds, None if
-      constructed using segmented input
-    _batch_ids (int tensor n): List of batch ids associated with the points.
-    _batch_size (int): Size of the batch.
-    _batch_shape (int tensor): [A1,..,An] original shape of the batch, None
-      if constructed using segmented input
-    _unflatten (function): Function to reshape segmented [N,D] to
-      [A1,...,An,V,D], zero padded, None if constructed using
-      segmented input
-    _dimension (int): dimensionality of the point clouds
-    _get_segment_id (int tensor [A1,...,An]): tensor that returns the
-      segment id given a relative id in [A1,...,An]
-    _aabb: A `AABB` instance, the bounding box of the point cloud.
-  """
 
   def __init__(self,
                points,

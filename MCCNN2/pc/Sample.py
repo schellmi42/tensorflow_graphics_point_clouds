@@ -11,8 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" class to represent a sampling operation """
+"""Class to represent a sample operation on point clouds.
 
+Attributes:
+  _neighborhood (Neighborhood): Neighborhood. The samples should
+    be the same as the sorted points.
+  _indices (int tensor): List of the indices of the selected points.
+    Only valid for the poisson disk sampling algorithm.
+  _sample_point_cloud (PointCloud): Sampled point cloud.
+  _sample_mode (SampleMode): Mode used to sample points, 1 for Poisson disk
+    sampling, 0 for average
+"""
 
 import enum
 import tensorflow as tf
@@ -28,25 +37,14 @@ class SampleMode(enum.Enum):
 
 
 class Sample:
-  """Class to represent a sample operation on point clouds.
+  """ Sampling of a point cloud.
 
-  Attributes:
-    _neighborhood (Neighborhood): Neighborhood. The samples should
-      be the same as the sorted points.
-    _indices (int tensor): List of the indices of the selected points.
-      Only valid for the poisson disk sampling algorithm.
-    _sample_point_cloud (PointCloud): Sampled point cloud.
-    _sample_mode (SampleMode): Mode used to sample points, 1 for Poisson disk
-    sampling, 0 for average
+  Args:
+    neighborhood (Neighborhood): Neighborhood.
+    sample_mode (SampleMode): Mode used to sample points.
   """
 
   def __init__(self, neighborhood, sample_mode=SampleMode.pd, name=None):
-    """Constructor.
-
-    Args:
-      neighborhood (Neighborhood): Neighborhood.
-      sample_mode (SampleMode): Mode used to sample points.
-    """
     with tf.compat.v1.name_scope(
         name, "sample point cloud", [self, neighborhood, sample_mode]):
       #Save the attributes.

@@ -11,8 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent hierarchical point clouds"""
+"""Class to represent a point cloud hierarchy.
 
+Attributes:
+  _aabb (AABB): Bounding box of the point cloud.
+  _point_clouds (array of PointCloud): List of point clouds.
+  _sample_ops (array of Sample): List of sampling operations used to
+    create the point hierarchy.
+"""
 
 import numpy as np
 import tensorflow as tf
@@ -27,13 +33,13 @@ from MCCNN2.pc import SampleMode
 
 
 class PointHierarchy:
-  """Class to represent a point cloud hierarchy.
+  """ A hierarchy of sampled point clouds.
 
-  Attributes:
-    _aabb (AABB): Bounding box of the point cloud.
-    _point_clouds (array of PointCloud): List of point clouds.
-    _sample_ops (array of Sample): List of sampling operations used to
-      create the point hierarchy.
+  Args:
+    point_cloud (PointCloud): Input point cloud.
+    cell_sizes (array of numpy arrays of floats): List of cell sizes for
+      each dimension.
+    sample_mode (SampleMode): Mode used to sample the points.
   """
 
   def __init__(self,
@@ -41,14 +47,6 @@ class PointHierarchy:
                cell_sizes,
                sample_mode=SampleMode.pd,
                name=None):
-    """Constructor.
-
-    Args:
-      point_cloud (PointCloud): Input point cloud.
-      cell_sizes (array of numpy arrays of floats): List of cell sizes for
-        each dimension.
-      sample_mode (SampleMode): Mode used to sample the points.
-    """
     with tf.compat.v1.name_scope(
         name, "hierarchical point cloud constructor",
         [self, point_cloud, cell_sizes, sample_mode]):

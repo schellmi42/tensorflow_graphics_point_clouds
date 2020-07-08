@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent monte-carlo point cloud convolution"""
+"""Classes for point cloud spatial pooling operations"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
@@ -21,6 +21,8 @@ from MCCNN2.pc import Neighborhood
 
 
 class GlobalMaxPooling:
+  """ Global max pooling on a point cloud
+  """
 
   def __call__(self, features, point_cloud: PointCloud, name=None):
     """ Performs a global max pooling on a point cloud
@@ -42,6 +44,8 @@ class GlobalMaxPooling:
 
 
 class GlobalAveragePooling:
+  """ Global average pooling on a point cloud.
+  """
 
   def __call__(self, features, point_cloud: PointCloud, name=None):
     """ performs a global average pooling on a point cloud
@@ -63,6 +67,8 @@ class GlobalAveragePooling:
 
 
 class _LocalPointPooling:
+  """ Local point pooling between two point clouds.
+  """
 
   def __call__(self, pool_op, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
@@ -125,6 +131,8 @@ class _LocalPointPooling:
 
 
 class MaxPooling(_LocalPointPooling):
+  """ local max pooling between two point clouds
+  """
 
   def __call__(self, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
@@ -150,6 +158,8 @@ class MaxPooling(_LocalPointPooling):
 
 
 class AveragePooling(_LocalPointPooling):
+  """ Local average pooling between two point clouds.
+  """
 
   def __call__(self, features, point_cloud_in: PointCloud,
                point_cloud_out: PointCloud, pooling_radius,
