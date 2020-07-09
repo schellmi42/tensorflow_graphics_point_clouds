@@ -178,13 +178,6 @@ unsigned int mccnn::scan_alg(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Get the device properties.
     const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 
@@ -268,23 +261,6 @@ unsigned int mccnn::scan_alg(
     cudaEventCreate(&resEvent);
     cudaEventRecord(resEvent, cudaStream);
     cudaEventSynchronize(resEvent);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### SCAN ALG ###\n");
-    fprintf(stderr, "Num elements: %d\n", pNumElems);
-    fprintf(stderr, "Num iterations: %d\n", numIterations);
-    fprintf(stderr, "Total accum: %d\n", accumScan[0]);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 
     return accumScan[0];
 }

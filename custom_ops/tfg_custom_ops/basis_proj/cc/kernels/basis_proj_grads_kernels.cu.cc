@@ -175,12 +175,6 @@ void mccnn::basis_proj_grads_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-#endif
-
     //Get the number of parameters per basis function.
     unsigned int numParamsBasis = mccnn::get_num_params_x_basis(pBasisType, D);
 
@@ -210,10 +204,6 @@ void mccnn::basis_proj_grads_gpu(
     basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, 
         pInKernelInGPUPtr, pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer);
 
-#ifdef DEBUG_INFO
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Determine the group of features.
     unsigned int groupFeatSize = min(MULTIPLE_IN_FEATURES, pNumInFeatures);
 
@@ -239,39 +229,10 @@ void mccnn::basis_proj_grads_gpu(
         pInGradGPUPtr, pOutFeatGradsGPUPtr, tmpBuffer2);
     pDevice->check_error(__FILE__, __LINE__);
 
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-#endif
-
     //Compute the gradients of the basis and the point coordinates.
     basis->compute_grads_basis_proj_pt_coords(pDevice, pNumNeighbors, 
         pInKernelInGPUPtr, pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer2, 
         pOutBasisGradsGPUPtr, pOutKernelsInGradsGPUPtr, pOutPDFGradsGPUPtr);
-
-#ifdef DEBUG_INFO
-    cudaEventSynchronize(stop);
-    float milliseconds = 0.0f;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    struct cudaFuncAttributes funcAttrib;
-    cudaFuncGetAttributes(&funcAttrib, (const void*)compute_grads_in_features<K>);
-    
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-    
-    fprintf(stderr, "### FEATURES -> BASIS GRADS ###\n");
-    fprintf(stderr, "Basis type: %d\n", pBasisType);
-    fprintf(stderr, "Num basis: %d\n", K);
-    fprintf(stderr, "Local memory: %d\n", (int)funcAttrib.localSizeBytes);
-    fprintf(stderr, "Constant memory: %d\n", (int)funcAttrib.constSizeBytes);
-    fprintf(stderr, "Num reg kernel: %d\n", funcAttrib.numRegs);
-    fprintf(stderr, "Shared memory kernel: %d\n", sharedMemSize);
-    fprintf(stderr, "Num samples: %d\n", pNumSamples);
-    fprintf(stderr, "Num neighbors: %d\n", pNumNeighbors);
-    fprintf(stderr, "Num in features: %d\n", pNumInFeatures);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 ///////////////////////// CPU Template declaration

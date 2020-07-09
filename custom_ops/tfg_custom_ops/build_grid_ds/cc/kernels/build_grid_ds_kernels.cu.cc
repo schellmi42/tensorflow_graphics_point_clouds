@@ -84,13 +84,6 @@ void mccnn::build_grid_ds_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Get the device properties.
     const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 
@@ -118,52 +111,6 @@ void mccnn::build_grid_ds_gpu(
         (const mccnn::ipoint<D>*)pInGPUPtrNumCells,
         (int2*)pOutGPUPtrDS);
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    int* numCells = pDevice->getIntTmpGPUBuffer(D, true);
-    pDevice->memcpy_device_to_host((void*)&numCells, (void*)pInGPUPtrNumCells, sizeof(int)*D);
-    int* dsCPU = pDevice->getIntTmpGPUBuffer(pDSSize, true);
-    pDevice->memcpy_device_to_host((void*)dsCPU, (void*)pOutGPUPtrDS, sizeof(int)*pDSSize);
-
-    cudaEvent_t resEvent;
-    cudaEventCreate(&resEvent);
-    cudaEventRecord(resEvent, cudaStream);
-    cudaEventSynchronize(resEvent);
-
-    int maxNumPts = 0;
-    int minNumPts = pNumPts;
-    for(int i=0; i < pDSSize; i+=2)
-    {
-        int curNumPts = dsCPU[i+1]-dsCPU[i];
-        if(curNumPts < minNumPts){
-            minNumPts = curNumPts;
-        }else if(curNumPts > maxNumPts){
-            maxNumPts = curNumPts;
-        }
-    }
-
-    int batchSize = pDSSize/(2*numCells[0]*numCells[1]);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### BUILD GRID ###\n");
-    fprintf(stderr, "Num points: %d\n", pNumPts);
-    fprintf(stderr, "Batch size: %d\n", batchSize);
-    fprintf(stderr, "Grid size: ");
-    for(int i = 0; i < D; ++i)
-        fprintf(stderr, "%d ", numCells[i]);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Min num points x tube: %d\n", minNumPts);
-    fprintf(stderr, "Max num points x tube: %d\n", maxNumPts);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 ///////////////////////// CPU Template declaration

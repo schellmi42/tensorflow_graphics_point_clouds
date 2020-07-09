@@ -167,13 +167,6 @@ void mccnn::basis_proj_gpu(
     basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, pInKernelInGPUPtr,
         pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer);
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Define the block size.
     unsigned int  blockSize = 64;
 
@@ -201,31 +194,6 @@ void mccnn::basis_proj_gpu(
         (const int2*)pInNeighborsGPUPtr, pInSampleNeighIGPUPtr,
         pInPtFeaturesGPUPtr, pOutFeaturesGPUPtr);
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0.0f;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    
-    struct cudaFuncAttributes funcAttrib;
-    cudaFuncGetAttributes(&funcAttrib, (const void*)compute_weighted_in_features<K>);
-    
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-    
-    fprintf(stderr, "### FEATURES -> BASIS ###\n");
-    fprintf(stderr, "Num basis functions: %d\n", K);
-    fprintf(stderr, "Local memory: %d\n", (int)funcAttrib.localSizeBytes);
-    fprintf(stderr, "Constant memory: %d\n", (int)funcAttrib.constSizeBytes);
-    fprintf(stderr, "Num reg kernel: %d\n", funcAttrib.numRegs);
-    fprintf(stderr, "Shared memory kernel: %d\n", sharedMemSize);
-    fprintf(stderr, "Num samples: %d\n", pNumSamples);
-    fprintf(stderr, "Num neighbors: %d\n", pNumNeighbors);
-    fprintf(stderr, "Num in features: %d\n", pNumInFeatures);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 ///////////////////////// CPU Template declaration

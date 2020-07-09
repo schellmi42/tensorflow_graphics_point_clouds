@@ -126,13 +126,6 @@ void mccnn::count_sampling_pd_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Initialize memory.
     int* tmpCounter = pDevice->getIntTmpGPUBuffer(1);
     pDevice->memset(tmpCounter, 0, sizeof(int));
@@ -202,22 +195,6 @@ void mccnn::count_sampling_pd_gpu(
 
     //Collect the result.
     pOutNumSampledPts = auxNumSampledPts[0];
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### COUNT SAMPLING PD ###\n");
-    fprintf(stderr, "Num points: %d\n", pNumPts);
-    fprintf(stderr, "Num sampled pts: %d\n", pOutNumSampledPts);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 #define COUNT_SAMPLING_PD_TEMP_DECL(Dims)                \

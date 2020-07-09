@@ -187,13 +187,6 @@ void mccnn::store_neighbors(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Get the device properties.
     const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 

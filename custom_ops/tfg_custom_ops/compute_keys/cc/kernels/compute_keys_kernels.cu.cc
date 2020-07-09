@@ -86,13 +86,6 @@ void mccnn::compute_keys_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Get the device properties.
     const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 
@@ -119,21 +112,6 @@ void mccnn::compute_keys_gpu(
         (const mccnn::fpoint<D>*)pInGPUPtrInvCellSizes,
         pOutGPUPtrKeys);
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### COMPUTE KEYS ###\n");
-    fprintf(stderr, "Num points: %d\n", pNumPts);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 ///////////////////////// CPU Template declaration

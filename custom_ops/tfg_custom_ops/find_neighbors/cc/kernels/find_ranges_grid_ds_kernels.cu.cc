@@ -188,13 +188,6 @@ void mccnn::find_ranges_grid_ds_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Initialize to zero the output array.
     pDevice->memset(pOutGPUPtrRanges, 0, sizeof(int)*pNumSamples*pNumOffsets*2);
     pDevice->check_error(__FILE__, __LINE__);
@@ -228,22 +221,6 @@ void mccnn::find_ranges_grid_ds_gpu(
         (const mccnn::ipoint<D>*)pInGPUPtrNumCells,
         (int2*)pOutGPUPtrRanges);
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### FIND RANGES KEYS ###\n");
-    fprintf(stderr, "Num samples: %d\n", pNumSamples);
-    fprintf(stderr, "Num points: %d\n", pNumPts);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 unsigned int mccnn::computeTotalNumOffsets(

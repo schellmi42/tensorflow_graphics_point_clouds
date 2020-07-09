@@ -45,24 +45,6 @@ namespace mccnn{
         deviceProps_.sharedMemXMP_ = prop.sharedMemPerMultiprocessor;
         deviceProps_.majorVersion_ = prop.major;
         deviceProps_.minorVersion_ = prop.minor;
-
-#ifdef DEBUG_INFO
-        static int firstPrint = 0;
-        if(firstPrint == 0){
-            firstPrint = 1;
-            fprintf(stderr, "### GPU INFO ###\n");
-            fprintf(stderr, "Warp size: %d\n", deviceProps_.warpSize_);
-            fprintf(stderr, "Num MP: %d\n", deviceProps_.numMPs_);
-            fprintf(stderr, "Max threads x block: %d\n", deviceProps_.maxThreadsXBlock_);
-            fprintf(stderr, "Max threads x MP: %d\n", deviceProps_.maxThreadsXMP_);
-            fprintf(stderr, "Max registers x block: %d\n", deviceProps_.maxRegistersXBlock_);
-            fprintf(stderr, "Max registers x MP: %d\n", deviceProps_.maxRegistersXMP_);
-            fprintf(stderr, "Max shared mem x block: %d\n", (int)deviceProps_.sharedMemXBlock_);
-            fprintf(stderr, "Max shared mem x MP: %d\n", (int)deviceProps_.sharedMemXMP_);
-            fprintf(stderr, "Compute version: %d.%d\n", deviceProps_.majorVersion_, deviceProps_.minorVersion_);
-            fprintf(stderr, "\n");
-        }
-#endif
     }
 
     TFGPUDevice::~TFGPUDevice()

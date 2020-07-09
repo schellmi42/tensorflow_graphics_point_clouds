@@ -244,12 +244,6 @@ namespace mccnn{
             cFunct = (const void*)compute_hproj_basis_proj_pt_coords<D, K, 3>;
         }
 
-#ifdef DEBUG_INFO
-        cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        cudaEventRecord(start, cudaStream);
-#endif
         //Calculate the shared memory needed.
         unsigned int sharedMemSize = (K*(D+1)*sizeof(float));
 
@@ -287,28 +281,6 @@ namespace mccnn{
                 pInPDFsGPUPtr, pInBasisGPUPtr, pOutProjGPUPtr);
         }
         pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-        cudaEventRecord(stop, cudaStream);
-        cudaEventSynchronize(stop);
-        float milliseconds = 0.0f;
-        cudaEventElapsedTime(&milliseconds, start, stop);
-
-        struct cudaFuncAttributes funcAttrib;
-        cudaFuncGetAttributes(&funcAttrib, cFunct);
-        float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-        fprintf(stderr, "### HPROJ BASIS PROJ ###\n");
-        fprintf(stderr, "Num basis: %d\n", K);
-        fprintf(stderr, "Local memory: %d\n", (int)funcAttrib.localSizeBytes);
-        fprintf(stderr, "Constant memory: %d\n", (int)funcAttrib.constSizeBytes);
-        fprintf(stderr, "Num reg kernel: %d\n", funcAttrib.numRegs);
-        fprintf(stderr, "Shared memory kernel: %d\n", sharedMemSize);
-        fprintf(stderr, "Num neighbors: %d\n", pNumNeighbors);
-        fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-        fprintf(stderr, "Execution time: %f\n", milliseconds);
-        fprintf(stderr, "\n");
-#endif
     }
 
     template<int D, int K>

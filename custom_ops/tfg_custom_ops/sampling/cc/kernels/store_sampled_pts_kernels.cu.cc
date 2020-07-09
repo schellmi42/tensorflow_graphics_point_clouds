@@ -84,13 +84,6 @@ void mccnn::store_sampled_pts_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Initialize memory.
     int* tmpCounter = pDevice->getIntTmpGPUBuffer(1);
     pDevice->memset(tmpCounter, 0, sizeof(int));
@@ -125,22 +118,6 @@ void mccnn::store_sampled_pts_gpu(
         (mccnn::fpoint<D>*)pOutPtsGPUPtr, pOutBatchIdsGPUPtr,
         pOutIndicesGPUPtr);
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### STORE SAMPLED PTS ###\n");
-    fprintf(stderr, "Num points: %d\n", pNumPts);
-    fprintf(stderr, "Num sampled pts: %d\n", pNumSampledPts);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 #define STORE_SAMPLED_PTS_TEMP_DECL(Dims)                \

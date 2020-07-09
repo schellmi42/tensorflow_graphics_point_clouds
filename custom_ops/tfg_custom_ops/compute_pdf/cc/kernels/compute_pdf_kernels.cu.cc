@@ -232,13 +232,6 @@ void mccnn::compute_pdf_gpu(
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
-
     //Get the device properties.
     const GpuDeviceProperties& gpuProps = pDevice->get_device_properties();
 
@@ -276,22 +269,6 @@ void mccnn::compute_pdf_gpu(
             pOutGPUPtrPDFs);
     }
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### COMPUTE PDFS ###\n");
-    fprintf(stderr, "Num samples: %d\n", pNumSamples);
-    fprintf(stderr, "Num neighbors: %d\n", pNumNeighbors);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 template<int D>
@@ -311,13 +288,6 @@ void mccnn::compute_pdf_grads_gpu(
 {
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
-
-#ifdef DEBUG_INFO
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, cudaStream);
-#endif
 
     //Initialize to zero the output array.
     pDevice->memset(pOutGPUPtrPtGrads, 0, sizeof(float)*pNumPts*D);
@@ -362,22 +332,6 @@ void mccnn::compute_pdf_grads_gpu(
             (mccnn::fpoint<D>*)pOutGPUPtrPtGrads);
     }
     pDevice->check_error(__FILE__, __LINE__);
-
-#ifdef DEBUG_INFO
-    cudaEventRecord(stop, cudaStream);
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-
-    float gpuOccupancy = (float)(numBlocks*blockSize)/(float)gpuProps.maxThreadsXMP_;
-
-    fprintf(stderr, "### COMPUTE PDFS GRADS ###\n");
-    fprintf(stderr, "Num samples: %d\n", pNumSamples);
-    fprintf(stderr, "Num neighbors: %d\n", pNumNeighbors);
-    fprintf(stderr, "Occupancy: %f\n", gpuOccupancy);
-    fprintf(stderr, "Execution time: %f\n", milliseconds);
-    fprintf(stderr, "\n");
-#endif
 }
 
 ///////////////////////// CPU Template declaration
