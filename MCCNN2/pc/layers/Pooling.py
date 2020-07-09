@@ -47,7 +47,7 @@ class GlobalMaxPooling:
         `[A1, ..., An, C]`, if `return_in_shape`
     """
     with tf.compat.v1.name_scope(
-        name, "global max pooling ", [features, point_cloud]):
+        name, "global max pooling ", [features, point_cloud, return_in_shape]):
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_max(
           features,
@@ -85,7 +85,7 @@ class GlobalAveragePooling:
         `[A1 ,..., An, C]`, if `return_in_shape`
     """
     with tf.compat.v1.name_scope(
-        name, "global average pooling ", [features, point_cloud]):
+        name, "global average pooling ", [features, point_cloud, return_in_shape]):
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_mean(
           features,
@@ -107,6 +107,7 @@ class _LocalPointPooling:
                point_cloud_out: PointCloud,
                pooling_radius,
                return_sorted=False,
+               return_padded=False,
                name=None,
                default_name="custom pooling"):
     """ Computes a local pooling between two point clouds specified by pool_op.
@@ -125,14 +126,19 @@ class _LocalPointPooling:
       pooling_radius: A `float` or a `float` `Tensor` of shape `[D]`.
       return_sorted: A `bool`, if 'True' the output tensor is sorted
         according to the batch ids of `point_cloud_out`.
+      return_padded: A `bool`, if 'True' the output tensor is sorted and
+        zero padded.
 
     Returns:
-      A `float` `Tensor` of shape `[N_out, C]`.
+      A `float` `Tensor` of shape
+        `[N_out, C]`, if `return_padded` is `False`
+      or
+        `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
     """
     with tf.compat.v1.name_scope(
         name, default_name,
         [features, point_cloud_in, point_cloud_out, return_sorted,
-         pooling_radius]):
+         pooling_radius, return_padded]):
       features = _flatten_features(features, point_cloud_in)
       pooling_radius = tf.convert_to_tensor(
           value=pooling_radius, dtype=tf.float32)
@@ -164,7 +170,10 @@ class _LocalPointPooling:
           data=features_on_neighbors,
           segment_ids=neigh_out,
           num_segments=point_cloud_out._points.shape[0])
-      if return_sorted:
+      if return_padded:
+        unflatten = point_cloud_out.get_unflatten()
+        features_out = unflatten(features)
+      elif return_sorted:
         features_out = tf.gather(
             features_out, point_cloud_out._sorted_indices_batch)
       return features_out
@@ -180,6 +189,7 @@ class MaxPooling(_LocalPointPooling):
                point_cloud_out: PointCloud,
                pooling_radius,
                return_sorted=False,
+               return_padded=False,
                name=None):
     """ Computes a local max pooling between two point clouds.
 
@@ -193,14 +203,19 @@ class MaxPooling(_LocalPointPooling):
       pooling_radius: A `float` or a `float` `Tensor` of shape [D].
       return_sorted: A `bool`, if 'True' the output tensor is sorted
         according to the batch ids of `point_cloud_out`.
+      return_padded: A `bool`, if 'True' the output tensor is sorted and
+        zero padded.
 
     Returns:
-      A `float` `Tensor` of shape `[N_out, C]`.
+      A `float` `Tensor` of shape
+        `[N_out, C]`, if `return_padded` is `False`
+      or
+        `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
     """
     return super(MaxPooling, self).__call__(
         tf.math.unsorted_segment_max,
         features, point_cloud_in, point_cloud_out, pooling_radius,
-        return_sorted, name, default_name="max pooling")
+        return_sorted, return_padded, name, default_name="max pooling")
 
 
 class AveragePooling(_LocalPointPooling):
