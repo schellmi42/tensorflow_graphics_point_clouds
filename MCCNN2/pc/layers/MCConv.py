@@ -115,33 +115,38 @@ class MCConv2Sampled:
                neighborhood=None,
                bandwidth=0.2,
                return_sorted=False,
+               return_padded=False,
                name=None):
-    """ Computes the Monte-Carlo Convolution
+    """ Computes the Monte-Carlo Convolution between two point clouds.
 
     Note:
-      In the following, A1 to An are optional batch dimensions.
-      C_in is the number of input features.
-      C_out is the number of output features.
+      In the following, `A1` to `An` are optional batch dimensions.
+      `C_in` is the number of input features.
+      `C_out` is the number of output features.
 
     Args:
-      features: A `float` Tensor of shape [N_in, C_in] or
-        [A1, ..., An,V, C_in],
-        the size must be the same as the points in the input point cloud.
-      point_cloud_in: A 'PointCloud' instance, represents the input
-        point cloud.
-      point_cloud_out: A `PointCloud` instance, represents the output
-        point cloud.
+      features: A `float` `Tensor` of shape `[N_in, C_in]` or
+        `[A1, ..., An,V, C_in]`.
+      point_cloud_in: A 'PointCloud' instance, on which the features are
+        defined.
+      point_cloud_out: A `PointCloud` instance, on which the output
+        features are defined.
       radius: A `float`, the convolution radius.
       neighborhood: A `Neighborhood` instance, defining the neighborhood
         with centers from `point_cloud_out` and neighbors in `point_cloud_in`.
         If `None` it is computed internally. (optional)
       bandwidth: An `int`, the bandwidth used in the kernel density
-        estimation on the input point cloud.
+        estimation on the input point cloud. (optional)
       return_sorted: A `boolean`, if `True` the output tensor is sorted
-        according to the batch_ids. (default: False)
+        according to the batch_ids. (optional)
+      return_padded: A `bool`, if 'True' the output tensor is sorted and
+        zero padded. (optional)
 
-      Returns:
-        Tensor with shape [N_out, C_out]
+    Returns:
+      A `float` `Tensor` of shape
+        `[N_out, C_out]`, if `return_padded` is `False`
+      or
+        `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
     """
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
@@ -185,7 +190,10 @@ class MCConv2Sampled:
       convolution_result = tf.matmul(tf.reshape(
           weighted_features, [-1, self._num_features_in * self._size_hidden]),
           self._weights)
-      if return_sorted:
+      if return_padded:
+        unflatten = point_cloud_out.get_unflatten()
+        convolution_result = unflatten(features)
+      elif return_sorted:
         convolution_result = tf.gather(convolution_result,
                                        point_cloud_out.sortedIndicesBatch_)
       return convolution_result
@@ -233,28 +241,37 @@ class MCConv(MCConv2Sampled):
                neighborhood=None,
                bandwidth=0.2,
                return_sorted=False,
+               return_padded=False,
                name=None):
-    """ Computes the Monte-Carlo Convolution
+        """ Computes the Monte-Carlo Convolution on a point cloud.
 
     Note:
-      In the following, A1 to An are optional batch dimensions.
+      In the following, `A1` to `An` are optional batch dimensions.
+      `C_in` is the number of input features.
+      `C_out` is the number of output features.
 
     Args:
-      features: A float `Tensor` of shape [N, C_in] or [A1, ..., An, V, C_in],
-        the size must be the same as the points in the input point cloud.
-      point_cloud: A `PointCloud` instance
+      features: A `float` `Tensor` of shape `[N_in, C_in]` or
+        `[A1, ..., An,V, C_in]`.
+      point_cloud: A 'PointCloud' instance, on which the features are
+        defined.
       radius: A `float`, the convolution radius.
       neighborhood: A `Neighborhood` instance, defining the neighborhood
         inside `point_cloud`.
         If `None` it is computed internally. (optional)
       bandwidth: An `int`, the bandwidth used in the kernel density
-        estimation on the input point cloud.
-      return_sorted: A boolean, if 'True' the output tensor is sorted
-        according to the batch_ids.
+        estimation on the input point cloud. (optional)
+      return_sorted: A `boolean`, if `True` the output tensor is sorted
+        according to the batch_ids. (optional)
+      return_padded: A `bool`, if 'True' the output tensor is sorted and
+        zero padded. (optional)
 
-      Returns:
-        `Tensor` with shape [N,C_out]
+    Returns:
+      A `float` `Tensor` of shape
+        `[N_out, C_out]`, if `return_padded` is `False`
+      or
+        `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
     """
     return super(MCConv, self).__call__(features, point_cloud, point_cloud,
                                         radius, neighborhood, bandwidth,
-                                        return_sorted, name)
+                                        return_sorted, return_padded, name)
