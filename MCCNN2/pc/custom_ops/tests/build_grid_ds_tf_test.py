@@ -26,7 +26,6 @@ from MCCNN2.pc.custom_ops import compute_keys
 class BuildGridDSTF(test_case.TestCase):
 
   @parameterized.parameters(
-    # currently numpy implementation only in 3D
     (100, 32, 30, 0.1, 2),
     (200, 16, 1, 0.2, 2),
     (200, 8, 1, np.sqrt(2), 2),
@@ -62,7 +61,7 @@ class BuildGridDSTF(test_case.TestCase):
     keys = keys.numpy()
     ds_numpy = np.full((batch_size, total_num_cells[0],
                         total_num_cells[1], 2), 0)
-    if dimension == 2:                        
+    if dimension == 2:
       cells_per_2D_cell = 1
     elif dimension > 2:
       cells_per_2D_cell = np.prod(total_num_cells[2:])
