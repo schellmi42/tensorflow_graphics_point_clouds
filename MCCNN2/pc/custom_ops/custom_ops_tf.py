@@ -181,7 +181,7 @@ def find_neighbors_tf(grid,
       adj_batch_ids = neighbor_batch_ids[adj_ids_start:adj_ids_end]
       distances = tf.linalg.norm(
           adj_points - tf.reshape(cur_point, [1, -1]), axis=1)
-      close = (distances <= radii[0])
+      close = (distances < radii[0])
       same_batch = (adj_batch_ids == cur_batch_id)
       close = tf.math.logical_and(close, same_batch)
       close_ids = tf.boolean_mask(tf.range(adj_ids_start, adj_ids_end), close)
