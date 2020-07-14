@@ -14,19 +14,19 @@
 """Class to represent a neighborhood of points.
 
 Note:
-  In the following D is the spatial dimensionality of the points,
-  N is the number of (samples) points, and M is the total number of
+  In the following `D` is the spatial dimensionality of the points,
+  `N` is the number of (samples) points, and `M` is the total number of
   adjacencies.
 
 Attributes:
   _point_cloud_sampled: 'PointCloud', samples point cloud.
   _grid : 'Grid', regular grid data structure.
-  _radii: float 'Tensor' of shape [D], radii used to select the neighbors.
-  _samples_neigh_ranges: int 'Tensor' of shape [N], end of the ranges per
+  _radii: `float` `Tensor` of shape [D], radii used to select the neighbors.
+  _samples_neigh_ranges: `int` `Tensor` of shape `[N]`, end of the ranges per
     sample.
-  _neighbors: int 'Tensor' of shape [M,2], indices of the neighbor point and
-    the sample for each neighbor.
-  _pdf: float 'Tensor' of shape [M], PDF value for each neighbor.
+  _neighbors: `int` `Tensor` of shape `[M,2]`, indices of the neighbor point
+    and the sample for each neighbor.
+  _pdf: `float` `Tensor` of shape `[M]`, PDF value for each neighbor.
 """
 
 import enum
@@ -49,7 +49,7 @@ class Neighborhood:
 
   Args:
     grid: A 'Grid' instance, the regular grid data structure.
-    radii: A float 'Tensor' of shape [D], the radii used to select the
+    radii: A float `Tensor` of shape [D], the radii used to select the
       neighbors.
     point_cloud_sample: A 'PointCloud' instance. Samples point cloud.
       If None, the sorted points from the grid will be used.
@@ -99,7 +99,7 @@ class Neighborhood:
     """Method to compute the probability density function of a neighborhood.
 
     Args:
-      bandwidth: float 'Tensor' of shape [D], bandwidth used to compute
+      bandwidth: float `Tensor` of shape [D], bandwidth used to compute
         the pdf.
       mode: 'KDEMode', mode used to determine the bandwidth.
     """

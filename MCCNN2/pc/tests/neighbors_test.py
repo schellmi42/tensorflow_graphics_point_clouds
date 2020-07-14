@@ -110,8 +110,42 @@ class NeighborsTest(test_case.TestCase):
     batch_ids_out = tf.gather(
         point_cloud_samples._batch_ids, neighborhood._original_neigh_ids[:, 1])
     batch_check = batch_ids_in == batch_ids_out
-
     self.assertTrue(np.all(batch_check))
+
+  @parameterized.parameters(
+    (10, 4, 0.05, 1),
+    (10, 4, 0.11, 7),
+    (10, 4, 0.142, 19),
+    (10, 4, 0.174, 27),
+  )
+  def test_neighbors_on_3D_meshgrid(self,
+                                    num_points_cbrt,
+                                    num_points_samples_cbrt,
+                                    radius,
+                                    expected_num_neighbors):
+    num_points = num_points_cbrt**3
+    num_samples = num_points_samples_cbrt**3
+
+    points = utils._create_uniform_distributed_point_cloud_3D(
+        num_points_cbrt, flat=True)
+    batch_ids = np.zeros(num_points)
+    points_samples = utils._create_uniform_distributed_point_cloud_3D(
+        num_points_samples_cbrt, bb_min=1 / (num_points_samples_cbrt + 1),
+        flat=True)
+    batch_ids_samples = np.zeros(num_samples)
+    point_cloud = PointCloud(points, batch_ids)
+    point_cloud_samples = PointCloud(points_samples, batch_ids_samples)
+    radius = np.float32(np.repeat([radius], 3))
+    grid = Grid(point_cloud, radius)
+    neighborhood = Neighborhood(grid, radius, point_cloud_samples)
+
+    neigh_ranges = neighborhood._samples_neigh_ranges
+    num_neighbors = np.zeros(num_samples)
+    num_neighbors[0] = neigh_ranges[0]
+    num_neighbors[1:] = neigh_ranges[1:] - neigh_ranges[:-1]
+    expected_num_neighbors = \
+        np.ones_like(num_neighbors) * expected_num_neighbors
+    self.assertAllEqual(num_neighbors, expected_num_neighbors)
 
 
 if __name__ == '__main__':

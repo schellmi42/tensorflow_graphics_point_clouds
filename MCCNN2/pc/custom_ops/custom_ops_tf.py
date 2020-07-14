@@ -14,7 +14,7 @@
 """ Non-GPU implemetations of the custom ops """
 
 import tensorflow as tf
-from MCCNN2.pc import PointCloud
+from MCCNN2.pc import PointCloud, Grid
 
 
 def compute_keys_tf(point_cloud: PointCloud, num_cells, cell_size, name=None):
@@ -48,6 +48,7 @@ def compute_keys_tf(point_cloud: PointCloud, num_cells, cell_size, name=None):
         tf.math.reduce_sum(cell_ind * tf.reshape(cell_multiplier[1:], [1, -1]),
                            axis=1)
     return tf.cast(keys, tf.int64)
+tf.no_gradient('ComputeKeysTF')
 
 
 def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
@@ -56,8 +57,8 @@ def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
   Creates a 2D regular grid in the first two dimension, saving the first and
   last index belonging to that cell array.
   Args:
-    sorted_keys: An `int` tensor of shape [N], the sorted keys.
-    num_cells: An `int` tensor of shape [D], the total number of cells
+    sorted_keys: An `int` tensor of shape `[N]`, the sorted keys.
+    num_cells: An `int` tensor of shape `[D]`, the total number of cells
       per dimension.
     batch_size: An `int`.
 
@@ -65,23 +66,20 @@ def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
     An `int` tensor of shape [batch_size, num_cells[0], num_cells[1], 2].
   """
   with tf.compat.v1.name_scope(
-    name, 'build_grid_ds', [sorted_keys, num_cells, batch_size]):
-
+      name, 'build_grid_ds', [sorted_keys, num_cells, batch_size]):
     sorted_keys = tf.cast(tf.convert_to_tensor(value=sorted_keys), tf.int32)
     num_cells = tf.cast(tf.convert_to_tensor(value=num_cells), tf.int32)
 
     num_keys = sorted_keys.shape[0]
     num_cells_2D = batch_size * num_cells[0] * num_cells[1]
-
     if num_cells.shape[0] > 2:
         cells_per_2D_cell = tf.reduce_prod(num_cells[2:])
     elif num_cells.shape[0] == 2:
         cells_per_2D_cell = 1
 
-    ds_indices = tf.cast(tf.floor(sorted_keys / cells_per_2D_cell), dtype=tf.int32)
-
+    ds_indices = tf.cast(tf.floor(sorted_keys / cells_per_2D_cell),
+                         dtype=tf.int32)
     indices = tf.range(0, num_keys, dtype=tf.int32)
-
     first_per_cell = tf.math.unsorted_segment_min(
         indices, ds_indices, num_cells_2D)
     last_per_cell = tf.math.unsorted_segment_max(
@@ -103,34 +101,102 @@ def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
                      tf.reshape(last_per_cell,
                                 [batch_size, num_cells[0], num_cells[1]])],
                     axis=3)
+tf.no_gradient('BuildGridDsTF')
 
 
-# def build_grid_ds(pKeys, pNumCells, pbatch_size, name=None):
-#   with tf.compat.v1.name_scope(
-#       name, "build grid ds", [pKeys, pNumCells, pbatch_size]):
-#     return tfg_custom_ops.build_grid_ds(
-#       pKeys,
-#       pNumCells,
-#       pNumCells,
-#       pbatch_size)
-# tf.no_gradient('BuildGridDs')
+def find_neighbors_tf(grid,
+                      point_cloud_centers,
+                      radii,
+                      max_neighbors=0,
+                      name=None):
+  """ Method to find the neighbors of a center point cloud in another
+  point cloud.
 
+  Args:
+    grid: A `Grid` instance, from which the neighbors are chosen.
+    point_cloud_centers: A `PointCloud` instance, containing the center points.
+    radii: A `float`, the radii to select neighbors from.
+    max_neighbors: An `int`, if `0` all neighbors are selected.
 
-# def find_neighbors(pGrid, pPCSamples, pRadii, pMaxNeighbors, name=None):
-#   with tf.compat.v1.name_scope(
-#       name, "find neighbours", [pGrid, pPCSamples, pRadii, pMaxNeighbors]):
-#     return tfg_custom_ops.find_neighbors(
-#       pPCSamples._points,
-#       pPCSamples._batch_ids,
-#       pGrid.sorted_points,
-#       pGrid.sortedKeys_,
-#       pGrid.fastDS_,
-#       pGrid.numCells_,
-#       pGrid.aabb_.aabbMin_ / pGrid.cellSizes_,
-#       tf.math.reciprocal(pGrid.cellSizes_),
-#       tf.math.reciprocal(pRadii),
-#       pMaxNeighbors)
-# tf.no_gradient('FindNeighbors')
+  Returns:
+  center_neigh_ranges: An `int` `Tensor` of shape `[N]`, end of the ranges per
+      center point. You can get the neighbor ids of point `i` (i>0) with
+        `neighbors[center_neigh_ranges[i-1]:center_neigh_ranges[i]]`.
+  neighbors: An `int` `Tensor` of shape `[M, 2]`, indices of the neighbor
+      point and the center for each neighbor. Follows the order of
+      `grid._sorted_points`.
+  """
+  with tf.compat.v1.name_scope(
+      name, "find neighbours",
+      [grid, point_cloud_centers, radii, max_neighbors]):
+    radii = tf.convert_to_tensor(value=radii)
+    if radii.shape[0] == [] or radii.shape[0] == 1:
+      radii = tf.repeat(radii, grid._point_cloud._dimension)
+    # compute keys of center points in neighbors 2D grid
+    center_points = point_cloud_centers._points
+    center_batch_ids = point_cloud_centers._batch_ids
+    aabb = grid._aabb
+    abb_min_per_batch_2D = aabb._aabb_min[:, :2]
+    aabb_min_per_center_point_2D = tf.gather(
+        abb_min_per_batch_2D, center_batch_ids)
+    center_cell_ind_2D = tf.math.floor(
+        (center_points[:, :2] - aabb_min_per_center_point_2D) / radii[:2])
+    center_cell_ind_2D = tf.cast(center_cell_ind_2D, tf.int32)
+    center_cell_ind_2D = tf.minimum(
+        tf.maximum(center_cell_ind_2D, tf.zeros_like(center_cell_ind_2D)),
+        grid._num_cells[:2])
+    # find neighbors using fast 2D grid datastructure
+    neighbor_points = grid._sorted_points
+    neighbor_batch_ids = grid._sorted_batch_ids
+    data_structure = grid._fast_DS
+
+    neighbors = []
+    center_neigh_ranges = []
+    cur_neigh_range = 0
+    for i in range(center_points.shape[0]):
+      cur_point = center_points[i]
+      cur_batch_id = center_batch_ids[i]
+      # get cell_ids of adjacent 2D cells (9 in total)
+      cur_cell_id_2D = center_cell_ind_2D[i]
+      adj_cell_ids_2D = tf.stack(
+          (cur_cell_id_2D + [-1, -1],
+           cur_cell_id_2D + [-1, 0],
+           cur_cell_id_2D + [-1, 1],
+           cur_cell_id_2D + [0, 1],
+           cur_cell_id_2D,
+           cur_cell_id_2D + [0, -1],
+           cur_cell_id_2D + [1, -1],
+           cur_cell_id_2D + [1, 0],
+           cur_cell_id_2D + [1, 1]), axis=0)
+      # clip to range between 0 and max num cells
+      adj_cell_ids_2D = tf.minimum(
+        tf.maximum(adj_cell_ids_2D, tf.zeros_like(adj_cell_ids_2D)),
+        grid._num_cells[:2])
+      # get min and max point ids of the adjacent cells
+      adj_ids = tf.gather_nd(data_structure[cur_batch_id], [adj_cell_ids_2D])
+      adj_ids_start = tf.reduce_min(adj_ids[0, :, 0])
+      adj_ids_end = tf.reduce_max(adj_ids[0, :, 1])
+      # choose points below certain distance and in same batch
+      adj_points = neighbor_points[adj_ids_start:adj_ids_end]
+      adj_batch_ids = neighbor_batch_ids[adj_ids_start:adj_ids_end]
+      distances = tf.linalg.norm(
+          adj_points - tf.reshape(cur_point, [1, -1]), axis=1)
+      close = (distances <= radii[0])
+      same_batch = (adj_batch_ids == cur_batch_id)
+      close = tf.math.logical_and(close, same_batch)
+      close_ids = tf.boolean_mask(tf.range(adj_ids_start, adj_ids_end), close)
+
+      cur_neighbors = tf.stack(
+          (close_ids, tf.ones_like(close_ids) * i), axis=1)
+      neighbors.append(cur_neighbors)
+      cur_neigh_range = cur_neigh_range + cur_neighbors.shape[0]
+      center_neigh_ranges.append(cur_neigh_range)
+
+    neighbors = tf.concat(neighbors, axis=0)
+    center_neigh_ranges = tf.concat(center_neigh_ranges, axis=0)
+
+    return center_neigh_ranges, neighbors
+tf.no_gradient('FindNeighborsTF')
 
 
 # def sampling(pNeighborhood, pSampleMode, name=None):

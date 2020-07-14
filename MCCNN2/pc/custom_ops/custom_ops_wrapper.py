@@ -79,12 +79,13 @@ def find_neighbors(grid,
   Args:
     grid: A Grid instance, from which the neighbors are chosen.
     point_cloud_centers: A `PointCloud` instance, containing the center points.
-    radii: An `int` tensor of shape [D], the radii to select neighbors from.
+    radii: An `float` tensor of shape [D], the radii to select neighbors from.
     max_neighbors: An `int`, if `0` all neighbors are selected.
 
   Returns:
   center_neigh_ranges: An `int` tensor of shape [N], end of the ranges per
-      center point.
+      center point. You can get the neighbor ids of point `i` (i>0) with
+        `neighbors[center_neigh_ranges[i-1]:center_neigh_ranges[i]]`.
   neighbors: An `int` tensor of shape [M, 2], indices of the neighbor point and
       the center for each neighbor. Follows the order of `grid._sorted_points`.
   """

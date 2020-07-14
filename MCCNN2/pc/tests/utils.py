@@ -61,7 +61,21 @@ def _create_random_point_cloud_padded(max_num_points,
 
 
 def _create_uniform_distributed_point_cloud_2D(num_points_sqrt,
-                                               scale=1):
+                                               scale=1,
+                                               flat=False):
   ticks = np.linspace(0, scale, num=num_points_sqrt)
   points = np.array(np.meshgrid(ticks, ticks)).T
+  if flat:
+    points = points.reshape(-1, 2)
+  return points
+
+
+def _create_uniform_distributed_point_cloud_3D(num_points_root,
+                                               bb_min=0,
+                                               bb_max=1,
+                                               flat=False):
+  ticks = np.linspace(bb_min, bb_max, num=num_points_root, endpoint=False)
+  points = np.array(np.meshgrid(ticks, ticks, ticks)).T
+  if flat:
+    points = points.reshape(-1, 3)
   return points
