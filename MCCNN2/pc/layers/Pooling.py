@@ -15,6 +15,8 @@
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
+from MCCNN2.pc.layers.utils import _format_output
+
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
@@ -85,7 +87,8 @@ class GlobalAveragePooling:
         `[A1 ,..., An, C]`, if `return_in_shape`
     """
     with tf.compat.v1.name_scope(
-        name, "global average pooling ", [features, point_cloud, return_in_shape]):
+        name, "global average pooling ",
+        [features, point_cloud, return_in_shape]):
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_mean(
           features,
@@ -170,13 +173,10 @@ class _LocalPointPooling:
           data=features_on_neighbors,
           segment_ids=neigh_out,
           num_segments=point_cloud_out._points.shape[0])
-      if return_padded:
-        unflatten = point_cloud_out.get_unflatten()
-        features_out = unflatten(features)
-      elif return_sorted:
-        features_out = tf.gather(
-            features_out, point_cloud_out._sorted_indices_batch)
-      return features_out
+      return _format_output(features_out,
+                            point_cloud_out,
+                            return_sorted,
+                            return_padded)
 
 
 class MaxPooling(_LocalPointPooling):
@@ -213,7 +213,7 @@ class MaxPooling(_LocalPointPooling):
         `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
     """
     return super(MaxPooling, self).__call__(
-        pool_op=tf.math.unsorted_segment_max,
+        tf.math.unsorted_segment_max,
         features, point_cloud_in, point_cloud_out, pooling_radius,
         return_sorted, return_padded, name, default_name="max pooling")
 
@@ -252,6 +252,6 @@ class AveragePooling(_LocalPointPooling):
         `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
     """
     return super(AveragePooling, self).__call__(
-        pool_op, tf.math.unsorted_segment_mean,
+        tf.math.unsorted_segment_mean,
         features, point_cloud_in, point_cloud_out, pooling_radius,
         return_sorted, return_padded, name, default_name="average pooling")
