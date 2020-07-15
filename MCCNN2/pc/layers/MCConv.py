@@ -33,7 +33,6 @@ from MCCNN2.pc.layers.utils import _format_output
     _size_hidden: An `ìnt`, the number of neurons in the hidden layer of the
       kernel MLP
     _num_dims: An `ìnt`, dimensionality of the point cloud
-  conv_name: A `string`, name for the operation
 """
 
 
@@ -43,38 +42,37 @@ class MCConv2Sampled:
   Args:
     num_features_in: An `int`, C_in, the number of features per input point.
     num_features_out: An `int`, C_out, the number of features to compute.
+    num_dims: An `int`, dimensionality of the point cloud.
     size_hidden: An ìnt`, the number of neurons in the hidden layer of the
         kernel MLP.
-    num_dims: An `int`, dimensionality of the point cloud.
     initializer_weights: A `tf.initializer` for the weights,
       default `TruncatedNormal`.
     initializer_biases: A `tf.initializer` for the biases,
       default: `zeros`.
-    conv_name: A `string`, name for the operation.
   """
 
   def __init__(self,
                num_features_in,
                num_features_out,
-               size_hidden,
                num_dims,
+               size_hidden,
                initializer_weights=None,
                initializer_biases=None,
-               conv_name=None):
+               name=None):
     """ Constructior, initializes weights.
     """
 
-    with tf.compat.v1.name_scope(conv_name, "create Monte-Carlo convolution",
+    with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
                                  [self, num_features_out, num_features_in,
                                   num_features_out, size_hidden, num_dims]):
       self._num_features_in = num_features_in
       self._num_features_out = num_features_out
       self._size_hidden = size_hidden
       self._num_dims = num_dims
-      if conv_name is None:
-        self._conv_name = ''
+      if name is None:
+        self._name = ''
       else:
-        self._conv_name = conv_name
+        self._name = name
 
       # initialize variables
       if initializer_weights is None:
@@ -84,13 +82,13 @@ class MCConv2Sampled:
 
       std_dev = tf.math.sqrt(1.0 / float(self._num_dims))
       hProjVecTF = tf.compat.v1.get_variable(
-          self._conv_name + '_hidden_vectors',
+          self._name + '_hidden_vectors',
           shape=[self._size_hidden, self._num_dims],
           initializer=initializer_weights(stddev=std_dev),
           dtype=tf.float32,
           trainable=True)
       hProjBiasTF = tf.compat.v1.get_variable(
-          self._conv_name + '_hidden_biases',
+          self._name + '_hidden_biases',
           shape=[self._size_hidden, 1],
           initializer=initializer_biases(),
           dtype=tf.float32,
@@ -101,7 +99,7 @@ class MCConv2Sampled:
                              float(self._size_hidden * self._num_features_in))
       self._weights = \
           tf.compat.v1.get_variable(
-              self._conv_name + '_conv_weights',
+              self._name + '_conv_weights',
               shape=[self._size_hidden * self._num_features_in,
                      self._num_features_out],
               initializer=initializer_weights(stddev=std_dev),
@@ -195,7 +193,7 @@ class MCConv2Sampled:
                             return_sorted,
                             return_padded)
 
-""" Class to represent a Monte-Carlo convolution layer on one point cloud
+""" Class to represent a Monte-Carlo convolution layer on one point cloud.
 
   Attributes:
     _num_features_in: An `int`, the number of features per input point
@@ -203,7 +201,6 @@ class MCConv2Sampled:
     _size_hidden: An `int`, the number of neurons in the hidden layer of the
       kernel MLP
     _num_dims: An `int`, dimensionality of the point cloud.
-    _conv_name: String, name for the operation.
 """
 
 
@@ -216,20 +213,26 @@ class MCConv(MCConv2Sampled):
     num_dims: An `int`, dimensionality of the point cloud.
     size_hidden: An `int`, the number of neurons in the hidden layer of the
         kernel MLP.
-    conv_name: A `string`, name for the operation.
+    initializer_weights: A `tf.initializer` for the weights,
+      default `TruncatedNormal`.
+    initializer_biases: A `tf.initializer` for the biases,
+      default: `zeros`.
   """
 
   def __init__(self,
                num_features_in,
                num_features_out,
-               size_hidden,
                num_dims,
-               conv_name=None):
+               size_hidden,
+               initializer_weights=None,
+               initializer_biases=None,
+               name=None):
     """ Constructior, initializes weights.
 
     """
     super(MCConv, self).__init__(num_features_in, num_features_out,
-                                 size_hidden, num_dims, None, None, conv_name)
+                                 size_hidden, num_dims, initializer_weights,
+                                 initializer_biases, None, name)
 
   def __call__(self,
                features,
@@ -274,7 +277,7 @@ class MCConv(MCConv2Sampled):
                                         return_sorted, return_padded, name)
 
 
-class MCResNetPreActivation:
+class MCResNet:
   """ ResNet with pre-activation using Monte-Carlo convolution layers on one
   point cloud.
 
@@ -285,84 +288,6 @@ class MCResNetPreActivation:
     num_dims: An `int, dimensionality of the point cloud.
     size_hidden: An `int`, the number of neurons in the hidden layer of the
         kernel MLP, can be `4, 8, 16`.
-    conv_name: String, name for the operation
-  """
-
-  def __init__(self,
-               num_features,
-               num_blocks,
-               num_dims,
-               size_hidden,
-               activation=tf.nn.relu,
-               name=None):
-    """ Constructior, initializes weights.
-
-    """
-    with tf.compat.v1.name_scope(
-        name, "Create Monte-Carlo convolution ResNet with pre-activation",
-        [num_features, num_blocks, num_dims, size_hidden, activation]):
-      self._num_blocks = num_blocks
-      self._activation = activation
-      self._batch_norm_layers = []
-      self._conv_layers = []
-      for i in range(2 * num_blocks):
-        self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
-        self._conv_layers.append(
-            MCConv(num_features, num_features, size_hidden, num_dims))
-
-  def __call__(self,
-               features,
-               point_cloud: PointCloud,
-               radius,
-               neighborhood=None,
-               bandwidth=0.2,
-               return_sorted=False,
-               return_padded=False,
-               name=None):
-    with tf.compat.v1.name_scope(
-        name,
-        "Monte-Carlo convolution ResNet with pre-activation",
-        [features, point_cloud, radius, neighborhood, bandwidth,
-         return_sorted, return_padded]):
-      features = tf.convert_to_tensor(value=features)
-      features = _flatten_features(features, point_cloud)
-
-      if neighborhood is None:
-
-        radii_tensor = tf.repeat([radius], self._num_dims)
-        #Compute the grid.
-        grid = Grid(point_cloud, radii_tensor)
-        #Compute the neighborhood key.
-        neighborhood = Neighborhood(grid, radii_tensor)
-      for i in range(self._num_blocks):
-        residual = features
-        features = self._batch_norm_layers[2 * i](features)
-        features = self._activation(features)
-        features = self._conv_layers[2 * i](features, point_cloud, radius,
-                                            neighborhood)
-        features = self._batch_norm_layers[2 * i + 1](features)
-        features = self._activation(features)
-        features = self._conv_layers[2 * i + 1](features, point_cloud, radius,
-                                                neighborhood)
-        features = features + residual
-      return _format_output(features,
-                            point_cloud,
-                            return_sorted,
-                            return_padded)
-
-
-class MCResNetBottleNeckPreActivation:
-  """ ResNet bottle neck with pre-activation using Monte-Carlo convolution layers
-  on one point cloud.
-
-  Args:
-    num_features: An `int`, the number of features per input point.
-    num_blocks: An `int`, the number of Resnet blocks, consisting of 2 layers
-      each.
-    num_dims: An `int, dimensionality of the point cloud.
-    size_hidden: An `int`, the number of neurons in the hidden layer of the
-        kernel MLP, can be `4, 8, 16`.
-    conv_name: String, name for the operation
   """
 
   def __init__(self,
