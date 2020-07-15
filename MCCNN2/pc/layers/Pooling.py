@@ -29,7 +29,7 @@ class GlobalMaxPooling:
   def __call__(self,
                features,
                point_cloud: PointCloud,
-               return_in_shape=False,
+               return_padded=False,
                name=None):
     """ Performs a global max pooling on a point cloud.
 
@@ -39,24 +39,25 @@ class GlobalMaxPooling:
     Args:
       features: A tensor of shape `[N,C]` or `[A1,...,An,V,C]`.
       point_cloud: A `PointCloud` instance.
-      return_in_shape: A `bool`, if `True` reshapes the output to match the
+      return_padded: A `bool`, if `True` reshapes the output to match the
         batch shape of `point_cloud`.
 
     Returns:
       A tensor of same type as `features` and of shape
-        `[B, C]`, if not `return_in_shape`
+        `[B, C]`, if not `return_padded`
       or
-        `[A1, ..., An, C]`, if `return_in_shape`
+        `[A1, ..., An, C]`, if `return_padded`
     """
     with tf.compat.v1.name_scope(
-        name, "global max pooling ", [features, point_cloud, return_in_shape]):
+        name, "global max pooling ", [features, point_cloud, return_padded]):
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_max(
           features,
           segment_ids=point_cloud._batch_ids,
           num_segments=point_cloud._batch_size)
-      if return_in_shape:
-        features = tf.reshape(features, point_cloud._batch_shape)
+      if return_padded:
+        shape = tf.concat((point_cloud._batch_shape, [-1]), axis=0)
+        features = tf.reshape(features, shape)
       return features
 
 
@@ -67,7 +68,7 @@ class GlobalAveragePooling:
   def __call__(self,
                features,
                point_cloud: PointCloud,
-               return_in_shape=False,
+               return_padded=False,
                name=None):
     """ Performs a global average pooling on a point cloud
 
@@ -77,25 +78,26 @@ class GlobalAveragePooling:
     Args:
       features: A tensor of shape `[N, C]` or `[A1, ..., An, V, C]`.
       point_cloud: A `PointCloud` instance.
-      return_in_shape: A `bool`, if `True` reshapes the output to match the
+      return_padded: A `bool`, if `True` reshapes the output to match the
         batch shape of `point_cloud`.
 
     Returns:
       A tensor of same type as `features` and of shape
-        `[B, C]`, if not `return_in_shape`
+        `[B, C]`, if not `return_padded`
       or
-        `[A1 ,..., An, C]`, if `return_in_shape`
+        `[A1 ,..., An, C]`, if `return_padded`
     """
     with tf.compat.v1.name_scope(
         name, "global average pooling ",
-        [features, point_cloud, return_in_shape]):
+        [features, point_cloud, return_padded]):
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_mean(
           features,
           segment_ids=point_cloud._batch_ids,
           num_segments=point_cloud._batch_size)
-      if return_in_shape:
-        features = tf.reshape(features, point_cloud._batch_shape)
+      if return_padded:
+        shape = tf.concat((point_cloud._batch_shape, [-1]), axis=0)
+        features = tf.reshape(features, shape)
       return features
 
 
