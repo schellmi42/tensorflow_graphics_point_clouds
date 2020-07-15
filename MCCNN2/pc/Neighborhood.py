@@ -66,7 +66,7 @@ class Neighborhood:
     with tf.compat.v1.name_scope(
         name, "constructor for neighbourhoods of point clouds",
         [self, grid, radii, point_cloud_sample, max_neighbors]):
-      radii = tf.convert_to_tensor(value=radii, dtype=tf.float32)
+      radii = tf.cast(tf.convert_to_tensor(value=radii), tf.float32)
 
       #Save the attributes.
       if point_cloud_sample is None:

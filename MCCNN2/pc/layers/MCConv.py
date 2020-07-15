@@ -151,7 +151,7 @@ class MCConv2Sampled:
                                  [features, point_cloud_in, point_cloud_out,
                                   radius, neighborhood, bandwidth,
                                   return_sorted]):
-      features = tf.convert_to_tensor(value=features, dtype=tf.float32)
+      features = tf.convert_to_tensor(value=features)
       features = _flatten_features(features, point_cloud_in)
       # radius = tf.convert_to_tensor(value=radius, dtype=tf.float32)
       # bandwidth = tf.convert_to_tensor(value=bandwidth)
@@ -232,7 +232,7 @@ class MCConv(MCConv2Sampled):
     """
     super(MCConv, self).__init__(num_features_in, num_features_out,
                                  size_hidden, num_dims, initializer_weights,
-                                 initializer_biases, None, name)
+                                 initializer_biases, name)
 
   def __call__(self,
                features,
@@ -303,6 +303,7 @@ class MCResNet:
     with tf.compat.v1.name_scope(
         name, "Create Monte-Carlo convolution ResNet with pre-activation",
         [num_features, num_blocks, num_dims, size_hidden, activation]):
+      self._num_dims = num_dims
       self._num_blocks = num_blocks
       self._activation = activation
       self._batch_norm_layers = []
@@ -316,6 +317,7 @@ class MCResNet:
                features,
                point_cloud: PointCloud,
                radius,
+               training,
                neighborhood=None,
                bandwidth=0.2,
                return_sorted=False,
@@ -324,9 +326,9 @@ class MCResNet:
     with tf.compat.v1.name_scope(
         name,
         "Monte-Carlo convolution ResNet with pre-activation",
-        [features, point_cloud, radius, neighborhood, bandwidth,
+        [features, point_cloud, radius, training, neighborhood, bandwidth,
          return_sorted, return_padded]):
-      features = tf.convert_to_tensor(value=features)
+      features = tf.convert_to_tensor(value=features, dtype=tf.float32)
       features = _flatten_features(features, point_cloud)
 
       if neighborhood is None:
@@ -338,7 +340,7 @@ class MCResNet:
         neighborhood = Neighborhood(grid, radii_tensor)
       for i in range(self._num_blocks):
         residual = features
-        features = self._batch_norm_layers[2 * i](features)
+        features = self._batch_norm_layers[2 * i](features, training)
         features = self._activation(features)
         features = self._conv_layers[2 * i](features, point_cloud, radius,
                                             neighborhood)

@@ -50,7 +50,7 @@ class Grid:
     with tf.compat.v1.name_scope(
         name, "constructor for point cloud regular grid",
         [self, point_cloud, aabb, cell_sizes]):
-      cell_sizes = tf.convert_to_tensor(value=cell_sizes, dtype=tf.float32)
+      cell_sizes = tf.cast(tf.convert_to_tensor(value=cell_sizes), tf.float32)
       if False:  # cell_sizes in point_cloud._grid_cache:
         # load from memory
         self = point_cloud._grid_cache[cell_sizes]
@@ -60,7 +60,6 @@ class Grid:
         self._cell_sizes = cell_sizes
         self._point_cloud = point_cloud
         self._aabb = point_cloud.get_AABB()
-
         #Compute the number of cells in the grid.
         aabb_sizes = self._aabb._aabb_max - self._aabb._aabb_min
         batch_num_cells = tf.cast(
