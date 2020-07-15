@@ -42,5 +42,4 @@ def _format_output(features, point_cloud, return_sorted, return_padded):
     features = unflatten(features)
   elif return_sorted:
     features = tf.gather(features, point_cloud._sorted_indices_batch)
-  else:
-    return features
+  return features
