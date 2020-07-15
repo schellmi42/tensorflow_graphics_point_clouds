@@ -151,13 +151,13 @@ class MCConv2Sampled:
                                  [features, point_cloud_in, point_cloud_out,
                                   radius, neighborhood, bandwidth,
                                   return_sorted]):
-      features = tf.convert_to_tensor(value=features)
+      features = tf.convert_to_tensor(value=features, dtype=tf.float32)
       features = _flatten_features(features, point_cloud_in)
       # radius = tf.convert_to_tensor(value=radius, dtype=tf.float32)
       # bandwidth = tf.convert_to_tensor(value=bandwidth)
 
       #Create the radii tensor.
-      radii_tensor = tf.repeat([radius], self._num_dims)
+      radii_tensor = tf.cast(tf.repeat([radius], self._num_dims), dtype=tf.float32)
       #Create the badnwidth tensor.
       bwTensor = tf.repeat(bandwidth, self._num_dims)
 
