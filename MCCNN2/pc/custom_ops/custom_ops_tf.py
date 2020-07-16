@@ -199,6 +199,54 @@ def find_neighbors_tf(grid,
 tf.no_gradient('FindNeighborsTF')
 
 
+def find_neighbors_no_grid(point_cloud,
+                           point_cloud_centers,
+                           radius,
+                           name=None):
+  """ Method to find the neighbors of a center point cloud in another
+  point cloud.
+
+  Args:
+    point_cloud: A `PointCloud` instance, from which the neighbors are chosen.
+    point_cloud_centers: A `PointCloud` instance, containing the center points.
+    radius: A `float`, the radius to select neighbors from.
+
+  Returns:
+  center_neigh_ranges: An `int` `Tensor` of shape `[N]`, end of the ranges per
+      center point. You can get the neighbor ids of point `i` (i>0) with
+        `neighbors[center_neigh_ranges[i-1]:center_neigh_ranges[i]]`.
+  neighbors: An `int` `Tensor` of shape `[M, 2]`, indices of the neighbor
+      point and the center for each neighbor. Follows the order of
+      `grid._sorted_points`.
+  """
+  with tf.compat.v1.name_scope(
+      name, 'find neighbors',
+      [point_cloud, point_cloud_centers, radius]):
+    points = point_cloud._points
+    batch_ids = point_cloud._batch_ids
+    center_points = point_cloud_centers._points
+    center_batch_ids = point_cloud_centers._batch_ids
+    num_center_points = center_points.shape[0]
+
+    distances = tf.linalg.norm(tf.expand_dims(points, axis=0) - \
+                               tf.expand_dims(center_points, axis=1),
+                               axis=-1)
+    close = (distances <= radius)
+    same_batch = (tf.expand_dims(batch_ids, axis=0) == \
+                  tf.expand_dims(center_batch_ids, axis=1))
+    close = tf.math.logical_and(same_batch, close)
+
+    neighbors = tf.where(close)
+    neighbors = tf.reverse(neighbors, axis=[1])
+    num_neighbors = neighbors.shape[0]
+    neigh_ranges = tf.math.unsorted_segment_max(
+        tf.range(1, num_neighbors + 1),
+        neighbors[:, 1],
+        num_center_points)
+  return neigh_ranges, neighbors
+tf.no_gradient('FindNeighborsNoGrid')
+
+
 # def sampling(pNeighborhood, pSampleMode, name=None):
 #   with tf.compat.v1.name_scope(name, "sampling",
 #       [pNeighborhood, pSampleMode]):
