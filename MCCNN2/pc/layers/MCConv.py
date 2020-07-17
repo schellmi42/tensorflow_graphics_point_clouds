@@ -25,6 +25,7 @@ from MCCNN2.pc import KDEMode
 from MCCNN2.pc.custom_ops import basis_proj
 from MCCNN2.pc.layers.utils import _format_output
 
+
 """ Class to represent a Monte-Carlo convolution layer
 
   Attributes:
@@ -105,6 +106,39 @@ class MCConv2Sampled:
               initializer=initializer_weights(stddev=std_dev),
               dtype=tf.float32, trainable=True)
 
+  def _monte_carlo_convolution(self,
+                               kernel_inputs,
+                               neighborhood,
+                               pdf,
+                               features,
+                               non_linearity_type=3):
+    """ Method to compute a Monte-Carlo integrated convolution using a
+    two layer MLP as implicit convolution kernel function.
+
+    Args:
+      kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
+        kernel MLP.
+      neighborhood: A `Neighborhood` instance, with a `pdf` attribute.
+      features: A `float` `Tensor` of shape `[N, C1]`, the input features.
+
+    Returns:
+      A `float` `Tensor` of shape ``[N,C2]`, the output features.
+    """
+    #Compute convolution - input to hidden layer with
+    # Monte-Carlo integration - nonlinear  (RELU - 2, LRELU - 3, ELU - 4)
+    weighted_features = basis_proj(kernel_inputs,
+                                   neighborhood,
+                                   pdf,
+                                   features,
+                                   self._basis_tf,
+                                   non_linearity_type)
+    #Compute convolution - hidden layer to output (linear)
+    convolution_result = tf.matmul(
+        tf.reshape(weighted_features,
+                   [-1, self._num_features_in * self._size_hidden]),
+        self._weights)
+    return convolution_result
+
   def __call__(self,
                features,
                point_cloud_in: PointCloud,
@@ -164,15 +198,14 @@ class MCConv2Sampled:
       bwTensor = tf.repeat(bandwidth, self._num_dims)
 
       if neighborhood is None:
-        #Compute the grid.
+        #Compute the grid
         grid = Grid(point_cloud_in, radii_tensor)
-
-        #Compute the neighborhood key.
+        #Compute the neighborhoods
         neigh = Neighborhood(grid, radii_tensor, point_cloud_out)
       else:
         neigh = neighborhood
         grid = neigh._grid
-      neigh.compute_pdf(bwTensor, mode=KDEMode.constant)
+      pdf = neigh.get_pdf(bandwidth=bwTensor, mode=KDEMode.constant)
 
       #Compute kernel inputs.
       neigh_point_coords = tf.gather(
@@ -181,15 +214,9 @@ class MCConv2Sampled:
           point_cloud_out._points, neigh._neighbors[:, 1])
       points_diff = (neigh_point_coords - center_point_coords) / \
           tf.reshape(radii_tensor, [1, self._num_dims])
-
-      #Compute convolution (RELU - 2, LRELU - 3, ELU - 4)
-      weighted_features = basis_proj(
-          points_diff, neigh, features, self._basis_tf, 3)
-
-      #Compute the convolution.
-      convolution_result = tf.matmul(tf.reshape(
-          weighted_features, [-1, self._num_features_in * self._size_hidden]),
-          self._weights)
+      #Compute Monte-Carlo convolution
+      convolution_result = self._monte_carlo_convolution(
+          points_diff, neigh, pdf, features, 3)
       return _format_output(convolution_result,
                             point_cloud_out,
                             return_sorted,

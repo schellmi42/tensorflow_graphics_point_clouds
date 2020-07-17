@@ -139,11 +139,11 @@ def compute_pdf(neighborhood, bandwidth, mode, name=None):
 
   Args:
     neighborhood: A `Neighborhood` instance.
-    bandwidth: An `int` tensor of shape [D], the bandwidth of the KDE.
+    bandwidth: An `int` `Tensor` of shape `[D]`, the bandwidth of the KDE.
     mode: A `KDEMode` value.
 
   Returns:
-    A `float` tensor of shape [S], the estimated density per center point.
+    A `float` `Tensor` of shape `[S]`, the estimated density per center point.
 
   """
   with tf.compat.v1.name_scope(
@@ -171,24 +171,28 @@ def _compute_pdf_grad(op, *grads):
   return [inPtsGrad, None, None, None, None]
 
 
-def basis_proj(kernel_inputs, neighborhood, features,
-               basis, basis_type):
-  """ Method to compute the convolution using a basis projection, i.e. a one
-  hidden layer MLP, as convolution kernel and Monte-Carlo integration.
+def basis_proj(kernel_inputs, neighborhood, pdf, features,
+               basis, non_linearity_type):
+  """ Method to compute the Monte-Carlo integrated latent vectors of a
+  one hidden layer MLP, with a non-linear activation function. The MLP is
+  the implicit convolution kernel function.
 
   Args:
-    kernel_inputs: A float tensor of shape [N, L], the input to the kernel MLP.
+    kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
+      kernel MLP.
     neighborhood: A `Neighborhood` instance.
-    features: A `float`tensor of shape [N, C], the input features.
+    pdf:  A `float` `Tensor` of shape `[M]`.
+    features: A `float` `Tensor` of shape `[N, C]`, the input features.
     basis: A list of two `tf.Variables`, the weights and biases of the
       hidden layer of the MLP.
-    basis_type: An `int`, type of the activation function used.
-      (RELU - 2, LRELU - 3, ELU - 4)
+      1. weights of shape `[H, L]`
+      2. biases of shape `[H,1]`
+    non_linearity_type: An `int`, specifies the type of the activation
+      function used. (RELU - 2, LRELU - 3, ELU - 4)
 
   Returns:
-    A `float` tensor.
+    A `float` `Tensor` of shape ``[N,C,H]`, the weighted latent features.
   """
-  pdf = neighborhood._pdf
   return tfg_custom_ops.basis_proj(
       kernel_inputs,
       features,
@@ -196,7 +200,7 @@ def basis_proj(kernel_inputs, neighborhood, features,
       neighborhood._samples_neigh_ranges,
       pdf,
       basis,
-      basis_type)
+      non_linearity_type)
 
 
 @tf.RegisterGradient("BasisProj")

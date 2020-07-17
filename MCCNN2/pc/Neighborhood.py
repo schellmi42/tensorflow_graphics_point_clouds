@@ -95,11 +95,11 @@ class Neighborhood:
       #Initialize the pdf
       self._pdf = None
 
-  def compute_pdf(self, bandwidth, mode=0, name=None):
-    """Method to compute the probability density function of a neighborhood.
+  def _compute_pdf(self, bandwidth=0.2, mode=0, name=None):
+    """Method to compute the probability density function of the neighborhoods.
 
     Args:
-      bandwidth: float `Tensor` of shape [D], bandwidth used to compute
+      bandwidth: float ``Tensor`` of shape `[D]`, bandwidth used to compute
         the pdf.
       mode: 'KDEMode', mode used to determine the bandwidth.
     """
@@ -119,3 +119,19 @@ class Neighborhood:
         _pdf = compute_pdf(
               aux_neighbors, bandwidth, mode.value)
         self._pdf = tf.gather(_pdf, self._neighbors[:, 0])
+
+  def get_pdf(self, **kwargs):
+    """ Method which returns the pdfs of the neighborhoods.
+    If no pdf was computed before, it will compute one using the provided
+    arguments.
+
+    Args:
+      **kwargs: if no pdf is available, these arguments will be passed to
+      `_compute_pdf`.
+
+    Returns:
+      A `float` `Tensor` of shape `[M]`, the estimated densities.
+    """
+    if self._pdf is None:
+      self._compute_pdf(**kwargs)
+    return self._pdf

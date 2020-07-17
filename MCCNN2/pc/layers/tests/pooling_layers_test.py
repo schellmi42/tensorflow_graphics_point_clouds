@@ -25,7 +25,7 @@ from MCCNN2.pc.layers import GlobalMaxPooling, GlobalAveragePooling
 from MCCNN2.pc.layers import MaxPooling, AveragePooling
 
 
-class Pooling(test_case.TestCase):
+class PoolingTest(test_case.TestCase):
 
   @parameterized.parameters(
     (10000, 32, 2),
