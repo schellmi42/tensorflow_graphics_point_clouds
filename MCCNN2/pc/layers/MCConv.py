@@ -60,7 +60,7 @@ class MCConv2Sampled:
                initializer_weights=None,
                initializer_biases=None,
                name=None):
-    """ Constructior, initializes weights.
+    """ Constructior, initializes variables.
     """
 
     with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
@@ -118,11 +118,14 @@ class MCConv2Sampled:
     Args:
       kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
         kernel MLP.
-      neighborhood: A `Neighborhood` instance, with a `pdf` attribute.
+      neighborhood: A `Neighborhood` instance.
+      pdf: A `float` `Tensor` of shape `[M]`.
       features: A `float` `Tensor` of shape `[N, C1]`, the input features.
+      non_linearity_type: An `int`, specifies the type of the activation
+        function used. (RELU - 2, LRELU - 3, ELU - 4)
 
     Returns:
-      A `float` `Tensor` of shape ``[N,C2]`, the output features.
+      A `float` `Tensor` of shape `[N,C2]`, the output features.
     """
     #Compute convolution - input to hidden layer with
     # Monte-Carlo integration - nonlinear  (RELU - 2, LRELU - 3, ELU - 4)

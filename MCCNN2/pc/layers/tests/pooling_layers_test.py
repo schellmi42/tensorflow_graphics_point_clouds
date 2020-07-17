@@ -46,7 +46,7 @@ class PoolingTest(test_case.TestCase):
     point_cloud = PointCloud(points, batch_ids)
 
     # max pooling
-    with self.subTest(name='max pooling'):
+    with self.subTest(name='max_pooling'):
       PoolLayer = GlobalMaxPooling()
       pool_tf = PoolLayer(features, point_cloud)
       pool_numpy = np.empty([batch_size, dimension])
@@ -55,7 +55,7 @@ class PoolingTest(test_case.TestCase):
       self.assertAllClose(pool_numpy, pool_tf)
 
     # average pooling
-    with self.subTest(name='average pooling'):
+    with self.subTest(name='average_pooling'):
       PoolLayer = GlobalAveragePooling()
       pool_tf = PoolLayer(features, point_cloud)
       pool_numpy = np.empty([batch_size, dimension])
@@ -97,7 +97,7 @@ class PoolingTest(test_case.TestCase):
     features_on_neighbors = features[neighbor_ids[:, 0]]
 
     #max pooling
-    with self.subTest(name='max pooling to sampled'):
+    with self.subTest(name='max_pooling_to_sampled'):
       PoolLayer = MaxPooling()
       pool_tf = PoolLayer(
           features, point_cloud, point_cloud_samples, cell_sizes)
@@ -110,7 +110,7 @@ class PoolingTest(test_case.TestCase):
       self.assertAllClose(pool_tf, pool_numpy)
 
     #max pooling
-    with self.subTest(name='average pooling to sampled'):
+    with self.subTest(name='average_pooling_to_sampled'):
       PoolLayer = AveragePooling()
       pool_tf = PoolLayer(
           features, point_cloud, point_cloud_samples, cell_sizes)
