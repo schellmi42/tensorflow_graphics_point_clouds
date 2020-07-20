@@ -133,6 +133,7 @@ class MCConvTest(test_case.TestCase):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points, dimension=dimension)
     features = np.random.rand(num_points, num_features[0])
+    features = np.tile(batch_ids, [num_features[0],1]).T
     point_cloud = PointCloud(points, batch_ids)
 
     point_samples, batch_ids_samples = \
@@ -171,7 +172,7 @@ class MCConvTest(test_case.TestCase):
     # neighbor ids are currently corrupted on dimension 2: todo fix
     # (2000, 200, 16, 0.7, 2),
     # (4000, 400, 8, np.sqrt(2), 2),
-    (200, 20, [3, 3], 16, 0.7, 8, 3),
+    (200, 20, [3, 3], 16, np.sqrt(3), 8, 3),
     # (4000, 400, 8, np.sqrt(3), 3),
     # (4000, 100, 1, np.sqrt(3), 3),
     # (2000, 200, 16, 0.7, 4),
@@ -194,11 +195,15 @@ class MCConvTest(test_case.TestCase):
         utils._create_random_point_cloud_segmented(
             batch_size, num_samples, dimension=dimension)
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
+    point_cloud = PointCloud(points, batch_ids)
+    grid = Grid(point_cloud, cell_sizes)
+    neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
 
     def conv_points(points_in):
       point_cloud = PointCloud(points_in, batch_ids)
-      grid = Grid(point_cloud, cell_sizes)
-      neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
+      # neighborhood._grid._sorted_points = \
+      #     tf.gather(
+      #       points_in, grid._sorted_indices)
       conv_layer = MCConv2Sampled(
           num_features[0], num_features[1], dimension, hidden_size)
       conv_result = conv_layer(

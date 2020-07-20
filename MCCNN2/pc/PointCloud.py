@@ -158,10 +158,6 @@ class PointCloud:
       #Sort the points based on the batch ids in incremental order.
       self._sorted_indices_batch = tf.argsort(self._batch_ids)
 
-      # initialize grid and neighborhood_cache
-      self._grid_cache = {}
-      self._neighborhood_cache = {}
-
   def _init_from_padded(self, points):
     """converting padded [A1,...,An,V,D] tensor into a 2D tensor [N,D] with
     segmentation ids

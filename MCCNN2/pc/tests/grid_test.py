@@ -98,7 +98,7 @@ class GridTest(test_case.TestCase):
     keys = grid._sorted_keys.numpy()
     ds_numpy = np.full((batch_size, total_num_cells[0],
                         total_num_cells[1], 2), 0)
-    if dimension == 2:                        
+    if dimension == 2:
       cells_per_2D_cell = 1
     elif dimension > 2:
       cells_per_2D_cell = np.prod(total_num_cells[2:])
@@ -127,7 +127,7 @@ class GridTest(test_case.TestCase):
           ds_numpy[curbatch_ids, xIndex, yIndex, 1] = key_iter + 1
 
     # check if the data structure is equal
-    self.assertAllEqual(grid._fast_DS, ds_numpy)
+    self.assertAllEqual(grid.get_DS(), ds_numpy)
 
 if __name__ == '__main__':
   test_case.main()

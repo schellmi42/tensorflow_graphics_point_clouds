@@ -58,6 +58,7 @@ class PointHierarchy:
       self._point_clouds = [point_cloud]
       self._sample_ops = []
       self._cell_sizes = []
+      self._neighborhoods = []
 
       self._dimension = point_cloud._dimension
       self._batch_shape = point_cloud._batch_shape
@@ -87,14 +88,16 @@ class PointHierarchy:
 
         cur_grid = Grid(cur_point_cloud, cell_sizes_tensor, self._aabb)
         cur_neighborhood = Neighborhood(cur_grid, cell_sizes_tensor)
-        cur_sample_op = Sample(cur_neighborhood, sample_mode)
+        cur_sample = Sample(cur_neighborhood, sample_mode)
 
-        self._sample_ops.append(cur_sample_op)
-        cur_sample_op._sample_point_cloud.set_batch_shape(self._batch_shape)
-        self._point_clouds.append(cur_sample_op._sample_point_cloud)
-        cur_point_cloud = cur_sample_op._sample_point_cloud
+        self._sample_ops.append(cur_sample)
+        self._grids.append(cur_grid)
+        self._neighborhoods.append(cur_neighborhood)
+        cur_sample._sample_point_cloud.set_batch_shape(self._batch_shape)
+        self._point_clouds.append(cur_sample._sample_point_cloud)
+        cur_point_cloud = cur_sample._sample_point_cloud
 
-  def get_points(self, id=None, max_num_points=None, name=None):
+  def get_points(self, batch_id=None, max_num_points=None, name=None):
     """ Returns the points.
 
     Note:
@@ -104,17 +107,20 @@ class PointHierarchy:
       [A1,...,An,V,D]
 
     Args:
-      id Identifier of point cloud in the batch, if None return all points
+      batch_id: An `int`, identifier of point cloud in the batch, if `None`
+        returns all points.
 
     Return:
-      list of tensors:  if 'id' was given: 2D float tensors,
-        if 'id' not given: float tensors of shape [A1,...,An,V,D].
+      A list of `float` `Tensors` of shape
+          `[N_i, D]`, if 'batch_id' was given
+      or
+        `[A1,...,An,V_i,D]`, if no 'batch_id' was given.
     """
     with tf.compat.v1.name_scope(
-        name, "get points of specific batch id", [self, id]):
+        name, "get points of specific batch id", [self, batch_id]):
       points = []
       for point_cloud in self._point_clouds:
-        points.append(point_cloud.get_points(id))
+        points.append(point_cloud.get_points(batch_id))
       return points
 
   def get_sizes(self, name=None):
@@ -152,6 +158,30 @@ class PointHierarchy:
         name, "set batch shape of point hierarchy", [self, batch_shape]):
       for point_cloud in self._point_clouds:
         point_cloud.set_batch_shape(batch_shape)
+
+  def get_neighborhood(self, i=None, transposed=False):
+    """ Returns the neighborhood between level `i` and `i+1` of the hierarchy.
+    If called without argument returns a list of all neighborhoods.
+
+    Args:
+      i: An `int`, can be negative but must be in range
+        `[-num_levels, num_levels-1]`.
+      transposed: A `bool`, if `True` returns the neighborhood between
+        level `i+1` and `i`.
+
+    Returs:
+      A `Neighborhood` instance or a list of `Neighborhood` instances.
+    """
+    if i is None:
+      if transposed:
+        return [nb.transposed() for nb in self._neighborhoods]
+      else:
+        return self._neighborhoods
+    else:
+      if transposed:
+        return self._neighborhoods[i].transpose()
+      else:
+        return self._neighborhoods[i]
 
   def __getitem__(self, index):
     return self._point_clouds[index]

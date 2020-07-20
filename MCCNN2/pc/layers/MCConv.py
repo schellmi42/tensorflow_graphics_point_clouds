@@ -207,14 +207,13 @@ class MCConv2Sampled:
         neigh = Neighborhood(grid, radii_tensor, point_cloud_out)
       else:
         neigh = neighborhood
-        grid = neigh._grid
       pdf = neigh.get_pdf(bandwidth=bwTensor, mode=KDEMode.constant)
 
       #Compute kernel inputs.
       neigh_point_coords = tf.gather(
-          grid._sorted_points, neigh._neighbors[:, 0])
+          point_cloud_in._points, neigh._original_neigh_ids[:, 0])
       center_point_coords = tf.gather(
-          point_cloud_out._points, neigh._neighbors[:, 1])
+          point_cloud_out._points, neigh._original_neigh_ids[:, 1])
       points_diff = (neigh_point_coords - center_point_coords) / \
           tf.reshape(radii_tensor, [1, self._num_dims])
       #Compute Monte-Carlo convolution

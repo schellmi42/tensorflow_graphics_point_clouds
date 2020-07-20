@@ -149,7 +149,7 @@ def find_neighbors_tf(grid,
     # find neighbors using fast 2D grid datastructure
     neighbor_points = grid._sorted_points
     neighbor_batch_ids = grid._sorted_batch_ids
-    data_structure = grid._fast_DS
+    data_structure = grid.get_DS()
 
     neighbors = []
     center_neigh_ranges = []

@@ -97,7 +97,7 @@ def find_neighbors(grid,
       point_cloud_centers._batch_ids,
       grid._sorted_points,
       grid._sorted_keys,
-      grid._fast_DS,
+      grid.get_DS(),
       grid._num_cells,
       grid._aabb._aabb_min / grid._cell_sizes,
       tf.math.reciprocal(grid._cell_sizes),
@@ -143,7 +143,8 @@ def compute_pdf(neighborhood, bandwidth, mode, name=None):
     mode: A `KDEMode` value.
 
   Returns:
-    A `float` `Tensor` of shape `[S]`, the estimated density per center point.
+    A `float` `Tensor` of shape `[S]`, the estimated density per center point,
+      with respect to the sorted points of the grid in `neighborhood`.
 
   """
   with tf.compat.v1.name_scope(

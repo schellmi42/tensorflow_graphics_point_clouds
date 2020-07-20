@@ -88,7 +88,7 @@ class mymodel(tf.keras.Model):
     self.dense_layers = []
     self.activations = []
     for i in range(self.num_layers):
-      self.conv_layers.append(pc.layers.MCConv2Sampled(feature_sizes[i],feature_sizes[i+1],hidden_size, 3))
+      self.conv_layers.append(pc.layers.MCConv2Sampled(feature_sizes[i],feature_sizes[i+1],3,hidden_size))
       if i < self.num_layers-1:
         self.batch_layers.append(tf.keras.layers.BatchNormalization())
         self.activations.append(tf.keras.layers.LeakyReLU())
@@ -165,6 +165,7 @@ loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
 batch_size = 16
 num_epochs = 100
+if quick_test: num_epochs = 2
 
 hidden_size = 16
 feature_sizes = [1,128,256,512,128,num_classes]
