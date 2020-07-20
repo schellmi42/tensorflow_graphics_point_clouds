@@ -143,7 +143,7 @@ class Neighborhood:
     if self._pdf is None:
       self._compute_pdf(**kwargs)
     return self._pdf
-  
+
   def get_grid(self):
     """ Returns the grid used for neighborhood computation.
     """

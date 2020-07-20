@@ -65,11 +65,12 @@ class MCConv2Sampled:
 
     with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
                                  [self, num_features_out, num_features_in,
-                                  num_features_out, size_hidden, num_dims]):
+                                  num_features_out, num_dims, size_hidden]):
       self._num_features_in = num_features_in
       self._num_features_out = num_features_out
       self._size_hidden = size_hidden
       self._num_dims = num_dims
+
       if name is None:
         self._name = ''
       else:
@@ -262,7 +263,7 @@ class MCConv(MCConv2Sampled):
 
     """
     super(MCConv, self).__init__(num_features_in, num_features_out,
-                                 size_hidden, num_dims, initializer_weights,
+                                 num_dims, size_hidden, initializer_weights,
                                  initializer_biases, name)
 
   def __call__(self,
