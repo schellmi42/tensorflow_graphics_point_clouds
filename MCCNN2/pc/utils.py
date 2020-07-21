@@ -30,14 +30,14 @@ def check_valid_point_cloud_input(points, sizes, batch_ids):
       is given.
   """
 
-  if len(points.shape) == 2 and sizes is None and batch_ids is None:
+  if points.shape.ndims == 2 and sizes is None and batch_ids is None:
     raise ValueError('Missing input! Either sizes or batch_ids must be given.')
-  if len(points.shape) == 1:
+  if points.shape.ndims == 1:
     raise ValueError(
         'Invalid input! Point tensor is of dimension 1 \
         but should be at least 2!')
-  if len(points.shape) == 2 and batch_ids is not None:
-    if len(points) != len(batch_ids):
+  if points.shape.ndims == 2 and batch_ids is not None:
+    if points.shape[0] != batch_ids.shape[0]:
       raise AssertionError('Invalid sizes! Sizes of points and batch_ids are' +
                            ' not equal.')
 
@@ -62,13 +62,14 @@ def check_valid_point_hierarchy_input(point_cloud, cell_sizes, pool_mode):
   for curr_cell_sizes in cell_sizes:
     if any(curr_cell_sizes <= 0):
       raise ValueError('cell size must be positive.')
-    if not len(curr_cell_sizes) in [1, point_cloud.dimension_]:
+    if not curr_cell_sizes.shape[0] in [1, point_cloud.dimension_]:
       raise ValueError(f'Invalid number of cell sizes for point cloud dimension.  \
-        Must be 1 or {point_cloud.dimension_} but is {len(curr_cell_sizes)}.')
+        Must be 1 or {point_cloud.dimension_} but is {curr_cell_sizes.shape[0]}\
+          .')
 
 
 def _flatten_features(features, point_cloud):
-  if len(features.shape) > 2:
+  if features.shape.ndims > 2:
     sizes = point_cloud.get_sizes()
     features, _ = flatten_batch_to_2d(features, sizes)
     sorting = tf.math.invert_permutation(point_cloud._sorted_indices_batch)
