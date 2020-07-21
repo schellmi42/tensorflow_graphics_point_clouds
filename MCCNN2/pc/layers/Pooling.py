@@ -50,6 +50,7 @@ class GlobalMaxPooling:
     """
     with tf.compat.v1.name_scope(
         name, "global max pooling ", [features, point_cloud, return_padded]):
+      features = tf.convert_to_tensor(value=features)
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_max(
           features,
@@ -90,6 +91,7 @@ class GlobalAveragePooling:
     with tf.compat.v1.name_scope(
         name, "global average pooling ",
         [features, point_cloud, return_padded]):
+      features = tf.convert_to_tensor(value=features)
       features = _flatten_features(features, point_cloud)
       features = tf.math.unsorted_segment_mean(
           features,
@@ -144,6 +146,7 @@ class _LocalPointPooling:
         name, default_name,
         [features, point_cloud_in, point_cloud_out, return_sorted,
          pooling_radius, return_padded]):
+      features = tf.convert_to_tensor(value=features)
       features = _flatten_features(features, point_cloud_in)
       pooling_radius = tf.convert_to_tensor(
           value=pooling_radius, dtype=tf.float32)
