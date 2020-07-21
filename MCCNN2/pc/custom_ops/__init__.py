@@ -23,8 +23,6 @@ try:
 except ImportError:
   CUSTOM = 0
 
-CUSTOM = 1
-
 if CUSTOM:
   from .custom_ops_wrapper import basis_proj
   from .custom_ops_wrapper import build_grid_ds
