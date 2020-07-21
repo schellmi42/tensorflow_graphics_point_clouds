@@ -112,14 +112,7 @@ class MCConvTest(test_case.TestCase):
   """
 
   @parameterized.parameters(
-    # neighbor ids are currently corrupted on dimension 2: todo fix
-    # (2000, 200, 16, 0.7, 2),
-    # (4000, 400, 8, np.sqrt(2), 2),
-    (2000, 200, [3, 3], 16, 0.7, 8, 3),
-    # (4000, 400, 8, np.sqrt(3), 3),
-    # (4000, 100, 1, np.sqrt(3), 3),
-    # (2000, 200, 16, 0.7, 4),
-    # (4000, 400, 8, np.sqrt(4), 4)
+    (100, 4, [3, 3], 2, np.sqrt(3), 8, 3)
   )
   def test_conv_jacobian_params(self,
                                 num_points,
@@ -132,10 +125,7 @@ class MCConvTest(test_case.TestCase):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points, dimension=dimension)
-    features = np.random.rand(num_points, num_features[0])
-    features = np.tile(batch_ids, [num_features[0],1]).T
     point_cloud = PointCloud(points, batch_ids)
-
     point_samples, batch_ids_samples = \
         utils._create_random_point_cloud_segmented(
             batch_size, num_samples, dimension=dimension)
@@ -145,6 +135,20 @@ class MCConvTest(test_case.TestCase):
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     conv_layer = MCConv2Sampled(
         num_features[0], num_features[1], dimension, hidden_size)
+    
+    features = np.random.rand(num_points, num_features[0])
+
+    _,_, counts = tf.unique_with_counts(neighborhood._neighbors[:, 1])
+    max_num_nb = tf.reduce_max(counts).numpy()
+
+    with self.subTest(name='features'):
+      def conv_features(features_in):
+        conv_result = conv_layer(
+          features_in, point_cloud, point_cloud_samples, radius, neighborhood)
+        return conv_result
+
+      self.assert_jacobian_is_correct_fn(
+          conv_features, [features], atol=1e-4 * max_num_nb)
 
     with self.subTest(name='params_basis_proj'):
       def conv_basis(basis_tf_in):
@@ -155,7 +159,7 @@ class MCConvTest(test_case.TestCase):
 
       basis_tf = conv_layer._basis_tf
       self.assert_jacobian_is_correct_fn(
-          conv_basis, [basis_tf], atol=1e-4)
+          conv_basis, [basis_tf], atol=1e-4 * max_num_nb)
     
     with self.subTest(name='params_second_layer'):
       def conv_weights(weigths_in):
@@ -166,13 +170,13 @@ class MCConvTest(test_case.TestCase):
 
       weights = conv_layer._weights
       self.assert_jacobian_is_correct_fn(
-          conv_weights, [weights], atol=1e-4)
+          conv_weights, [weights], atol=1e-4 * max_num_nb)
 
   @parameterized.parameters(
     # neighbor ids are currently corrupted on dimension 2: todo fix
     # (2000, 200, 16, 0.7, 2),
     # (4000, 400, 8, np.sqrt(2), 2),
-    (200, 20, [3, 3], 16, np.sqrt(3), 8, 3),
+    (10, 4, [3, 3], 1, np.sqrt(3), 8, 3),
     # (4000, 400, 8, np.sqrt(3), 3),
     # (4000, 100, 1, np.sqrt(3), 3),
     # (2000, 200, 16, 0.7, 4),
@@ -200,7 +204,7 @@ class MCConvTest(test_case.TestCase):
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
 
     def conv_points(points_in):
-      point_cloud = PointCloud(points_in, batch_ids)
+      point_cloud._points = points_in
       # neighborhood._grid._sorted_points = \
       #     tf.gather(
       #       points_in, grid._sorted_indices)
