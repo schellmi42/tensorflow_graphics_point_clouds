@@ -150,7 +150,7 @@ class PointCloud:
       self._unflatten = None
       self._aabb = None
 
-      if len(points.shape) > 2:
+      if points.shape.ndims > 2:
         self._init_from_padded(points)
       else:
         self._init_from_segmented(points)
