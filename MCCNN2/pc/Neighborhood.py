@@ -103,9 +103,9 @@ class Neighborhood:
 
       self._transposed = None
 
-  def _compute_pdf(self, bandwidth=0.2, mode=0, normalize=False, name=None):
+  def compute_pdf(self, bandwidth=0.2, mode=0, normalize=False, name=None):
     """Method to compute the probability density function of the neighborhoods.
-  
+
     Note: By default the returned densitity is not normalized.
 
     Args:
@@ -129,8 +129,14 @@ class Neighborhood:
         else:
           aux_neighbors = Neighborhood(self._grid, self._radii, None)
         _pdf = compute_pdf(
-              aux_neighbors, bandwidth, mode.value, normalize)
+              aux_neighbors, bandwidth, mode.value)
         self._pdf = tf.gather(_pdf, self._neighbors[:, 0])
+      if normalize:
+        norm_factors = tf.math.unsorted_segment_sum(
+            tf.ones_like(self._pdf),
+            self._neighbors[:, 1],
+            self._point_cloud_sampled._points.shape[0])
+        self._pdf = self._pdf / tf.gather(norm_factors, self._neighbors[:, 1])
 
   def get_pdf(self, **kwargs):
     """ Method which returns the pdfs of the neighborhoods.
@@ -139,13 +145,13 @@ class Neighborhood:
 
     Args:
       **kwargs: if no pdf is available, these arguments will be passed to
-      `_compute_pdf`.(optional)
+      `compute_pdf`.(optional)
 
     Returns:
       A `float` `Tensor` of shape `[M]`, the estimated densities.
     """
     if self._pdf is None:
-      self._compute_pdf(**kwargs)
+      self.compute_pdf(**kwargs)
     return self._pdf
 
   def get_grid(self):
