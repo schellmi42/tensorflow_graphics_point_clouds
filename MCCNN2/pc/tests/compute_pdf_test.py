@@ -67,7 +67,7 @@ class ComputePDFTest(test_case.TestCase):
 
     point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-    neighborhood.compute_pdf(bandwidths, KDEMode.constant)
+    neighborhood._compute_pdf(bandwidths, KDEMode.constant)
 
     sorted_points = grid._sorted_points.numpy()
     sorted_batch_ids = grid._sorted_batch_ids.numpy()
@@ -136,7 +136,7 @@ class ComputePDFTest(test_case.TestCase):
 
       point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
       neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-      neighborhood.compute_pdf(bandwidths, KDEMode.constant)
+      neighborhood._compute_pdf(bandwidths, KDEMode.constant)
       norm_factors = tf.math.unsorted_segment_sum(
           tf.ones_like(neighborhood._pdf),
           neighborhood._neighbors[:, 1],
