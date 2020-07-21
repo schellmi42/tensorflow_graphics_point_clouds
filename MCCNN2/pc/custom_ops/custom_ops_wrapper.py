@@ -133,14 +133,18 @@ def sampling(neighborhood, sample_mode, name=None):
 tf.no_gradient('sampling')
 
 
-def compute_pdf(neighborhood, bandwidth, mode, name=None):
+def compute_pdf(neighborhood, bandwidth, mode, normalize=False, name=None):
   """ Method to compute the density distribution inside the neighborhoods of a
   point cloud in euclidean space using kernel density estimation (KDE).
+
+  Note: By default the returned densitity is not normalized.
 
   Args:
     neighborhood: A `Neighborhood` instance.
     bandwidth: An `int` `Tensor` of shape `[D]`, the bandwidth of the KDE.
     mode: A `KDEMode` value.
+    normalize: A `bool`, if `True` each value is divided by be size of the
+      respective neighborhood.
 
   Returns:
     A `float` `Tensor` of shape `[S]`, the estimated density per center point,
@@ -150,14 +154,19 @@ def compute_pdf(neighborhood, bandwidth, mode, name=None):
   with tf.compat.v1.name_scope(
       name, "compute pdf with point gradients",
       [neighborhood, bandwidth, mode]):
-    return tfg_custom_ops.compute_pdf_with_pt_grads(
+    pdf = tfg_custom_ops.compute_pdf_with_pt_grads(
       neighborhood._grid._sorted_points,
       neighborhood._neighbors,
       neighborhood._samples_neigh_ranges,
       tf.math.reciprocal(bandwidth),
       tf.math.reciprocal(neighborhood._radii),
       mode)
-
+    if normalize:
+      _, idx, counts = tf.unique_with_counts(neighborhood._neighbors[:, 1])
+      sizes_per_nb = tf.gather(counts, idx)
+      pdf = pdf / tf.cast(sizes_per_nb, tf.float32)
+    return pdf
+      
 
 @tf.RegisterGradient("ComputePdfWithPtGrads")
 def _compute_pdf_grad(op, *grads):
