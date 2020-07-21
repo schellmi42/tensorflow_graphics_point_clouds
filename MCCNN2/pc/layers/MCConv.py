@@ -320,6 +320,8 @@ class MCResNet:
     num_dims: An `int, dimensionality of the point cloud.
     size_hidden: An `int`, the number of neurons in the hidden layer of the
         kernel MLP, can be `4, 8, 16`.
+    activation: A `tf.function`, the activiation used between layers, defaults
+      to `tf.nn.relu`.
   """
 
   def __init__(self,
@@ -355,6 +357,23 @@ class MCResNet:
                return_sorted=False,
                return_padded=False,
                name=None):
+    """ Computes the result of a ResNet with pre-activation using Monte-Carlo
+    convolutions.
+
+    Args:
+      features: A `float` `Tensor` of shape `[N, C]`.
+      point_cloud: A `PointCloud` instance, with `N` points.
+      radius: A `float`, the radius used for the convolution.
+      training: A `bool`, passed to the batch norm layers.
+      neighborhood: A `Neighborhood` instance, defining the neighborhoods with
+         `radius` on `point_cloud`.(optional)
+      bandwidth: A `float` the bandwidth used for computing the point densities
+        inside `neighborhood`.(optional)
+      return_sorted: A `boolean`, if `True` the output tensor is sorted
+        according to the batch_ids. (optional)
+      return_padded: A `bool`, if 'True' the output tensor is sorted and
+        zero padded. (optional)
+    """
     with tf.compat.v1.name_scope(
         name,
         "Monte-Carlo convolution ResNet with pre-activation",
@@ -372,14 +391,185 @@ class MCResNet:
         neighborhood = Neighborhood(grid, radii_tensor)
       for i in range(self._num_blocks):
         residual = features
-        features = self._batch_norm_layers[2 * i](features, training)
+        features = self._batch_norm_layers[2 * i](features,
+                                                  training=training)
         features = self._activation(features)
-        features = self._conv_layers[2 * i](features, point_cloud, radius,
+        features = self._conv_layers[2 * i](features,
+                                            point_cloud,
+                                            radius,
                                             neighborhood)
-        features = self._batch_norm_layers[2 * i + 1](features)
+        features = self._batch_norm_layers[2 * i + 1](features,
+                                                      training=training)
         features = self._activation(features)
-        features = self._conv_layers[2 * i + 1](features, point_cloud, radius,
+        features = self._conv_layers[2 * i + 1](features,
+                                                point_cloud,
+                                                radius,
                                                 neighborhood)
+        features = features + residual
+      return _format_output(features,
+                            point_cloud,
+                            return_sorted,
+                            return_padded)
+
+
+class MCResNetBottleNeck:
+  """ ResNet with pre-activation using Monte-Carlo convolution layers with
+  spatial down- and upsampling.
+
+  Args:
+    num_features: An `int`, the number of features per input point.
+    num_blocks: An `int`, the number of Resnet blocks, consisting of 4 layers
+      each (including down- and upsampling).
+    num_dims: An `int, dimensionality of the point cloud.
+    size_hidden: An `int`, the number of neurons in the hidden layer of the
+        kernel MLP, can be `4, 8, 16`.
+    activation: A `tf.function`, the activiation used between layers, defaults
+      to `tf.nn.relu`.
+  """
+
+  def __init__(self,
+               num_features,
+               num_blocks,
+               num_dims,
+               size_hidden,
+               activation=tf.nn.relu,
+               name=None):
+    """ Constructior, initializes weights.
+
+    """
+    with tf.compat.v1.name_scope(
+        name,
+        "Create Monte-Carlo convolution ResNetBottleNeck with pre-activation",
+        [num_features, num_blocks, num_dims, size_hidden, activation]):
+      self._num_dims = num_dims
+      self._num_blocks = num_blocks
+      self._activation = activation
+      self._batch_norm_layers = []
+      self._conv_layers = []
+      self._upsampling_layers = []
+      self._downsampling_layers = []
+      for i in range(num_blocks):
+        self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
+        self._upsampling_layers.append(
+            MCConv2Sampled(num_features_in=num_features,
+                           num_features_out=num_features,
+                           size_hidden=size_hidden,
+                           num_dim=num_dims))
+        self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
+        self._conv_layers.append(MCConv(num_features_in=num_features,
+                                        num_features_out=num_features,
+                                        size_hidden=size_hidden,
+                                        num_dim=num_dims))
+        self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
+        self._conv_layers.append(MCConv(num_features_in=num_features,
+                                        num_features_out=num_features,
+                                        size_hidden=size_hidden,
+                                        num_dim=num_dims))
+        self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
+        self._downsampling_layers.append(
+            MCConv2Sampled(num_features_in=num_features,
+                           num_features_out=num_features,
+                           size_hidden=size_hidden,
+                           num_dim=num_dims))
+
+  def __call__(self,
+               features,
+               point_cloud: PointCloud,
+               point_cloud_downsampled: PointCloud,
+               conv_radii,
+               training,
+               neighborhoods=None,
+               bandwidth=0.2,
+               return_sorted=False,
+               return_padded=False,
+               name=None):
+    """ Computes the result of a ResNetBottleNeck with pre-activation using
+    Monte-Carlo convolutions.
+
+    Args:
+      features: A `float` `Tensor` of shape `[N, C]`.
+      point_cloud: A `PointCloud` instance, with `N` points.
+      point_cloud_downsampled: A `PointCloud` instance, with the downsampled
+        points.
+      conv_radii: A `float` `Tensor` of shape `[3]`, the radii used for
+          1. spatial downsampling convoltion
+          2. convolutions on the downsampled point cloud
+          3. spatial upsampling convolution
+      training: A `bool`, passed to the batch norm layers.
+      neighborhoods: A list of three `Neighborhood` instances, the
+        neighborhoods defined between: (optinal)
+           1. `point_cloud` and `point_cloud_downsampled`
+           2. inside `point_cloud_downsampled`
+           3. `point_cloud_downsampled` and `point_cloud`
+      bandwidth: A `float` the bandwidth used for computing the point densities
+        inside `neighborhood`.(optional)
+      return_sorted: A `boolean`, if `True` the output tensor is sorted
+        according to the batch_ids. (optional)
+      return_padded: A `bool`, if 'True' the output tensor is sorted and
+        zero padded. (optional)
+    """
+    with tf.compat.v1.name_scope(
+        name,
+        "Monte-Carlo convolution ResNetBottleNet with pre-activation",
+        [features, point_cloud, point_cloud_downsampled, conv_radii, training,
+         neighborhoods, bandwidth, return_sorted, return_padded]):
+      features = tf.convert_to_tensor(value=features, dtype=tf.float32)
+      features = _flatten_features(features, point_cloud)
+      conv_radii = tf.convert_to_tensor(value=conv_radii)
+      radii = tf.reshape(conv_radii, [3, 1])
+
+      if neighborhoods is None:
+        neighborhoods = []
+        radii_tensor = tf.repeat([radii], self._num_dims, axis=1)
+        # downsampling
+        grid_down = Grid(point_cloud, radii_tensor[0])
+        neighborhoods.append(Neighborhood(grid_down,
+                                          radii_tensor[0],
+                                          point_cloud_downsampled))
+        # intra-downsampled
+        grid = Grid(point_cloud_downsampled, radii_tensor[1])
+        neighborhoods.append(Neighborhood(grid,
+                                          radii_tensor[1]))
+        # upsampling
+        if conv_radii[0] == conv_radii[2]:
+          neighborhoods.append(neighborhoods[0].transpose())
+        else:
+          grid_up = Grid(point_cloud_downsampled, radii_tensor[2])
+          neighborhoods.append(Neighborhood(grid_up,
+                                            radii_tensor[2],
+                                            point_cloud))
+      for i in range(self._num_blocks):
+        residual = features
+        features = self._batch_norm_layers[2 * i](features,
+                                                  training=training)
+        features = self._activation(features)
+        features = self._downsampling_layers[i](features,
+                                                point_cloud,
+                                                point_cloud_downsampled,
+                                                radii[0],
+                                                neighborhoods[0])
+        features = self._batch_norm_layers[2 * i + 1](features,
+                                                      training=training)
+        features = self._activation(features)
+        features = self._conv_layers[2 * i](features,
+                                            point_cloud_downsampled,
+                                            radii[1],
+                                            neighborhoods[1])
+        features = self._batch_norm_layers[2 * i + 2](features,
+                                                      training=training)
+        features = self._activation(features)
+        features = self._conv_layers[2 * i + 1](features,
+                                                point_cloud_downsampled,
+                                                radii[1],
+                                                neighborhoods[1])
+        features = self._batch_norm_layers[2 * i + 3](features,
+                                                      training=training)
+        features = self._activation(features)
+        features = self._upsampling_layers[i](features,
+                                              point_cloud_downsampled,
+                                              point_cloud,
+                                              radii[2],
+                                              neighborhoods[2])
         features = features + residual
       return _format_output(features,
                             point_cloud,
