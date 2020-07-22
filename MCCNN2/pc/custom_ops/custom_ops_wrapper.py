@@ -183,7 +183,7 @@ def basis_proj(kernel_inputs, neighborhood, pdf, features,
       kernel MLP.
     neighborhood: A `Neighborhood` instance.
     pdf:  A `float` `Tensor` of shape `[M]`.
-    features: A `float` `Tensor` of shape `[N, C]`, the input features.
+    features: A `float` `Tensor` of shape `[N_in, C]`, the input features.
     basis: A list of two `tf.Variables`, the weights and biases of the
       hidden layer of the MLP.
       1. weights of shape `[H, L]`
@@ -192,7 +192,7 @@ def basis_proj(kernel_inputs, neighborhood, pdf, features,
       function used. (RELU - 2, LRELU - 3, ELU - 4)
 
   Returns:
-    A `float` `Tensor` of shape ``[N,C,H]`, the weighted latent features.
+    A `float` `Tensor` of shape ``[N_out, C, H]`, the weighted latent features.
   """
   return tfg_custom_ops.basis_proj(
       kernel_inputs,

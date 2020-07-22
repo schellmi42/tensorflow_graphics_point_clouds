@@ -77,6 +77,7 @@ class MCConv2Sampled:
       self._num_features_out = num_features_out
       self._size_hidden = size_hidden
       self._num_dims = num_dims
+      self._non_linearity_type = 3
 
       if name is None:
         self._name = ''
@@ -226,7 +227,7 @@ class MCConv2Sampled:
           tf.reshape(radii_tensor, [1, self._num_dims])
       #Compute Monte-Carlo convolution
       convolution_result = self._monte_carlo_convolution(
-          points_diff, neigh, pdf, features, 3)
+          points_diff, neigh, pdf, features, self._non_linearity_type)
       return _format_output(convolution_result,
                             point_cloud_out,
                             return_sorted,
