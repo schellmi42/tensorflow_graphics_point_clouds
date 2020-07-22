@@ -19,4 +19,5 @@ from __future__ import print_function
 
 from .Pooling import GlobalAveragePooling, GlobalMaxPooling
 from .Pooling import MaxPooling, AveragePooling
-from .MCConv import MCConv, MCConv2Sampled, MCResNet
+from .MCConv import MCConv, MCConv2Sampled, MCResNet, Conv1x1, \
+    MCResNetBottleNeck, MCResNetSpatialBottleNeck
