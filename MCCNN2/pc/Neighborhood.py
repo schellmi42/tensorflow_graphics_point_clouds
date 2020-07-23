@@ -103,17 +103,21 @@ class Neighborhood:
 
       self._transposed = None
 
-  def compute_pdf(self, bandwidth=0.2, mode=0, normalize=False, name=None):
+  def compute_pdf(self,
+                  bandwidth=0.2,
+                  mode=KDEMode.constant,
+                  normalize=False,
+                  name=None):
     """Method to compute the probability density function of the neighborhoods.
 
     Note: By default the returned densitity is not normalized.
 
     Args:
       bandwidth: A `float` `Tensor` of shape `[D]`, bandwidth used to compute
-        the pdf.
-      mode: 'KDEMode', mode used to determine the bandwidth.
+        the pdf. (optional)
+      mode: 'KDEMode', mode used to determine the bandwidth. (optional)
       normalize: A `bool`, if `True` each value is divided by be size of the
-        respective neighborhood.
+        respective neighborhood. (optional)
     """
     with tf.compat.v1.name_scope(
         name, "compute pdf for neighbours",
@@ -125,11 +129,11 @@ class Neighborhood:
             self._neighbors[:, 0], dtype=tf.float32)
       else:
         if self._equal_samples:
-          aux_neighbors = self
+          pdf_neighbors = self
         else:
-          aux_neighbors = Neighborhood(self._grid, self._radii, None)
+          pdf_neighbors = Neighborhood(self._grid, self._radii, None)
         _pdf = compute_pdf(
-              aux_neighbors, bandwidth, mode.value)
+              pdf_neighbors, bandwidth, mode.value)
         self._pdf = tf.gather(_pdf, self._neighbors[:, 0])
       if normalize:
         norm_factors = tf.math.unsorted_segment_sum(

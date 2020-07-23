@@ -264,8 +264,10 @@ tf.no_gradient('FindNeighborsNoGrid')
 _pi = tf.constant(np.pi)
 
 
-def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
-  # CURRENTLY NOT CORRECT #
+def compute_pdf_inside_neighborhoods_tf(neighborhood,
+                                        bandwidth,
+                                        mode,
+                                        name=None):
   """ Method to compute the density distribution inside the neighborhoods of a
   point cloud in euclidean space using kernel density estimation (KDE).
 
@@ -275,7 +277,7 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
     mode: A `KDEMode` value.
 
   Returns:
-    A `float` `Tensor` of shape `[S]`, the estimated density per center point.
+    A `float` `Tensor` of shape `[N]`, the estimated density per center point.
 
   """
   with tf.compat.v1.name_scope(
@@ -286,6 +288,7 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
     neighbors = neighborhood._neighbors
     nbh_ranges = neighborhood._samples_neigh_ranges
 
+    # compute difference vectors inside neighborhoods
     num_adjacencies = neighbors.shape[0]
     nbh_start_ind = tf.concat(([0], nbh_ranges[0:-1]), axis=0)
     nbh_sizes = nbh_ranges - nbh_start_ind
@@ -306,19 +309,61 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
     nb_indices_2 = tf.gather(neighbors[:, 0], indices_2)
 
     nb_diff = tf.gather(points, nb_indices_1) - tf.gather(points, nb_indices_2)
+    # kernel density estimation using the distances
     rel_bandwidth = tf.reshape(bandwidth * neighborhood._radii, [1, -1])
     kernel_input = nb_diff / rel_bandwidth
+    # gaussian kernel
     nb_kernel_value = tf.exp(-tf.pow(kernel_input, 2) / 2) / tf.sqrt(2 * _pi)
     nb_kernel_value = tf.reduce_prod(nb_kernel_value, axis=1)
     nb_id_per_nb_pair = tf.repeat(tf.range(0, num_adjacencies),
                                   nbh_sizes_per_nb)
-
+    # sum over influence inside neighborhood
     pdf = tf.math.unsorted_segment_sum(nb_kernel_value,
                                        nb_id_per_nb_pair,
                                        num_adjacencies) /\
-        tf.reduce_prod(rel_bandwidth)
+        tf.reduce_prod(bandwidth)
     return pdf
 
+
+def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
+  """ Method to compute the density distribution using neighborhood information
+  in euclidean space using kernel density estimation (KDE).
+
+  Args:
+    neighborhood: A `Neighborhood` instance of the pointcloud to itself.
+    bandwidth: An `int` `Tensor` of shape `[D]`, the bandwidth of the KDE.
+    mode: A `KDEMode` value.
+
+  Returns:
+    A `float` `Tensor` of shape `[N]`, the estimated density per point,
+      with respect to the sorted points of the grid in `neighborhood`.
+
+  """
+  with tf.compat.v1.name_scope(
+      name, "compute pdf with point gradients",
+      [neighborhood, bandwidth, mode]):
+    bandwidth = tf.convert_to_tensor(value=bandwidth)
+
+    rel_bandwidth = tf.reshape(bandwidth * neighborhood._radii, [1, -1])
+    points = neighborhood._grid._sorted_points
+    num_points = points.shape[0]
+    neighbors = neighborhood._neighbors
+    # point differences
+    nb_diff = tf.gather(points, neighbors[:, 0]) - \
+        tf.gather(points, neighbors[:, 1])
+    # kde on point differences
+    kernel_input = nb_diff / rel_bandwidth
+    # gaussian kernel
+    nb_kernel_value = tf.exp(-tf.pow(kernel_input, 2) / 2) / tf.sqrt(2 * _pi)
+    print(nb_kernel_value)
+    nb_kernel_value = tf.reduce_prod(nb_kernel_value, axis=1)
+    print(nb_kernel_value)
+    # sum over influence of neighbors
+    pdf = tf.math.unsorted_segment_sum(nb_kernel_value,
+                                       neighbors[:, 1],
+                                       num_points) / \
+        tf.reduce_prod(bandwidth)
+    return pdf
 
 # @tf.RegisterGradient("ComputePdfWithPtGrads")
 # def _compute_pdf_grad(op, *grads):
@@ -331,6 +376,7 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
 #     grads[0],
 #     op.get_attr("mode"))
 #   return [inPtsGrad, None, None, None, None]
+
 
 def basis_proj_tf(kernel_inputs,
                   neighborhood,

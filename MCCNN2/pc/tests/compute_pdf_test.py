@@ -68,11 +68,11 @@ class ComputePDFTest(test_case.TestCase):
     point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     neighborhood.compute_pdf(bandwidths, KDEMode.constant)
+    pdf_tf = neighborhood._pdf
 
     sorted_points = grid._sorted_points.numpy()
     sorted_batch_ids = grid._sorted_batch_ids.numpy()
     neighbor_ids = neighborhood._neighbors
-    pdf_tf = neighborhood._pdf
 
     pdf_real = []
     accum_points = []
@@ -137,7 +137,10 @@ class ComputePDFTest(test_case.TestCase):
       point_cloud_samples = PointCloud(samples, samples_batch_ids, batch_size)
       neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
       neighborhood.compute_pdf(bandwidths, KDEMode.constant, normalize=True)
-      return neighborhood._pdf
+      # account for influence of neighborhood size
+      _, _, counts = tf.unique_with_counts(neighborhood._neighbors[:, 1])
+      max_num_nb = tf.cast(tf.reduce_max(counts), tf.float32)
+      return neighborhood._pdf / max_num_nb
 
     self.assert_jacobian_is_correct_fn(
         compute_pdf, [np.float32(points)], atol=1e-4)
