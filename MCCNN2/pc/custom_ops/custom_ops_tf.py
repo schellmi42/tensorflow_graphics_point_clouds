@@ -355,9 +355,7 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
     kernel_input = nb_diff / rel_bandwidth
     # gaussian kernel
     nb_kernel_value = tf.exp(-tf.pow(kernel_input, 2) / 2) / tf.sqrt(2 * _pi)
-    print(nb_kernel_value)
     nb_kernel_value = tf.reduce_prod(nb_kernel_value, axis=1)
-    print(nb_kernel_value)
     # sum over influence of neighbors
     pdf = tf.math.unsorted_segment_sum(nb_kernel_value,
                                        neighbors[:, 1],
