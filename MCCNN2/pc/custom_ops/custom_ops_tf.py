@@ -407,6 +407,9 @@ def basis_proj_tf(kernel_inputs,
         'basis_projection',
         [kernel_inputs, neighborhood, pdf, features, basis, non_linearity_type]
                               ):
+    kernel_inputs = tf.convert_to_tensor(value=kernel_inputs, dtype=tf.float32)
+    features = tf.convert_to_tensor(value=features, dtype=tf.float32)
+    pdf = tf.convert_to_tensor(value=pdf, dtype=tf.float32)                              
     # get input in correct shapes
     num_nbh = neighborhood._point_cloud_sampled._points.shape[0]
     features_per_nb = tf.gather(features,
