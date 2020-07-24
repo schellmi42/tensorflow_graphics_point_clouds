@@ -345,16 +345,15 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
     bandwidth = tf.convert_to_tensor(value=bandwidth)
 
     rel_bandwidth = tf.reshape(bandwidth * neighborhood._radii, [1, -1])
-    points = neighborhood._grid._sorted_points
+    points = neighborhood._grid._sorted_points / rel_bandwidth
     num_points = points.shape[0]
     neighbors = neighborhood._neighbors
     # point differences
     nb_diff = tf.gather(points, neighbors[:, 0]) - \
         tf.gather(points, neighbors[:, 1])
     # kde on point differences
-    kernel_input = nb_diff / rel_bandwidth
-    # gaussian kernel
-    nb_kernel_value = tf.exp(-tf.pow(kernel_input, 2) / 2) / tf.sqrt(2 * _pi)
+    # gaussian kernel, note division by bandwidth was already done above
+    nb_kernel_value = tf.exp(-tf.pow(nb_diff, 2) / 2) / tf.sqrt(2 * _pi)
     nb_kernel_value = tf.reduce_prod(nb_kernel_value, axis=1)
     # sum over influence of neighbors
     pdf = tf.math.unsorted_segment_sum(nb_kernel_value,
