@@ -4,6 +4,7 @@ MCCNN2/tf_ops/build/
 *.so
 # local test script
 test*.py
+time*.py
 # pycache
 __pycache__/
 *.pyc
