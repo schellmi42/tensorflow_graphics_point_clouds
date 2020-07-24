@@ -30,9 +30,9 @@ from MCCNN2.pc.tests import utils
 class NeighborsTest(test_case.TestCase):
 
   @parameterized.parameters(
-    # (100, 10, 8, 0.025, 2),
-    (1000, 10, 8, 0.025, 3),
-    (1000, 10, 8, 0.025, 4)
+    # (100, 10, 4, 0.025, 2),
+    (100, 10, 4, 0.025, 3),
+    (100, 10, 4, 0.025, 4)
   )
   def test_find_neighbors(self,
                           num_points,
