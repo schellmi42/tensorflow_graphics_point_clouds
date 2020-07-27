@@ -22,7 +22,7 @@ from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
 
-from MCCNN2.pc.layers import MCConv, MCConv2Sampled, Conv1x1
+from MCCNN2.pc.layers import MCConv, KPConv, Conv1x1
 from MCCNN2.pc.layers.utils import _format_output
 
 
@@ -35,7 +35,7 @@ def _identity(features, point_cloud):
 
 
 class MCResNet:
-  """ ResNet with pre-activation using Monte-Carlo convolution layers on one
+  """ ResNet with pre-activation using point cloud convolution layers on one
   point cloud.
 
   Args:
@@ -143,6 +143,7 @@ class MCResNet:
         features = self._activation(features)
         features = self._conv_layers[2 * i](features,
                                             point_cloud,
+                                            point_cloud,
                                             radius,
                                             neighborhood,
                                             bandwidth)
@@ -151,6 +152,7 @@ class MCResNet:
                                                       training=training)
         features = self._activation(features)
         features = self._conv_layers[2 * i + 1](features,
+                                                point_cloud,
                                                 point_cloud,
                                                 radius,
                                                 neighborhood,
@@ -293,6 +295,7 @@ class MCResNetBottleNeck:
         features = self._activation(features)
         features = self._conv_layers[2 * i](features,
                                             point_cloud,
+                                            point_cloud,
                                             radius,
                                             neighborhood,
                                             bandwidth)
@@ -301,6 +304,7 @@ class MCResNetBottleNeck:
                                                       training=training)
         features = self._activation(features)
         features = self._conv_layers[2 * i + 1](features,
+                                                point_cloud,
                                                 point_cloud,
                                                 radius,
                                                 neighborhood,
@@ -366,10 +370,10 @@ class MCResNetSpatialBottleNeck:
       for i in range(num_blocks):
         self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
         self._upsampling_layers.append(
-            MCConv2Sampled(num_features_in=num_features,
-                           num_features_out=num_features,
-                           num_dims=num_dims,
-                           size_hidden=size_hidden))
+            MCConv(num_features_in=num_features,
+                   num_features_out=num_features,
+                   num_dims=num_dims,
+                   size_hidden=size_hidden))
         self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
         self._conv_layers.append(MCConv(num_features_in=num_features,
                                         num_features_out=num_features,
@@ -382,10 +386,10 @@ class MCResNetSpatialBottleNeck:
                                         size_hidden=size_hidden))
         self._batch_norm_layers.append(tf.keras.layers.BatchNormalization())
         self._downsampling_layers.append(
-            MCConv2Sampled(num_features_in=num_features,
-                           num_features_out=num_features,
-                           num_dims=num_dims,
-                           size_hidden=size_hidden))
+            MCConv(num_features_in=num_features,
+                   num_features_out=num_features,
+                   num_dims=num_dims,
+                   size_hidden=size_hidden))
         if projection_shortcuts:
           self._projection_layers.append(Conv1x1(num_features,
                                                  num_features))

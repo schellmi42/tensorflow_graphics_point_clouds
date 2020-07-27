@@ -62,7 +62,7 @@ class KPConv:
   def __init__(self,
                num_features_in,
                num_features_out,
-               num_kernel_points,
+               num_kernel_points=13,
                deformable=False,
                initializer_weights=None,
                name=None):

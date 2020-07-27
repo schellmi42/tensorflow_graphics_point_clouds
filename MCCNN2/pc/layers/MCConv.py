@@ -37,8 +37,8 @@ from MCCNN2.pc.layers.utils import _format_output
 """
 
 
-class MCConv2Sampled:
-  """ Monte-Carlo convolution layer between two point clouds.
+class MCConv:
+  """ Monte-Carlo convolution for point clouds.
 
   Based on the paper [Monte Carlo Convolution for Learning on Non-Uniformly
   Sampled Point Clouds. Hermosilla et al., 2018]
@@ -60,7 +60,7 @@ class MCConv2Sampled:
                num_features_in,
                num_features_out,
                num_dims,
-               size_hidden,
+               size_hidden=8,
                initializer_weights=None,
                initializer_biases=None,
                name=None):
@@ -229,86 +229,3 @@ class MCConv2Sampled:
                             point_cloud_out,
                             return_sorted,
                             return_padded)
-
-""" Class to represent a Monte-Carlo convolution layer on one point cloud.
-
-  Attributes:
-    _num_features_in: An `int`, the number of features per input point
-    _num_features_out: An `int`, the number of features to compute
-    _size_hidden: An `int`, the number of neurons in the hidden layer of the
-      kernel MLP
-    _num_dims: An `int`, dimensionality of the point cloud.
-"""
-
-
-class MCConv(MCConv2Sampled):
-  """ Monte-Carlo convolution layer on one point cloud.
-
-  Args:
-    num_features_in: An `int` C_in, the number of features per input point.
-    num_features_out: An `int` C_out, the number of features to compute.
-    num_dims: An `int`, dimensionality of the point cloud.
-    size_hidden: An `int`, the number of neurons in the hidden layer of the
-        kernel MLP, must be in `[8, 16, 32]`.
-    initializer_weights: A `tf.initializer` for the weights,
-      default `TruncatedNormal`.
-    initializer_biases: A `tf.initializer` for the biases,
-      default: `zeros`.
-  """
-
-  def __init__(self,
-               num_features_in,
-               num_features_out,
-               num_dims,
-               size_hidden,
-               initializer_weights=None,
-               initializer_biases=None,
-               name=None):
-    """ Constructior, initializes weights.
-
-    """
-    super(MCConv, self).__init__(num_features_in, num_features_out,
-                                 num_dims, size_hidden, initializer_weights,
-                                 initializer_biases, name)
-
-  def __call__(self,
-               features,
-               point_cloud: PointCloud,
-               radius,
-               neighborhood=None,
-               bandwidth=0.2,
-               return_sorted=False,
-               return_padded=False,
-               name=None):
-    """ Computes the Monte-Carlo Convolution on a point cloud.
-
-    Note:
-      In the following, `A1` to `An` are optional batch dimensions.
-      `C_in` is the number of input features.
-      `C_out` is the number of output features.
-
-    Args:
-      features: A `float` `Tensor` of shape `[N_in, C_in]` or
-        `[A1, ..., An,V, C_in]`.
-      point_cloud: A 'PointCloud' instance, on which the features are
-        defined.
-      radius: A `float`, the convolution radius.
-      neighborhood: A `Neighborhood` instance, defining the neighborhood
-        inside `point_cloud`.
-        If `None` it is computed internally. (optional)
-      bandwidth: An `int`, the bandwidth used in the kernel density
-        estimation on the input point cloud. (optional)
-      return_sorted: A `boolean`, if `True` the output tensor is sorted
-        according to the batch_ids. (optional)
-      return_padded: A `bool`, if 'True' the output tensor is sorted and
-        zero padded. (optional)
-
-    Returns:
-      A `float` `Tensor` of shape
-        `[N_out, C_out]`, if `return_padded` is `False`
-      or
-        `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
-    """
-    return super(MCConv, self).__call__(features, point_cloud, point_cloud,
-                                        radius, neighborhood, bandwidth,
-                                        return_sorted, return_padded, name)

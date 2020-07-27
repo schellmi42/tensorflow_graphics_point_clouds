@@ -21,7 +21,7 @@ from tensorflow_graphics.util import test_case
 
 from MCCNN2.pc import PointCloud, Grid, Neighborhood, AABB
 from MCCNN2.pc.tests import utils
-from MCCNN2.pc.layers import MCConv2Sampled
+from MCCNN2.pc.layers import MCConv
 from MCCNN2.pc.custom_ops.custom_ops_tf import basis_proj_tf
 
 
@@ -62,7 +62,7 @@ class BasisProjTFTest(test_case.TestCase):
     pdf = neighborhood.get_pdf(bandwidth=bandwidth)
     nb_ids = neighborhood._original_neigh_ids
     # tf
-    conv_layer = MCConv2Sampled(
+    conv_layer = MCConv(
         num_features[0], num_features[1], dimension, hidden_size)
 
     neigh_point_coords = points[nb_ids[:, 0]]
@@ -138,7 +138,7 @@ class BasisProjTFTest(test_case.TestCase):
     pdf = neighborhood.get_pdf(bandwidth=bandwidth)
     nb_ids = neighborhood._original_neigh_ids
     # tf
-    conv_layer = MCConv2Sampled(
+    conv_layer = MCConv(
         num_features[0], num_features[1], dimension, hidden_size)
 
     neigh_point_coords = points[nb_ids[:, 0]]
