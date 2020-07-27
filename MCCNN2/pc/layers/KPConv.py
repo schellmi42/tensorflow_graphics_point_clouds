@@ -301,7 +301,7 @@ class KPConv:
     offset_per_center = tf.math.unsorted_segment_sum(convolution_result,
                                                      neighbors[:, 1],
                                                      self._num_output_points)
-    # gather for each neighbor, shape [M, 3*K]
+    # project back onto neighbor pairs, shape [M, 3*K]
     offset_per_nb = tf.gather(offset_per_center, neighbors[:, 1])
     # reshape to shape [K, M, 3]
     return  tf.transpose(tf.reshape(offset_per_nb,
