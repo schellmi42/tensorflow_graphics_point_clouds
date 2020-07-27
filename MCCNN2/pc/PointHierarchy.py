@@ -91,7 +91,6 @@ class PointHierarchy:
         cur_sample = Sample(cur_neighborhood, sample_mode)
 
         self._sample_ops.append(cur_sample)
-        self._grids.append(cur_grid)
         self._neighborhoods.append(cur_neighborhood)
         cur_sample._sample_point_cloud.set_batch_shape(self._batch_shape)
         self._point_clouds.append(cur_sample._sample_point_cloud)
