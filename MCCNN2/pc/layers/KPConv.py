@@ -209,7 +209,7 @@ class KPConv:
         `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
     """
 
-    with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
+    with tf.compat.v1.name_scope(name, "Kernel Point_convolution",
                                  [features, point_cloud_in, point_cloud_out,
                                   conv_radius, neighborhood,
                                   kernel_influence_dist, return_sorted,
