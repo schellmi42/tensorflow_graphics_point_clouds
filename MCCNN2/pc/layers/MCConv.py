@@ -112,12 +112,12 @@ class MCConv2Sampled:
               initializer=initializer_weights(stddev=std_dev),
               dtype=tf.float32, trainable=True)
 
-  def _monte_carlo_convolution(self,
-                               kernel_inputs,
-                               neighborhood,
-                               pdf,
-                               features,
-                               non_linearity_type=3):
+  def _monte_carlo_conv(self,
+                        kernel_inputs,
+                        neighborhood,
+                        pdf,
+                        features,
+                        non_linearity_type=3):
     """ Method to compute a Monte-Carlo integrated convolution using a single
     two layer MLP as implicit convolution kernel function.
 
@@ -223,7 +223,7 @@ class MCConv2Sampled:
       points_diff = (neigh_point_coords - center_point_coords) / \
           tf.reshape(radii_tensor, [1, self._num_dims])
       #Compute Monte-Carlo convolution
-      convolution_result = self._monte_carlo_convolution(
+      convolution_result = self._monte_carlo_conv(
           points_diff, neigh, pdf, features, self._non_linearity_type)
       return _format_output(convolution_result,
                             point_cloud_out,
@@ -312,4 +312,3 @@ class MCConv(MCConv2Sampled):
     return super(MCConv, self).__call__(features, point_cloud, point_cloud,
                                         radius, neighborhood, bandwidth,
                                         return_sorted, return_padded, name)
-
