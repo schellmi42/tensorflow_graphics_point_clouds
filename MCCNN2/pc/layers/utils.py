@@ -72,9 +72,9 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
       # Tetrahedron
       points = tf.Variable([[0, 0, 0],
                             [0, 0, 1],
-                            [np.sqrt(8 / 9), 0, -1 / 3],
-                            [- np.sqrt(2 / 9), np.sqrt(2 / 3), - 1 / 3],
-                            [-np.sqrt(2 / 9), - np.sqrt(2 / 3), -1 / 3]],
+                            [tf.sqrt(8 / 9), 0, -1 / 3],
+                            [- tf.sqrt(2 / 9), tf.sqrt(2 / 3), - 1 / 3],
+                            [-tf.sqrt(2 / 9), - tf.sqrt(2 / 3), -1 / 3]],
                            dtype=tf.float32)
     elif num_points == 7:
       # Octahedron
@@ -87,7 +87,7 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
                             [0, 0, -1]], dtype=tf.float32)
     elif num_points == 13:
       # Icosahedron
-      phi = (1 + np.sqrt(5)) / 2
+      phi = (1 + tf.sqrt(5)) / 2
       points = tf.Variable([[0, 0, 0],
                             [0, 1, phi],
                             [0, 1, -phi],
