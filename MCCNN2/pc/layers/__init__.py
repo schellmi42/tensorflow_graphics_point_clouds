@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Point cloud layers"""
+"""Point cloud network layers"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -19,5 +19,8 @@ from __future__ import print_function
 
 from .Pooling import GlobalAveragePooling, GlobalMaxPooling
 from .Pooling import MaxPooling, AveragePooling
-from .MCConv import MCConv, MCConv2Sampled, Conv1x1, MCResNet, \
+from .MCConv import MCConv, MCConv2Sampled
+from .conv1x1 import Conv1x1
+from .building_blocks import MCResNet, \
     MCResNetBottleNeck, MCResNetSpatialBottleNeck
+from .KPConv import KPConv

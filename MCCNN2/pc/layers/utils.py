@@ -64,54 +64,56 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
   with tf.compat.v1.name_scope(
       name, "KPConv kernel points",
       [num_points, rotate]):
+    print()
     if num_points not in [5, 7, 13]:
       raise ValueError('KPConv currently only supports kernel sizes' + \
                        ' [5, 7, 13]')
-      if num_points == 5:
-        # Tetrahedron
-        points = tf.Variable([[0, 0, 0],
-                              [0, 0, 1],
-                              [np.sqrt(8 / 9), 0, -1 / 3],
-                              [- np.sqrt(2 / 9), np.sqrt(2 / 3), - 1 / 3],
-                              [-np.sqrt(2 / 9), - np.sqrt(2 / 3), -1 / 3]])
-      elif num_points == 7:
-        # Octahedron
-        points = tf.Variable([[0, 0, 0],
-                              [1, 0, 0],
-                              [-1, 0, 0],
-                              [0, 1, 0],
-                              [0, -1, 0],
-                              [0, 0, 1],
-                              [0, 0, -1]])
-      elif num_points == 13:
-        # Icosahedron
-        phi = (1 + np.sqrt(5)) / 2
-        points = tf.Variable([[0, 0, 0],
-                              [0, 1, phi],
-                              [0, 1, -phi],
-                              [0, -1, phi],
-                              [0, -1, -phi],
-                              [1, phi, 0],
-                              [1, -phi, 0],
-                              [-1, phi, 0],
-                              [-1, -phi, 0],
-                              [phi, 0, 1],
-                              [-phi, 0, 1],
-                              [phi, 0, -1],
-                              [-phi, 0, -1]])
+    if num_points == 5:
+      # Tetrahedron
+      points = tf.Variable([[0, 0, 0],
+                            [0, 0, 1],
+                            [np.sqrt(8 / 9), 0, -1 / 3],
+                            [- np.sqrt(2 / 9), np.sqrt(2 / 3), - 1 / 3],
+                            [-np.sqrt(2 / 9), - np.sqrt(2 / 3), -1 / 3]],
+                           dtype=tf.float32)
+    elif num_points == 7:
+      # Octahedron
+      points = tf.Variable([[0, 0, 0],
+                            [1, 0, 0],
+                            [-1, 0, 0],
+                            [0, 1, 0],
+                            [0, -1, 0],
+                            [0, 0, 1],
+                            [0, 0, -1]], dtype=tf.float32)
+    elif num_points == 13:
+      # Icosahedron
+      phi = (1 + np.sqrt(5)) / 2
+      points = tf.Variable([[0, 0, 0],
+                            [0, 1, phi],
+                            [0, 1, -phi],
+                            [0, -1, phi],
+                            [0, -1, -phi],
+                            [1, phi, 0],
+                            [1, -phi, 0],
+                            [-1, phi, 0],
+                            [-1, -phi, 0],
+                            [phi, 0, 1],
+                            [-phi, 0, 1],
+                            [phi, 0, -1],
+                            [-phi, 0, -1]], dtype=tf.float32)
     if rotate:
-      angles = tf.random.uniform(3, 0, 2 * np.pi)
+      angles = tf.random.uniform([3], 0, 2 * np.pi)
       sine = tf.math.sin(angles)
       cosine = tf.math.cos(angles)
-      Rx = tf.stack(([1, 0, 0],
-                     [0, cosine[0], -sine[0]],
-                     [0, sine[0], cosine[0]]), axis=1)
+      Rx = tf.stack(([1.0, 0.0, 0.0],
+                     [0.0, cosine[0], -sine[0]],
+                     [0.0, sine[0], cosine[0]]), axis=1)
       Ry = tf.stack(([cosine[1], 0, sine[1]],
-                     [0, 1, 0],
-                     [-sine[1], 0, cosine[1]]), axis=1)
-      Rz = tf.stack(([cosine[2], -sine[2], 0],
-                     [sine[2], cosine[2], 0],
-                     [0, 0, 1]), axis=1)
+                     [0.0, 1.0, 0.0],
+                     [-sine[1], 0.0, cosine[1]]), axis=1)
+      Rz = tf.stack(([cosine[2], -sine[2], 0.0],
+                     [sine[2], cosine[2], 0.0],
+                     [0.0, 0.0, 1.0]), axis=1)
       R = tf.matmul(tf.matmul(Rx, Ry), Rz)
       points = tf.matmul(points, R)
     return points
