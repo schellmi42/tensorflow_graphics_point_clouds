@@ -46,6 +46,34 @@ def _format_output(features, point_cloud, return_sorted, return_padded):
   return features
 
 
+def random_rotation(points, name=None):
+  """ Method to rotate 3D points randomly.
+
+  Args:
+    points: A `float` `Tensor` of rshape `[N, 3]`.
+
+  Returns:
+    A `float` `Tensor` of the same shape as `points`.
+
+  """
+  with tf.compat.v1.name_scope(name, 'random point rotation', [points]):
+    points = tf.convert_to_tensor(value=points)
+    angles = tf.random.uniform([3], 0, 2 * np.pi)
+    sine = tf.math.sin(angles)
+    cosine = tf.math.cos(angles)
+    Rx = tf.stack(([1.0, 0.0, 0.0],
+                   [0.0, cosine[0], -sine[0]],
+                   [0.0, sine[0], cosine[0]]), axis=1)
+    Ry = tf.stack(([cosine[1], 0, sine[1]],
+                   [0.0, 1.0, 0.0],
+                   [-sine[1], 0.0, cosine[1]]), axis=1)
+    Rz = tf.stack(([cosine[2], -sine[2], 0.0],
+                   [sine[2], cosine[2], 0.0],
+                   [0.0, 0.0, 1.0]), axis=1)
+    R = tf.matmul(tf.matmul(Rx, Ry), Rz)
+    return tf.matmul(points, R)
+
+
 def kp_conv_kernel_points(num_points, rotate=True, name=None):
   """ Conputes the initial positions of the kernel points for KPConv.
 
@@ -102,18 +130,5 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
                             [phi, 0, -1],
                             [-phi, 0, -1]], dtype=tf.float32)
     if rotate:
-      angles = tf.random.uniform([3], 0, 2 * np.pi)
-      sine = tf.math.sin(angles)
-      cosine = tf.math.cos(angles)
-      Rx = tf.stack(([1.0, 0.0, 0.0],
-                     [0.0, cosine[0], -sine[0]],
-                     [0.0, sine[0], cosine[0]]), axis=1)
-      Ry = tf.stack(([cosine[1], 0, sine[1]],
-                     [0.0, 1.0, 0.0],
-                     [-sine[1], 0.0, cosine[1]]), axis=1)
-      Rz = tf.stack(([cosine[2], -sine[2], 0.0],
-                     [sine[2], cosine[2], 0.0],
-                     [0.0, 0.0, 1.0]), axis=1)
-      R = tf.matmul(tf.matmul(Rx, Ry), Rz)
-      points = tf.matmul(points, R)
+      points = random_rotation(points)
     return points
