@@ -109,7 +109,6 @@ class BasisProjTFTest(test_case.TestCase):
     self.assertAllClose(weighted_latent_per_sample_tf,
                         weighted_latent_per_sample)
 
-
   @parameterized.parameters(
     (100, 4, [3, 3], 2, np.sqrt(3), 8, 3)
   )
@@ -170,7 +169,7 @@ class BasisProjTFTest(test_case.TestCase):
                              2) / (max_num_nb)
       self.assert_jacobian_is_correct_fn(
           basis_proj_weights, [weights], atol=1e-3)
-    
+
     with self.subTest(name='points'):
       def basis_proj_points(points_in):
         neigh_point_coords = tf.gather(points_in, nb_ids[:, 0])

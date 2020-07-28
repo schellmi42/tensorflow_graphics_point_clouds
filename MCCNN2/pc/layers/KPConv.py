@@ -26,17 +26,35 @@ from MCCNN2.pc.layers.utils import _format_output, kp_conv_kernel_points
 
 
 def _linear_weighting(values, sigma):
-  """ Linear kernel iweights for KP Conv.
+  """ Linear kernel weights for KP Conv.
 
   Args:
-    values: A `float` `Tensor` of shape `[K, M]`, the distances to the kernel
-     points.
-    sigma: A `float`, the influence distance of the kernel points.
+    values: A `float` `Tensor` of shape `[K, M]`, the normalized distances to
+      the kernel points, in `[0,1]`.
+    sigma: A `float`, the normalized influence distance of the kernel points.
 
   Returns:
     A `float` `Tensor` of shape `[K, M]`.
   """
   return tf.nn.relu(1 - values / sigma)
+
+
+def _gaussian_weighting(values, sigma):
+  """ Gaussian kernel weights for KP Conv.
+
+  Args:
+    values: A `float` `Tensor` of shape `[K, M]`, the normalized distances to
+      the kernel points, in `[0,1]`.
+    sigma: A `float`, the normalized influence distance of the kernel points.
+
+  Returns:
+    A `float` `Tensor` of shape `[K, M]`.
+  """
+  sigma = sigma / 3
+  return tf.exp(-(values / sigma)**2)
+
+kernel_interpolation = {'linear': _linear_weighting,
+                        'gaussian': _gaussian_weighting}
 
 
 class KPConv:
@@ -53,6 +71,7 @@ class KPConv:
       kernel.
     deformable: A 'bool', indicating whether to use rigid or deformable kernel
       points.
+    kp_interpolation: A `string`, either `'linear'` or `'gaussian'`.
     initializer_weights: A `tf.initializer` for the weights,
       default `TruncatedNormal`.
     initializer_biases: A `tf.initializer` for the biases,
@@ -64,6 +83,7 @@ class KPConv:
                num_features_out,
                num_kernel_points=13,
                deformable=False,
+               kp_interpolation='linear',
                initializer_weights=None,
                name=None):
     """ Constructior, initializes variables.
@@ -72,11 +92,12 @@ class KPConv:
     with tf.compat.v1.name_scope(name, "create KP convolution",
                                  [self, num_features_out, num_features_in,
                                   num_kernel_points, deformable,
-                                  initializer_weights]):
+                                  kp_interpolation, initializer_weights]):
       self._num_features_in = num_features_in
       self._num_features_out = num_features_out
       self._num_kernel_points = num_kernel_points
       self._deformable = deformable
+      self._weighting = kernel_interpolation[kp_interpolation]
       self._num_dims = 3
       if name is None:
         self._name = ''
@@ -149,7 +170,11 @@ class KPConv:
     points_diff = tf.expand_dims(kernel_input, 0) - \
         (tf.expand_dims(self._kernel_points, 1) + kernel_offsets)
     points_dist = tf.linalg.norm(points_diff, axis=2)
-    kernel_weights = _linear_weighting(points_dist, self._sigma)
+    kernel_weights = self._weighting(points_dist, self._sigma)
+
+    # save values for regularization loss computation
+    self._cur_point_dist = points_dist
+    self._cur_neighbors = neighbors
 
     # weighted features per kernel and input features dim, shape [K, M, C1]
     features_per_nb = tf.gather(features, neighbors[:, 0])
@@ -220,11 +245,11 @@ class KPConv:
       self._num_output_points = point_cloud_out._points.shape[0]
 
       if kernel_influence_dist is None:
-        self._sigma = conv_radius / 2.5
+        # normalized
+        self._sigma = 0.4
       else:
         self._sigma = tf.convert_to_tensor(
-          value=kernel_influence_dist, dtype=tf.float32)
-
+          value=kernel_influence_dist / conv_radius, dtype=tf.float32)
       #Create the radii tensor.
       radii_tensor = tf.cast(tf.repeat([conv_radius], self._num_dims),
                              dtype=tf.float32)
@@ -284,7 +309,7 @@ class KPConv:
     points_diff = tf.expand_dims(kernel_input, 0) - \
         tf.expand_dims(self._kernel_points, 1)
     points_dist = tf.linalg.norm(points_diff, axis=2)
-    kernel_weights = _linear_weighting(points_dist, self._sigma)
+    kernel_weights = self._weighting(points_dist, self._sigma)
 
     # weighted features per kernel and input features dim, shape [K, M, C1]
     features_per_nb = tf.gather(features, neighbors[:, 0])
@@ -301,6 +326,10 @@ class KPConv:
     offset_per_center = tf.math.unsorted_segment_sum(convolution_result,
                                                      neighbors[:, 1],
                                                      self._num_output_points)
+    # save for regularization loss computation
+    self._offsets = tf.reshape(offset_per_center, [self._num_output_points,
+                                                   self._num_kernel_points,
+                                                   3])
     # project back onto neighbor pairs, shape [M, 3*K]
     offset_per_nb = tf.gather(offset_per_center, neighbors[:, 1])
     # reshape to shape [K, M, 3]
@@ -309,3 +338,41 @@ class KPConv:
                                      self._num_kernel_points,
                                      3]),
                          [1, 0, 2])
+
+  def regularization_loss(self, name=None):
+    """ The regularization loss for deformable kernel points.
+
+    As described in Section 3.2 of [KPConv: Flexible and Deformable Convolution
+    for Point Clouds. Thomas et al., 2019](https://arxiv.org/abs/1904.08889).
+
+    Returns:
+      A 'float`, the sum of repulsory and fitting loss.
+    """
+    with tf.compat.v1.name_scope(name, 'KP Conv regularization loss',
+                                 []):
+
+      # attractive loss, distances to closest points in each neighborhood
+      neighbors = self._cur_neighbors
+
+      # reshape to [M, K]
+      point_dist = (tf.transpose(self._cur_point_dist) / self._sigma)**2
+      min_dists_per_nbh = tf.math.unsorted_segment_min(point_dist,
+                                                       neighbors[:, 1],
+                                                       self._num_output_points)
+      loss_fit = tf.reduce_sum(min_dists_per_nbh)
+
+      # repulsive loss for kernel points with overlapping influence area.
+      kernel_offsets = self._offsets
+      # shape [N2, K, 3]
+      kernel_points = tf.expand_dims(self._kernel_points, 0) + kernel_offsets
+      kernel_dists = tf.linalg.norm(tf.expand_dims(kernel_points, 1) - \
+                                    tf.expand_dims(kernel_points, 2),
+                                    axis=3)
+      kernel_weights = self._weighting(kernel_dists, self._sigma)
+      # set weight between same kernel point to zero
+      kernel_weights = tf.linalg.set_diag(kernel_weights,
+                                          tf.zeros([self._num_output_points,
+                                                    self._num_kernel_points]))
+      loss_rep = tf.reduce_sum(kernel_weights)
+
+      return loss_fit + loss_rep
