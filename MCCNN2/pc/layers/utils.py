@@ -145,6 +145,20 @@ def _identity(features, *args, **kwargs):
 
 
 def positional_encoding(values, order, include_original=False, name=None):
+  """ Positional Encoding as described in NERF paper.
+
+  Args:
+    values: A `float` `Tensor` of shape `[A1, ..., An, D]`.
+    order: An `int`, the order `L` of the positional encoding.
+    include_original: A `bool`, if `True` then `values` is appended
+      to the encoding.
+
+    Returns:
+      A `float` `Tensor` of shape
+        `[A1, ..., An, D*L*2]`,
+      or
+        `[A1, ..., An, D*(L*2+1)]`, if `include_original` is `True`.
+  """
   with tf.compat.v1.name_scope(
       name, "positional encoding", [values, order, include_original]):
     values = tf.convert_to_tensor(value=values, dtype=tf.float32)
