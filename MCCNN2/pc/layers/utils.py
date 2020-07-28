@@ -16,6 +16,8 @@
 import tensorflow as tf
 import numpy as np
 
+tf_pi = tf.convert_to_tensor(np.pi)
+
 
 def _format_output(features, point_cloud, return_sorted, return_padded):
   """ Method to format and sort the output of a point cloud convolution layer.
@@ -132,3 +134,34 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
     if rotate:
       points = random_rotation(points)
     return points
+
+
+def _identity(features, *args, **kwargs):
+  """ Simple identity layer, to be used as placeholder.
+
+  Used to replace projection shortcuts, if not desired.
+  """
+  return features
+
+
+def positional_encoding(values, order, include_original=False, name=None):
+  with tf.compat.v1.name_scope(
+      name, "positional encoding", [values, order, include_original]):
+    values = tf.convert_to_tensor(value=values, dtype=tf.float32)
+    num_dims = values.shape.ndims
+    frequencies = tf_pi * tf.pow(2, tf.range(0, order, dtype=tf.float32))
+    broadcast_shape = tf.concat((tf.repeat([1], num_dims - 1), [-1, 1]),
+                                axis=0)
+    # input to trigonometry encoding, shape [...,  L, D]
+    modulated_values = tf.expand_dims(values, -2) *\
+        tf.reshape(frequencies, broadcast_shape)
+    # encoding, shape [..., L, 2, D]
+    encoding = tf.stack((tf.sin(modulated_values), tf.cos(modulated_values)),
+                        axis=-2)
+    output_shape = tf.concat((values.shape[:-1], [values.shape[-1] * 2 * order]),
+                             axis=0)
+    encoding = tf.reshape(encoding, output_shape)
+    if include_original:
+      encoding = tf.concat((values, encoding), axis=-1)
+    return encoding
+

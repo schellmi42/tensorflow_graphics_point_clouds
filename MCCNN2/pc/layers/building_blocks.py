@@ -24,14 +24,7 @@ from MCCNN2.pc import KDEMode
 
 from MCCNN2.pc.layers import MCConv, KPConv, Conv1x1
 from MCCNN2.pc.layers.utils import _format_output
-
-
-def _identity(features, point_cloud):
-  """ Simple identity layer.
-
-  Used to replace projection shortcuts, if not desired.
-  """
-  return features
+from MCCNN2.pc.layers.utils import _identity
 
 
 class MCResNet:

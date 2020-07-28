@@ -23,7 +23,7 @@ from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
 
 from MCCNN2.pc.custom_ops import basis_proj
-from MCCNN2.pc.layers.utils import _format_output
+from MCCNN2.pc.layers.utils import _format_output, _identity
 
 
 """ Class to represent a Monte-Carlo convolution layer
@@ -75,6 +75,8 @@ class MCConv:
       self._size_hidden = size_hidden
       self._num_dims = num_dims
       self._non_linearity_type = 3
+
+      self.encoding = _identity
 
       if name is None:
         self._name = ''
@@ -222,9 +224,11 @@ class MCConv:
           point_cloud_out._points, neigh._original_neigh_ids[:, 1])
       points_diff = (neigh_point_coords - center_point_coords) / \
           tf.reshape(radii_tensor, [1, self._num_dims])
+      #Apply encoding
+      kernel_input = self.encoding(points_diff)
       #Compute Monte-Carlo convolution
       convolution_result = self._monte_carlo_conv(
-          points_diff, neigh, pdf, features, self._non_linearity_type)
+          kernel_input, neigh, pdf, features, self._non_linearity_type)
       return _format_output(convolution_result,
                             point_cloud_out,
                             return_sorted,

@@ -9,7 +9,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.random.seed(42)
 tf.random.set_seed(42)
 
-quick_test=False
+quick_test=True
 
 data_dir = '../2019 - ModelNet_PointNet/'
 num_classes = 40 # modelnet 10 or 40
@@ -88,7 +88,7 @@ class mymodel(tf.keras.Model):
     self.dense_layers = []
     self.activations = []
     for i in range(self.num_layers):
-      self.conv_layers.append(pc.layers.MCConv2Sampled(feature_sizes[i],feature_sizes[i+1],3,hidden_size))
+      self.conv_layers.append(pc.layers.MCConv(feature_sizes[i],feature_sizes[i+1],3,hidden_size))
       if i < self.num_layers-1:
         self.batch_layers.append(tf.keras.layers.BatchNormalization())
         self.activations.append(tf.keras.layers.LeakyReLU())
