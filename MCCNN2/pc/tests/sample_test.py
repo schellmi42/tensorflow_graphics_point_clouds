@@ -30,9 +30,9 @@ from MCCNN2.pc.tests import utils
 class SamplingTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (1000, 32, 0.1, 2),
-    (1000, 32, 0.1, 3),
-    (1000, 32, 0.1, 4)
+    (1000, 8, 0.1, 2),
+    (1000, 8, 0.1, 3),
+    (100, 16, 0.1, 4)
   )
   def test_sampling_poisson_disk_on_random(
         self, num_points, batch_size, cell_size, dimension):
@@ -57,7 +57,7 @@ class SamplingTest(test_case.TestCase):
       dists = np.sort(dists, axis=1)
       min_dist = min(min_dist, np.amin(dists[:, 1]))
 
-    self.assertLess(min_dist, cell_size + 1e-5)
+    self.assertLess(min_dist, cell_size + 1e-3)
 
   @parameterized.parameters(
     (6, 1),

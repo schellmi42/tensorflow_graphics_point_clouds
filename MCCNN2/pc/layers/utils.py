@@ -172,10 +172,10 @@ def positional_encoding(values, order, include_original=False, name=None):
     # encoding, shape [..., L, 2, D]
     encoding = tf.stack((tf.sin(modulated_values), tf.cos(modulated_values)),
                         axis=-2)
-    output_shape = tf.concat((values.shape[:-1], [values.shape[-1] * 2 * order]),
+    output_shape = tf.concat((values.shape[:-1],
+                              [values.shape[-1] * 2 * order]),
                              axis=0)
     encoding = tf.reshape(encoding, output_shape)
     if include_original:
       encoding = tf.concat((values, encoding), axis=-1)
     return encoding
-

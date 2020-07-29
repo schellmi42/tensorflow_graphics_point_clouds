@@ -248,6 +248,69 @@ def find_neighbors_no_grid(point_cloud,
 tf.no_gradient('FindNeighborsNoGrid')
 
 
+def sampling_tf(neighborhood, sample_mode, name=None):
+  """ Method to sample the points of a point cloud.
+
+  Args:
+    neighborhood: A `Neighborhood` instance, which contains a point cloud with
+      its neighbors.
+    sample_mode: A `SampleMode` value.
+
+  Returns:
+    sampled_points: A `float` tensor of shape [S, D], the sampled points.
+    sampled_batch_ids: An `int` tensor of shape [S], the batch ids.
+    sampled_indices: An `int` tensor of shape [S], the indices to the
+      unsampled points.
+      Following the order of neighborhood._grid._sorted_points.
+  """
+  with tf.compat.v1.name_scope(name, "sampling", [neighborhood, sample_mode]):
+    points = neighborhood._grid._sorted_points
+    batch_ids = neighborhood._grid._sorted_batch_ids
+    num_points = points.shape[0]
+    if sample_mode == 0:
+      # poisson sampling
+      nb_ranges = tf.concat(([0], neighborhood._samples_neigh_ranges), axis=0)
+      neighbors = neighborhood._neighbors
+      num_points = neighborhood._grid._sorted_points.shape[0]
+      log_probabilities = tf.ones([num_points])
+      sampled_indices = tf.zeros([0], dtype=tf.int64)
+      # to set log prob to -inf <=> prob to zero
+      tf_neg_inf = tf.constant(-np.inf)
+
+      #sample points until all log probabilites are set to -inf
+      while not tf.reduce_all(tf.math.is_inf(log_probabilities)):
+        choice = tf.random.categorical(
+            tf.expand_dims(log_probabilities, axis=0), 1)[0]
+        # add choice to sampled indices
+        sampled_indices = tf.concat((sampled_indices, choice), axis=0)
+        # set log probability of neighbors to -inf
+        sample_neighbors = \
+            neighbors[nb_ranges[choice[0]]:nb_ranges[choice[0] + 1], 0]
+        num_neighbors = sample_neighbors.shape[0]
+        log_probabilities = tf.tensor_scatter_nd_update(
+            log_probabilities,
+            tf.expand_dims(sample_neighbors, axis=1),
+            tf.repeat(tf_neg_inf, num_neighbors))
+      sampled_points = tf.gather(points, sampled_indices)
+      sampled_batch_ids = tf.gather(batch_ids, sampled_indices)
+
+    elif sample_mode == 1:
+      # cell average sampling
+      keys = neighborhood._grid._sorted_keys
+      # replace keys with numbers 0 to num_unique keys
+      unique, _, counts = tf.unique_with_counts(keys)
+      num_unique_keys = unique.shape[0]
+      new_keys = tf.repeat(tf.range(0, num_unique_keys), counts)
+      # average over points with same cell key
+      sampled_points = tf.math.segment_mean(points, new_keys)
+      # get batch of a point in the same cell
+      sampled_indices = tf.math.segment_min(tf.range(0, num_points), new_keys)
+      sampled_batch_ids = tf.gather(batch_ids, sampled_indices)
+
+    return sampled_points, sampled_batch_ids, sampled_indices
+
+tf.no_gradient('samplingTF')
+
 # def sampling(pNeighborhood, pSampleMode, name=None):
 #   with tf.compat.v1.name_scope(name, "sampling",
 #       [pNeighborhood, pSampleMode]):
@@ -362,18 +425,6 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
         tf.reduce_prod(bandwidth)
     return pdf
 
-# @tf.RegisterGradient("ComputePdfWithPtGrads")
-# def _compute_pdf_grad(op, *grads):
-#   inPtsGrad = tfg_custom_ops.compute_pdf_pt_grads(
-#     op.inputs[0],
-#     op.inputs[1],
-#     op.inputs[2],
-#     op.inputs[3],
-#     op.inputs[4],
-#     grads[0],
-#     op.get_attr("mode"))
-#   return [inPtsGrad, None, None, None, None]
-
 
 def basis_proj_tf(kernel_inputs,
                   neighborhood,
@@ -409,7 +460,7 @@ def basis_proj_tf(kernel_inputs,
                               ):
     kernel_inputs = tf.convert_to_tensor(value=kernel_inputs, dtype=tf.float32)
     features = tf.convert_to_tensor(value=features, dtype=tf.float32)
-    pdf = tf.convert_to_tensor(value=pdf, dtype=tf.float32)                              
+    pdf = tf.convert_to_tensor(value=pdf, dtype=tf.float32)
     # get input in correct shapes
     num_nbh = neighborhood._point_cloud_sampled._points.shape[0]
     features_per_nb = tf.gather(features,
@@ -432,26 +483,3 @@ def basis_proj_tf(kernel_inputs,
     weighted_latent_per_center = tf.math.unsorted_segment_sum(
         weighted_features_per_nb, neighborhood._neighbors[:, 1], num_nbh)
     return weighted_latent_per_center
-
-# def basis_proj(pKernelInputs, pNeighborhood, pInFeatures,
-#                pBasis, pBasisType):
-#   curPDF = pNeighborhood.pdf_
-#   return tfg_custom_ops.basis_proj(
-#       pKernelInputs,
-#       pInFeatures,
-#       pNeighborhood.originalNeighIds_,
-#       pNeighborhood.samplesNeighRanges_,
-#       curPDF,
-#       pBasis,
-#       pBasisType)
-
-
-# @tf.RegisterGradient("BasisProj")
-# def _basis_proj_grad(op, *grads):
-#   featGrads, basisGrads, kernelInGrads, pdfGrads = \
-#       tfg_custom_ops.basis_proj_grads(
-#           op.inputs[0], op.inputs[1], op.inputs[2],
-#           op.inputs[3], op.inputs[4], op.inputs[5],
-#           grads[0], op.get_attr("basis_type"))
-#   return [kernelInGrads, featGrads, None, None,
-#           pdfGrads, basisGrads]

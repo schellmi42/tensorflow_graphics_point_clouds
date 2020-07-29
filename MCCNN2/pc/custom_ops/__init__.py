@@ -36,4 +36,4 @@ else:
   from .custom_ops_tf import compute_keys_tf as compute_keys
   from .custom_ops_tf import compute_pdf_tf as compute_pdf
   from .custom_ops_tf import find_neighbors_tf as find_neighbors
-  # from .custom_ops_tf import sampling_tf as sampling
+  from .custom_ops_tf import sampling_tf as sampling
