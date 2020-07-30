@@ -75,3 +75,11 @@ def _flatten_features(features, point_cloud):
     sorting = tf.math.invert_permutation(point_cloud._sorted_indices_batch)
     features = tf.gather(features, sorting)
   return features
+
+
+def cast_to_num_dims(values, num_dim, dtype=tf.float32):
+  values = tf.cast(tf.convert_to_tensor(value=values),
+                   dtype=dtype)
+  if values.shape == [] or values.shape[0] == 1:
+    values = tf.repeat(values, num_dim)
+  return values

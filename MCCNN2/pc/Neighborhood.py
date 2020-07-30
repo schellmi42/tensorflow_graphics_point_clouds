@@ -39,6 +39,7 @@ import tensorflow as tf
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc.custom_ops import find_neighbors, compute_pdf
+from MCCNN2.pc.utils import cast_to_num_dims
 
 
 class KDEMode(enum.Enum):
@@ -122,7 +123,8 @@ class Neighborhood:
     with tf.compat.v1.name_scope(
         name, "compute pdf for neighbours",
         [self, bandwidth, mode]):
-      bandwidth = tf.convert_to_tensor(value=bandwidth)
+      bandwidth = cast_to_num_dims(
+          bandwidth, self._point_cloud_sampled._dimension)
 
       if mode == KDEMode.no_pdf:
         self._pdf = tf.ones_like(
