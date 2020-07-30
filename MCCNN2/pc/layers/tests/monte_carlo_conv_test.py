@@ -10,7 +10,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific
-"""Class to test regular grid data structure"""
+"""Class to test Monte Carlo convolutions"""
 
 import os
 import sys
@@ -196,14 +196,17 @@ class MCConvTest(test_case.TestCase):
     neighborhood.compute_pdf()
 
     def conv_points(points_in):
-      # point_cloud._points = points_in
-      # neighborhood._grid._sorted_points = \
-      #     tf.gather(
-      #       points_in, grid._sorted_indices)
-      point_cloud = PointCloud(points_in, batch_ids)
-      grid = Grid(point_cloud, cell_sizes)
-      neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-      neighborhood.compute_pdf()
+      """ v1 """
+      point_cloud._points = points_in
+      neighborhood._grid._sorted_points = \
+          tf.gather(
+            points_in, grid._sorted_indices)
+      """ v2 """
+      # point_cloud = PointCloud(points_in, batch_ids)
+      # grid = Grid(point_cloud, cell_sizes)
+      # neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
+      # neighborhood.compute_pdf()
+      """ """
       conv_layer = MCConv(
           num_features[0], num_features[1], dimension, hidden_size)
       conv_result = conv_layer(
