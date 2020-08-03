@@ -144,7 +144,7 @@ def square(scale, z_shift):
   return points
 
 
-def kp_conv_kernel_points(num_points, rotate=True, name=None):
+def spherical_kernel_points(num_points, rotate=True, name=None):
   """ Spherical kernel points.
 
   The points are located at positions as described in Appendix B of
@@ -159,6 +159,7 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
 
   Returns:
     A `float` `Tensor` of shape `[num_points, 3]`.
+
   """
   with tf.compat.v1.name_scope(
       name, "KPConv kernel points",
@@ -217,6 +218,24 @@ def kp_conv_kernel_points(num_points, rotate=True, name=None):
     if rotate:
       points = random_rotation(points)
     return points
+
+
+def box_kernel_points(cbrt_num_points, name):
+  """ Regularily distributed points in a box.
+
+  Args:
+    cbrt_num_points: An `int`, the cubic root of the number of points.
+
+  Returns:
+    A `float` `Tensor` of shape `[cbrt_num_points^3, 3]`.
+
+  """
+
+  with tf.compat.v1.name_scope(name, "box kernel points", [cbrt_num_points]):
+    x = np.linspace(0, 1, cbrt_num_points)
+    x, y, z = np.meshgrid(x, x, x)
+    points = np.stack((x.flatten(), y.flatten(), z.flatten()), axis=1)
+    return tf.Variable(points, dtype=tf.float32)
 
 
 def _identity(features, *args, **kwargs):

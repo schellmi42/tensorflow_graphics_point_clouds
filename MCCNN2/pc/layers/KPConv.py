@@ -22,7 +22,7 @@ from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
 
-from MCCNN2.pc.layers.utils import _format_output, kp_conv_kernel_points, \
+from MCCNN2.pc.layers.utils import _format_output, spherical_kernel_points, \
     random_rotation
 
 
@@ -112,8 +112,8 @@ class KPConv:
         self._name = name
       # initialize kernel points
       if custom_kernel_points is None:
-        self._kernel_points = kp_conv_kernel_points(num_kernel_points,
-                                                    rotate=True)
+        self._kernel_points = spherical_kernel_points(num_kernel_points,
+                                                      rotate=True)
       else:
         self._kernel_points = tf.convert_to_tensor(value=custom_kernel_points,
                                                    dtype=tf.float32)
