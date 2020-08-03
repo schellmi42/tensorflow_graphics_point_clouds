@@ -71,7 +71,7 @@ class KPConv:
     num_features_in: An `int`, C_in, the number of features per input point.
     num_features_out: An `int`, C_out, the number of features to compute.
     num_kernel_points: An ìnt`, the number of points for representing the
-      kernel, default is `13`. (optional)
+      kernel, default is `15`. (optional)
     deformable: A 'bool', indicating whether to use rigid or deformable kernel
       points, default is `False`. (optional)
     kp_interpolation: A `string`, either `'linear'`(default) or `'gaussian'`.
@@ -87,7 +87,7 @@ class KPConv:
   def __init__(self,
                num_features_in,
                num_features_out,
-               num_kernel_points=13,
+               num_kernel_points=15,
                deformable=False,
                kp_interpolation='linear',
                custom_kernel_points=None,
@@ -116,7 +116,7 @@ class KPConv:
                                                     rotate=True)
       else:
         self._kernel_points = tf.convert_to_tensor(value=custom_kernel_points,
-                                                    dtype=tf.float32)
+                                                   dtype=tf.float32)
       if deformable:
         self._kernel_offsets_weights = \
             tf.compat.v1.get_variable(
