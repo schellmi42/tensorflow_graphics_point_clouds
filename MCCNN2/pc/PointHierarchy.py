@@ -28,24 +28,25 @@ from MCCNN2.pc.utils import check_valid_point_hierarchy_input
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
-from MCCNN2.pc import Sample
-from MCCNN2.pc import SampleMode
+from MCCNN2.pc import sample
+from MCCNN2.pc.utils import cast_to_num_dims
 
 
 class PointHierarchy:
   """ A hierarchy of sampled point clouds.
 
   Args:
-    point_cloud (PointCloud): Input point cloud.
-    cell_sizes (array of numpy arrays of floats): List of cell sizes for
-      each dimension.
-    sample_mode (SampleMode): Mode used to sample the points.
+    point_cloud: A `PointCloud` instance..
+    cell_sizes: A list of  `floats` or `float` `Tensors` of shape `[D]`,
+      the cell sizes for the sampling. The length of the list defines
+      the number of samplings.
+    sample_mode: A `string`, either `'poisson'`or `'cell average'`.
   """
 
   def __init__(self,
                point_cloud: PointCloud,
                cell_sizes,
-               sample_mode=SampleMode.pd,
+               sample_mode='poisson',
                name=None):
     with tf.compat.v1.name_scope(
         name, "hierarchical point cloud constructor",
@@ -56,7 +57,6 @@ class PointHierarchy:
       #Initialize the attributes.
       self._aabb = point_cloud.get_AABB()
       self._point_clouds = [point_cloud]
-      self._sample_ops = []
       self._cell_sizes = []
       self._neighborhoods = []
 
@@ -88,13 +88,11 @@ class PointHierarchy:
 
         cur_grid = Grid(cur_point_cloud, cell_sizes_tensor, self._aabb)
         cur_neighborhood = Neighborhood(cur_grid, cell_sizes_tensor)
-        cur_sample = Sample(cur_neighborhood, sample_mode)
+        cur_point_cloud, _ = sample(cur_neighborhood, sample_mode)
 
-        self._sample_ops.append(cur_sample)
         self._neighborhoods.append(cur_neighborhood)
-        cur_sample._sample_point_cloud.set_batch_shape(self._batch_shape)
-        self._point_clouds.append(cur_sample._sample_point_cloud)
-        cur_point_cloud = cur_sample._sample_point_cloud
+        cur_point_cloud.set_batch_shape(self._batch_shape)
+        self._point_clouds.append(cur_point_cloud)
 
   def get_points(self, batch_id=None, max_num_points=None, name=None):
     """ Returns the points.

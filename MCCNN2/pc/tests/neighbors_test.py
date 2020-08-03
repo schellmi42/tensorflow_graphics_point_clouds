@@ -21,8 +21,6 @@ from tensorflow_graphics.util import test_case
 
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
-from MCCNN2.pc import Sample
-from MCCNN2.pc import SampleMode
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc.tests import utils
 

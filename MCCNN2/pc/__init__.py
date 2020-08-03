@@ -21,8 +21,8 @@ from .PointCloud import PointCloud
 from .Grid import Grid
 from .Neighborhood import Neighborhood
 from .Neighborhood import KDEMode
-from .Sample import Sample
-from .Sample import SampleMode
+from .sampling import poisson_disk_sampling, cell_average_sampling
+from .sampling import sample
 from .PointHierarchy import PointHierarchy
 
 from MCCNN2.pc import layers

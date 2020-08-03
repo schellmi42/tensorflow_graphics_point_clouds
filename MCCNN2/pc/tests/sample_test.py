@@ -21,8 +21,7 @@ from tensorflow_graphics.util import test_case
 
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
-from MCCNN2.pc import Sample
-from MCCNN2.pc import SampleMode
+from MCCNN2.pc import sample
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc.tests import utils
 
@@ -43,10 +42,10 @@ class SamplingTest(test_case.TestCase):
     point_cloud = PointCloud(points, batch_ids)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
-    sample = Sample(neighborhood, SampleMode.pd)
+    sampled_point_cloud, _ = sample(neighborhood, 'poisson')
 
-    sampled_points = sample._sample_point_cloud._points.numpy()
-    sampled_batch_ids = sample._sample_point_cloud._batch_ids.numpy()
+    sampled_points = sampled_point_cloud._points.numpy()
+    sampled_batch_ids = sampled_point_cloud._batch_ids.numpy()
 
     min_dist = 1.0
     for i in range(batch_size):
@@ -72,9 +71,9 @@ class SamplingTest(test_case.TestCase):
     point_cloud = PointCloud(points, batch_ids)
     grid  = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
-    sample = Sample(neighborhood, SampleMode.pd)
+    sample_point_cloud, _ = sample(neighborhood, 'poisson')
 
-    sampled_points = sample._sample_point_cloud._points.numpy()
+    sampled_points = sample_point_cloud._points.numpy()
     expected_num_pts = num_points_sqrt ** 2 // 2
     self.assertTrue(len(sampled_points) == expected_num_pts)
 
@@ -98,11 +97,11 @@ class SamplingTest(test_case.TestCase):
     point_cloud = PointCloud(points=points, batch_ids=batch_ids)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)
-    sample = Sample(neighborhood, SampleMode.avg)
+    sample_point_cloud, _ = sample(neighborhood, 'average')
 
-    sampled_points_tf = sample._sample_point_cloud._points.numpy()
-    sorted_keys = sample._neighborhood._grid._sorted_keys.numpy()
-    sorted_points = sample._neighborhood._grid._sorted_points.numpy()
+    sampled_points_tf = sample_point_cloud._points.numpy()
+    sorted_keys = neighborhood._grid._sorted_keys.numpy()
+    sorted_points = neighborhood._grid._sorted_points.numpy()
 
     sampled_points_numpy = []
     cur_point = np.repeat(0.0, dimension)

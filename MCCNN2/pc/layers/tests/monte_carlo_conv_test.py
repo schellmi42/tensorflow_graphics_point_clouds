@@ -101,7 +101,6 @@ class MCConvTest(test_case.TestCase):
 
     self.assertAllClose(conv_result_tf, conv_result_np)
 
-
   @parameterized.parameters(
     (100, 4, [3, 3], 2, np.sqrt(3), 8, 3)
   )

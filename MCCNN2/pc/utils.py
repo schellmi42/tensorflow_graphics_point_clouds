@@ -63,9 +63,10 @@ def check_valid_point_hierarchy_input(point_cloud, cell_sizes, pool_mode):
     if any(curr_cell_sizes <= 0):
       raise ValueError('cell size must be positive.')
     if not curr_cell_sizes.shape[0] in [1, point_cloud.dimension_]:
-      raise ValueError(f'Invalid number of cell sizes for point cloud dimension.  \
-        Must be 1 or {point_cloud.dimension_} but is {curr_cell_sizes.shape[0]}\
-          .')
+      raise ValueError(
+          'Invalid number of cell sizes for point cloud' +\
+          f'dimension. Must be 1 or {point_cloud.dimension_} but is' +\
+          f'{curr_cell_sizes.shape[0]}.')
 
 
 def _flatten_features(features, point_cloud):
@@ -78,6 +79,17 @@ def _flatten_features(features, point_cloud):
 
 
 def cast_to_num_dims(values, num_dim, dtype=tf.float32):
+  """ Converts an input to the specified `dtype` and repeats it `num_dims`
+  times.
+
+  Args:
+    values: Must be convertible to a `Tensor` of shape `[], [1]` or
+      `[num_dims]`.
+    dtype: A `tf.dtype`.
+
+  Returns:
+    A `dtype` `Tensor` of shape `[num_dims]`.
+  """
   values = tf.cast(tf.convert_to_tensor(value=values),
                    dtype=dtype)
   if values.shape == [] or values.shape[0] == 1:
