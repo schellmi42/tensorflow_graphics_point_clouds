@@ -49,7 +49,7 @@ class MCConv:
   Based on the paper [Monte Carlo Convolution for Learning on Non-Uniformly
   Sampled Point Clouds. Hermosilla et al., 2018]
   (https://arxiv.org/abs/1806.01759).
-  Uses a single MLP wiht one hidden layer as convolution kernel.
+  Uses a single MLP with one hidden layer as convolution kernel.
 
   Args:
     num_features_in: An `int`, C_in, the number of features per input point.
@@ -81,12 +81,14 @@ class MCConv:
 
     with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
                                  [self, num_features_out, num_features_in,
-                                  num_features_out, num_dims, size_hidden]):
+                                  num_features_out, num_dims, size_hidden,
+                                  non_linearity_type, initializer_weights,
+                                  initializer_biases]):
       self._num_features_in = num_features_in
       self._num_features_out = num_features_out
       self._size_hidden = size_hidden
       self._num_dims = num_dims
-      self._non_linearity_type = 'leaky_relu'
+      self._non_linearity_type = non_linearity_type
 
       self.encoding = _identity
 
@@ -139,11 +141,11 @@ class MCConv:
       kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
         kernel MLP.
       neighborhood: A `Neighborhood` instance.
-      pdf: A `float` `Tensor` of shape `[M]`.
+      pdf: A `float` `Tensor` of shape `[M]`, the point densities.
       features: A `float` `Tensor` of shape `[N, C1]`, the input features.
       non_linearity_type: An `string`, specifies the type of the activation
         function used inside the kernel MLP.
-        Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU.
+        Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU. (optional)
 
     Returns:
       A `float` `Tensor` of shape `[N,C2]`, the output features.
@@ -192,7 +194,7 @@ class MCConv:
       neighborhood: A `Neighborhood` instance, defining the neighborhood
         with centers from `point_cloud_out` and neighbors in `point_cloud_in`.
         If `None` it is computed internally. (optional)
-      bandwidth: An `int`, the bandwidth used in the kernel density
+      bandwidth: A `float`, the bandwidth used in the kernel density
         estimation on the input point cloud. (optional)
       return_sorted: A `boolean`, if `True` the output tensor is sorted
         according to the batch_ids. (optional)

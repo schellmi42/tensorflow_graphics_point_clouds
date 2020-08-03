@@ -59,8 +59,8 @@ class MCConvTest(test_case.TestCase):
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     # tf
     conv_layer = MCConv(
-        num_features[0], num_features[1], dimension, hidden_size)
-    conv_layer._non_linearity_type = 2
+        num_features[0], num_features[1], dimension, hidden_size,
+        non_linearity_type='relu')
     conv_result_tf = conv_layer(
         features, point_cloud, point_cloud_samples, radius, neighborhood)
 
