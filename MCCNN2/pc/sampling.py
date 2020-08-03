@@ -11,19 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent a sample operation on point clouds.
+"""Methods to sample point clouds. """
 
-Attributes:
-  _neighborhood (Neighborhood): Neighborhood. The samples should
-    be the same as the sorted points.
-  _indices (int tensor): List of the indices of the selected points.
-    Only valid for the poisson disk sampling algorithm.
-  _sample_point_cloud (PointCloud): Sampled point cloud.
-  _sample_mode (SampleMode): Mode used to sample points, 1 for Poisson disk
-    sampling, 0 for average
-"""
-
-import enum
 import tensorflow as tf
 
 from MCCNN2.pc.custom_ops import sampling
@@ -37,11 +26,6 @@ sample_modes = {'average': 1,
                 'poisson': 0,
                 'poisson disk': 0,
                 'poisson_disk': 0}
-
-
-class SampleMode(enum.Enum):
-  pd = 0
-  avg = 1
 
 
 def poisson_disk_sampling(point_cloud,
@@ -157,7 +141,7 @@ def sample(neighborhood, sample_mode='poisson', name=None):
   """
   with tf.compat.v1.name_scope(
       name, "sample point cloud", [neighborhood, sample_mode]):
-    sample_mode_value = sample_modes[sample_mode]
+    sample_mode_value = sample_modes[sample_mode.lower()]
     #Compute the sampling.
     sampled_points, sampled_batch_ids, sampled_indices = \
         sampling(neighborhood, sample_mode_value)

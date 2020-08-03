@@ -25,6 +25,12 @@ from MCCNN2.pc import KDEMode
 from MCCNN2.pc.custom_ops import basis_proj
 from MCCNN2.pc.layers.utils import _format_output, _identity
 
+non_linearity_types = {'relu': 2,
+                       'lrelu': 3,
+                       'leakyrelu': 3,
+                       'leaky_relu': 3,
+                       'elu': 4}
+
 
 """ Class to represent a Monte-Carlo convolution layer
 
@@ -43,17 +49,22 @@ class MCConv:
   Based on the paper [Monte Carlo Convolution for Learning on Non-Uniformly
   Sampled Point Clouds. Hermosilla et al., 2018]
   (https://arxiv.org/abs/1806.01759).
+  Uses a single MLP wiht one hidden layer as convolution kernel.
 
   Args:
     num_features_in: An `int`, C_in, the number of features per input point.
     num_features_out: An `int`, C_out, the number of features to compute.
-    num_dims: An `int`, dimensionality of the point cloud.
+    num_dims: An `int`, the input dimension to the kernel MLP. Should be the
+      dimensionality of the point cloud, if no custom encoding is used.
     size_hidden: An ìnt`, the number of neurons in the hidden layer of the
-        kernel MLP, must be in `[8, 16, 32]`.
-    initializer_weights: A `tf.initializer` for the weights,
-      default `TruncatedNormal`.
-    initializer_biases: A `tf.initializer` for the biases,
-      default: `zeros`.
+        kernel MLP, must be in `[8, 16, 32]`, defaults to `8`. (optional).
+    non_linearity_type: An `string`, specifies the type of the activation
+      function used inside the kernel MLP.
+      Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU. (optional)
+    initializer_weights: A `tf.initializer` for the kernel MLP weights,
+      default `TruncatedNormal`. (optional)
+    initializer_biases: A `tf.initializer` for the kernel MLP biases,
+      default: `zeros`. (optional)
   """
 
   def __init__(self,
@@ -61,6 +72,7 @@ class MCConv:
                num_features_out,
                num_dims,
                size_hidden=8,
+               non_linearity_type='leaky_relu',
                initializer_weights=None,
                initializer_biases=None,
                name=None):
@@ -74,7 +86,7 @@ class MCConv:
       self._num_features_out = num_features_out
       self._size_hidden = size_hidden
       self._num_dims = num_dims
-      self._non_linearity_type = 3
+      self._non_linearity_type = 'leaky_relu'
 
       self.encoding = _identity
 
@@ -119,9 +131,9 @@ class MCConv:
                         neighborhood,
                         pdf,
                         features,
-                        non_linearity_type=3):
+                        non_linearity_type='leaky_relu'):
     """ Method to compute a Monte-Carlo integrated convolution using a single
-    two layer MLP as implicit convolution kernel function.
+    MLP with one hidden layer as implicit convolution kernel function.
 
     Args:
       kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
@@ -129,20 +141,22 @@ class MCConv:
       neighborhood: A `Neighborhood` instance.
       pdf: A `float` `Tensor` of shape `[M]`.
       features: A `float` `Tensor` of shape `[N, C1]`, the input features.
-      non_linearity_type: An `int`, specifies the type of the activation
-        function used. (RELU - 2, LRELU - 3, ELU - 4)
+      non_linearity_type: An `string`, specifies the type of the activation
+        function used inside the kernel MLP.
+        Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU.
 
     Returns:
       A `float` `Tensor` of shape `[N,C2]`, the output features.
     """
     #Compute convolution - input to hidden layer with
-    # Monte-Carlo integration - nonlinear  (RELU - 2, LRELU - 3, ELU - 4)
-    weighted_features = basis_proj(kernel_inputs,
-                                   neighborhood,
-                                   pdf,
-                                   features,
-                                   self._basis_tf,
-                                   non_linearity_type)
+    # Monte-Carlo integration - nonlinear
+    weighted_features = basis_proj(
+        kernel_inputs,
+        neighborhood,
+        pdf,
+        features,
+        self._basis_tf,
+        non_linearity_types[non_linearity_type.lower()])
     #Compute convolution - hidden layer to output (linear)
     convolution_result = tf.matmul(
         tf.reshape(weighted_features,
