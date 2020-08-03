@@ -145,7 +145,7 @@ def square(scale, z_shift):
 
 
 def spherical_kernel_points(num_points, rotate=True, name=None):
-  """ Spherical kernel points.
+  """ Kernel points in a unit sphere.
 
   The points are located at positions as described in Appendix B of
   [KPConv: Flexible and Deformable Convolution for Point Clouds. Thomas et
@@ -220,8 +220,8 @@ def spherical_kernel_points(num_points, rotate=True, name=None):
     return points
 
 
-def box_kernel_points(cbrt_num_points, name):
-  """ Regularily distributed points in a box.
+def cube_kernel_points(cbrt_num_points, name):
+  """ Regularily distributed points in a unit cube.
 
   Args:
     cbrt_num_points: An `int`, the cubic root of the number of points.
