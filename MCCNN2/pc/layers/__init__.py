@@ -24,4 +24,5 @@ from .conv1x1 import Conv1x1
 from .building_blocks import MCResNet, \
     MCResNetBottleNeck, MCResNetSpatialBottleNeck
 from .KPConv import KPConv
-from .utils import positional_encoding, spherical_kernel_points
+from .utils import positional_encoding, spherical_kernel_points, \
+    cube_kernel_points
