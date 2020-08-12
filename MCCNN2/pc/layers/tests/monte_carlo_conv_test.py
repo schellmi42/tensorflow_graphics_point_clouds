@@ -70,10 +70,13 @@ class MCConvTest(test_case.TestCase):
     nb_ranges = neighborhood._samples_neigh_ranges.numpy()
 
     # extract variables
-    hidden_weights = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size]).numpy()
-    hidden_biases = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size]).numpy()
-    weights = tf.reshape(conv_layer._final_weights_tf, 
-                         [num_features[0]*hidden_size, num_features[1]]).numpy()
+    hidden_weights = \
+        tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size]).numpy()
+    hidden_biases = \
+        tf.reshape(conv_layer._bias_tf[0], [1, hidden_size]).numpy()
+    weights = \
+        tf.reshape(conv_layer._final_weights_tf,
+                   [num_features[0] * hidden_size, num_features[1]]).numpy()
 
     features_on_neighbors = features[neighbor_ids[:, 0]]
     # compute first layer of kernel MLP
@@ -82,7 +85,7 @@ class MCConvTest(test_case.TestCase):
         / np.expand_dims(cell_sizes, 0)
 
     latent_per_nb = np.dot(point_diff, hidden_weights) + hidden_biases
-    
+
     latent_relu_per_nb = np.maximum(latent_per_nb, 0)
 
     # Monte-Carlo integration after first layer
@@ -106,7 +109,7 @@ class MCConvTest(test_case.TestCase):
     self.assertAllClose(conv_result_tf, conv_result_np)
 
   @parameterized.parameters(
-    (8, 4, [8, 8], 2, np.sqrt(3)*1.25, 8, 3)
+    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 8, 3)
   )
   def test_conv_jacobian_params(self,
                                 num_points,
@@ -178,7 +181,7 @@ class MCConvTest(test_case.TestCase):
     # neighbor ids are currently corrupted on dimension 2: todo fix
     # (2000, 200, 16, 0.7, 2),
     # (4000, 400, 8, np.sqrt(2), 2),
-    (8, 4, [8, 8], 2, np.sqrt(3)*1.25, 8, 3),
+    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 8, 3),
     # (4000, 400, 8, np.sqrt(3), 3),
     # (4000, 100, 1, np.sqrt(3), 3),
     # (2000, 200, 16, 0.7, 4),
@@ -213,9 +216,8 @@ class MCConvTest(test_case.TestCase):
     def conv_points(points_in):
       point_cloud._points = points_in
       neighborhood._grid._sorted_points = \
-           tf.gather(
-             points_in, grid._sorted_indices)
-      
+          tf.gather(points_in, grid._sorted_indices)
+
       conv_result = conv_layer(
         features, point_cloud, point_cloud_samples, radius, neighborhood)
 
