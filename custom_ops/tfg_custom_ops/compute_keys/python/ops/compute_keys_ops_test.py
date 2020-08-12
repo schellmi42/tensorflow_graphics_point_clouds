@@ -72,7 +72,6 @@ class GridTest(test.TestCase):
     for i in range(batch_size):
       aabb_min_per_batch[i] = np.amin(points[batch_ids == i], axis=0)
       aabb_max_per_batch[i] = np.amax(points[batch_ids == i], axis=0)
-    print(aabb_min_per_batch.shape)
     aabb_sizes = aabb_max_per_batch - aabb_min_per_batch
     total_num_cells = np.max(np.ceil(aabb_sizes / radius), axis=0)
     custom_keys = compute_keys(
