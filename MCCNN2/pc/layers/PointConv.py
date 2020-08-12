@@ -46,9 +46,8 @@ non_linearity_types = {'relu': tf.nn.relu,
 class PointConv:
   """ Monte-Carlo convolution for point clouds.
 
-  Based on the paper [PointConv: Deep Convolutional Networks on 3D Point Clouds. 
-    Wu et al., 2019]
-  (https://arxiv.org/abs/1811.07246).
+  Based on the paper [PointConv: Deep Convolutional Networks on 3D Point
+  Clouds. Wu et al., 2019](https://arxiv.org/abs/1811.07246).
   Uses a single MLP with one hidden layer as convolution kernel.
 
   Args:
@@ -131,7 +130,7 @@ class PointConv:
               shape=[1, 16],
               initializer=initializer_weights(),
               dtype=tf.float32, trainable=True),
-          tf.compat.v1.get_variable(
+           tf.compat.v1.get_variable(
               self._name + '_pdf_weights_2',
               shape=[16, 1],
               initializer=initializer_weights(),
@@ -143,18 +142,18 @@ class PointConv:
               shape=[1, 16],
               initializer=initializer_biases(),
               dtype=tf.float32, trainable=True),
-          tf.compat.v1.get_variable(
+           tf.compat.v1.get_variable(
               self._name + '_pdf_biases_2',
               shape=[1, 1],
               initializer=initializer_biases(),
               dtype=tf.float32, trainable=True)]
-              
+
   def _point_conv(self,
-                        kernel_inputs,
-                        neighborhood,
-                        pdf,
-                        features,
-                        non_linearity_type='relu'):
+                  kernel_inputs,
+                  neighborhood,
+                  pdf,
+                  features,
+                  non_linearity_type='relu'):
     """ Method to compute a PointConv convolution using a single
     MLP with one hidden layer as implicit convolution kernel function.
 
@@ -174,18 +173,22 @@ class PointConv:
 
     # Compute the hidden layer MLP
     basis_neighs = tf.matmul(kernel_inputs, self._basis_axis_tf) + \
-       self._basis_bias_tf
-    basis_neighs = non_linearity_types[non_linearity_type.lower()](basis_neighs)
-    
+        self._basis_bias_tf
+    basis_neighs = \
+        non_linearity_types[non_linearity_type.lower()](basis_neighs)
+
     # Normalizer the pdf
-    max_pdf = tf.math.unsorted_segment_max(pdf, neighborhood._original_neigh_ids[:, 1], 
+    max_pdf = tf.math.unsorted_segment_max(
+        pdf,
+        neighborhood._original_neigh_ids[:, 1],
         tf.shape(neighborhood._samples_neigh_ranges)[0])
     neigh_max_pdfs = tf.gather(max_pdf, neighborhood._original_neigh_ids[:, 1])
     cur_pdf = pdf / neigh_max_pdfs
     cur_pdf = tf.reshape(cur_pdf, [-1, 1])
 
     # Non-linear transform pdf
-    cur_pdf = tf.nn.relu(tf.matmul(cur_pdf, self._weights_pdf[0]) + self._biases_pdf[0])
+    cur_pdf = tf.nn.relu(tf.matmul(cur_pdf, self._weights_pdf[0]) +\
+                         self._biases_pdf[0])
     cur_pdf = tf.matmul(cur_pdf, self._weights_pdf[1]) + self._biases_pdf[1]
 
     # Scale features
@@ -204,7 +207,6 @@ class PointConv:
         self._weights)
 
     return convolution_result
-
 
   def __call__(self,
                features,
