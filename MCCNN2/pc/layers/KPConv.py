@@ -73,6 +73,8 @@ class KPConv:
     num_features_out: An `int`, C_out, the number of features to compute.
     num_kernel_points: An ìnt`, the number of points for representing the
       kernel, default is `15`. (optional)
+    num_dims: An `int`, the dimensionality of the point cloud. Defaults to `3`.
+      (optional)
     deformable: A 'bool', indicating whether to use rigid or deformable kernel
       points, default is `False`. (optional)
     kp_interpolation: A `string`, either `'linear'`(default) or `'gaussian'`.
@@ -83,12 +85,18 @@ class KPConv:
       default `TruncatedNormal`. (optional)
     initializer_biases: A `tf.initializer` for the biases,
       default: `zeros`.(optional)
+
+  Raises:
+    ValueError, if no custom kernel points are passed for dimension not equal
+      to 3.
+
   """
 
   def __init__(self,
                num_features_in,
                num_features_out,
                num_kernel_points=15,
+               num_dims=3,
                deformable=False,
                kp_interpolation='linear',
                custom_kernel_points=None,
@@ -106,11 +114,16 @@ class KPConv:
       self._num_kernel_points = num_kernel_points
       self._deformable = deformable
       self._weighting = kernel_interpolation[kp_interpolation]
-      self._num_dims = 3
+      self._num_dims = num_dims
       if name is None:
         self._name = ''
       else:
         self._name = name
+
+      if num_dims != 3 and custom_kernel_points is None:
+        raise ValueError(
+            "For dimension not 3 custom kernel points must be provided!")
+
       # initialize kernel points
       if custom_kernel_points is None:
         self._kernel_points = spherical_kernel_points(num_kernel_points,
@@ -122,7 +135,7 @@ class KPConv:
         self._kernel_offsets_weights = \
             tf.compat.v1.get_variable(
                 self._name + '_kernel_point_offset_weights',
-                shape=[self._num_kernel_points*self._num_features_in,
+                shape=[self._num_kernel_points * self._num_features_in,
                        self._num_kernel_points * self._num_dims],
                 initializer=tf.initializers.zeros,
                 dtype=tf.float32,
@@ -144,7 +157,7 @@ class KPConv:
       self._weights = \
           tf.compat.v1.get_variable(
               self._name + '_conv_weights',
-              shape=[self._num_kernel_points*self._num_features_in,
+              shape=[self._num_kernel_points * self._num_features_in,
                      self._num_features_out],
               initializer=initializer_weights(stddev=std_dev),
               dtype=tf.float32,
@@ -182,21 +195,21 @@ class KPConv:
         (tf.expand_dims(self._kernel_points, 0) + kernel_offsets)
     points_dist = tf.linalg.norm(points_diff, axis=2)
     kernel_weights = self._weighting(points_dist, self._sigma)
-    
+
     # Pad zeros to fullfil requirements of the basis_proj custom op,
     # 8, 16, 32, or 64 basis are allowed.
     if self._num_kernel_points < 8:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 8-self._num_kernel_points]])
+                                [[0, 0], [0, 8 - self._num_kernel_points]])
     elif self._num_kernel_points > 8 and self._num_kernel_points < 16:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 16-self._num_kernel_points]])
+                                [[0, 0], [0, 16 - self._num_kernel_points]])
     elif self._num_kernel_points > 16 and self._num_kernel_points < 32:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 32-self._num_kernel_points]])
+                                [[0, 0], [0, 32 - self._num_kernel_points]])
     elif self._num_kernel_points > 32 and self._num_kernel_points < 64:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 64-self._num_kernel_points]])
+                                [[0, 0], [0, 64 - self._num_kernel_points]])
 
     # save values for regularization loss computation
     self._cur_point_dist = points_dist
@@ -341,16 +354,16 @@ class KPConv:
     # 8, 16, or 32 basis are allowed.
     if self._num_kernel_points < 8:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 8-self._num_kernel_points]])
+                                [[0, 0], [0, 8 - self._num_kernel_points]])
     elif self._num_kernel_points > 8 and self._num_kernel_points < 16:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 16-self._num_kernel_points]])
+                                [[0, 0], [0, 16 - self._num_kernel_points]])
     elif self._num_kernel_points > 16 and self._num_kernel_points < 32:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 32-self._num_kernel_points]])
+                                [[0, 0], [0, 32 - self._num_kernel_points]])
     elif self._num_kernel_points > 32 and self._num_kernel_points < 64:
         kernel_weights = tf.pad(kernel_weights,
-            [[0, 0], [0, 64-self._num_kernel_points]])
+                                [[0, 0], [0, 64 - self._num_kernel_points]])
 
     # Compute the projection to the samples.
     weighted_features = basis_proj(
@@ -372,11 +385,10 @@ class KPConv:
     # project back onto neighbor pairs, shape [M, D*K]
     offset_per_nb = tf.gather(offset_per_center, neighbors[:, 1])
     # reshape to shape [M, K, self._num_dims]
-    return  tf.reshape(offset_per_nb, 
-                                     [neighbors.shape[0],
-                                     self._num_kernel_points,
-                                     self._num_dims])
-
+    return  tf.reshape(offset_per_nb,
+                       [neighbors.shape[0],
+                        self._num_kernel_points,
+                        self._num_dims])
 
   def regularization_loss(self, name=None):
     """ The regularization loss for deformable kernel points.

@@ -56,7 +56,7 @@ class PointConv:
     num_dims: An `int`, the input dimension to the kernel MLP. Should be the
       dimensionality of the point cloud.
     size_hidden: An ìnt`, the number of neurons in the hidden layer of the
-        kernel MLP, must be in `[8, 16, 32]`, defaults to `8`. (optional).
+        kernel MLP, must be in `[8, 16, 32]`, defaults to `32`. (optional).
     non_linearity_type: An `string`, specifies the type of the activation
       function used inside the kernel MLP.
       Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU. (optional)
@@ -177,7 +177,7 @@ class PointConv:
     basis_neighs = \
         non_linearity_types[non_linearity_type.lower()](basis_neighs)
 
-    # Normalizer the pdf
+    # Normalize the pdf
     max_pdf = tf.math.unsorted_segment_max(
         pdf,
         neighborhood._original_neigh_ids[:, 1],

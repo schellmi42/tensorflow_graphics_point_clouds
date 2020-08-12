@@ -22,7 +22,7 @@ from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
 
-from MCCNN2.pc.layers import MCConv, KPConv, Conv1x1
+from MCCNN2.pc.layers import MCConv, KPConv, Conv1x1, PointConv
 from MCCNN2.pc.layers.utils import _format_output
 from MCCNN2.pc.layers.utils import _identity
 
@@ -31,7 +31,9 @@ layer_types = {'mcconv': MCConv,
                'mc_conv': MCConv,
                'kpconv': KPConv,
                'kp': KPConv,
-               'kp_conv': KPConv}
+               'kp_conv': KPConv,
+               'pointconv': PointConv,
+               'point_conv': PointConv}
 
 
 class PointResNet:
