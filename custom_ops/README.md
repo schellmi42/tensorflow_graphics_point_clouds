@@ -11,7 +11,7 @@ The c++-toolchains are dependent on the latest tensorflow-custom-op docker conta
   root@docker: ./configure.sh
 ```
 
-and answer all question with yes `y` .
+and answer the first question with yes `y`,  and sepcifiy the TensorFlow version.
 
 ## Building the PIP-Package
 

@@ -149,7 +149,6 @@ class PointConv:
               initializer=initializer_biases(),
               dtype=tf.float32, trainable=True)]
               
-
   def _point_conv(self,
                         kernel_inputs,
                         neighborhood,
