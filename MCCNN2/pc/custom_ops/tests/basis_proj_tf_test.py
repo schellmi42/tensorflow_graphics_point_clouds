@@ -63,17 +63,22 @@ class BasisProjTFTest(test_case.TestCase):
     nb_ids = neighborhood._original_neigh_ids
     # tf
     conv_layer = MCConv(
-        num_features[0], num_features[1], dimension, hidden_size)
+        num_features[0], num_features[1], dimension, 1, [hidden_size])
 
     neigh_point_coords = points[nb_ids[:, 0]]
     center_point_coords = point_samples[nb_ids[:, 1]]
     kernel_input = (neigh_point_coords - center_point_coords) / radius
 
+    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size])
+    basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
+    basis_tf = tf.concat([basis_weights_tf, basis_biases_tf], axis= 0)
+    basis_tf = tf.transpose(basis_tf, [1,0])
+
     weighted_latent_per_sample_tf = basis_proj_tf(kernel_input,
                                                   neighborhood,
                                                   pdf,
                                                   features,
-                                                  conv_layer._basis_tf,
+                                                  basis_tf,
                                                   2)
 
     # numpy
@@ -81,8 +86,8 @@ class BasisProjTFTest(test_case.TestCase):
     neighbor_ids = neighborhood._original_neigh_ids.numpy()
     nb_ranges = neighborhood._samples_neigh_ranges.numpy()
     # extract variables
-    hidden_weights = conv_layer._basis_tf[:, :-1].numpy()
-    hidden_biases = conv_layer._basis_tf[:, -1].numpy()
+    hidden_weights = basis_tf[:, :-1].numpy()
+    hidden_biases = basis_tf[:, -1].numpy()
     hidden_biases = np.expand_dims(hidden_biases, 1)
 
     features_on_neighbors = features[neighbor_ids[:, 0]]
@@ -138,12 +143,16 @@ class BasisProjTFTest(test_case.TestCase):
     nb_ids = neighborhood._original_neigh_ids
     # tf
     conv_layer = MCConv(
-        num_features[0], num_features[1], dimension, hidden_size)
+        num_features[0], num_features[1], dimension, 1, [hidden_size])
 
     neigh_point_coords = points[nb_ids[:, 0]]
     center_point_coords = point_samples[nb_ids[:, 1]]
     kernel_input = (neigh_point_coords - center_point_coords) / radius
-    weights = conv_layer._basis_tf
+
+    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size])
+    basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
+    basis_tf = tf.concat([basis_weights_tf, basis_biases_tf], axis= 0)
+    weights = tf.transpose(basis_tf, [1,0])
 
     _, _, counts = tf.unique_with_counts(neighborhood._neighbors[:, 1])
     max_num_nb = tf.reduce_max(counts).numpy()

@@ -9,9 +9,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.random.seed(42)
 tf.random.set_seed(42)
 
-quick_test=True
+quick_test=False
 
-data_dir = '../2019 - ModelNet_PointNet/'
+data_dir = './2019 - ModelNet_PointNet/'
 num_classes = 40 # modelnet 10 or 40
 
 labels = []
@@ -74,6 +74,8 @@ for i,filename in enumerate(test_set):
     print(f'{i}/{len(test_set)}')
   if quick_test and i>100: 
     break
+
+
 #-----------------------------------------------
 
 class mymodel(tf.keras.Model):
@@ -88,7 +90,9 @@ class mymodel(tf.keras.Model):
     self.dense_layers = []
     self.activations = []
     for i in range(self.num_layers):
-      self.conv_layers.append(pc.layers.MCConv(feature_sizes[i],feature_sizes[i+1],3,hidden_size))
+      self.conv_layers.append(pc.layers.MCConv(feature_sizes[i],feature_sizes[i+1],3, 2, [hidden_size]))
+      #self.conv_layers.append(pc.layers.PointConv(feature_sizes[i],feature_sizes[i+1], 3, hidden_size))
+      #self.conv_layers.append(pc.layers.KPConv(feature_sizes[i],feature_sizes[i+1]))
       if i < self.num_layers-1:
         self.batch_layers.append(tf.keras.layers.BatchNormalization())
         self.activations.append(tf.keras.layers.LeakyReLU())
@@ -189,21 +193,21 @@ for epoch in range(num_epochs):
   i=0
   time_epoch_start = time.time()
   for points, features, sizes, labels in gen_train:
-    #time_batch_start = time.time()
+    time_batch_start = time.time()
     with tf.GradientTape() as tape:
       logits = model(points,sizes,features,True)
       pred = tf.nn.softmax(logits, axis=-1)
       loss = loss_function(y_true=labels, y_pred=pred)
     grads = tape.gradient(loss,model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    #time_batch_end = time.time()
+    time_batch_end = time.time()
     epoch_loss_avg.update_state(loss)
     epoch_accuracy.update_state(labels, pred)
 
-    #print("Epoch {:03d}: Batch: {:03d}, Loss: {:.3f}, Accuracy: {:.3%} Time: {:.3f}ms".format(epoch, i,
-    #                                                              epoch_loss_avg.result(),
-    #                                                              epoch_accuracy.result(),
-    #                                                              1000*(time_batch_end-time_batch_start)))
+    print("Epoch {:03d}: Batch: {:03d}, Loss: {:.3f}, Accuracy: {:.3%} Time: {:.3f}ms".format(epoch, i,
+                                                                  epoch_loss_avg.result(),
+                                                                  epoch_accuracy.result(),
+                                                                  1000*(time_batch_end-time_batch_start)))
     i+=1
   time_epoch_end = time.time()
   train_loss_results.append(epoch_loss_avg.result())

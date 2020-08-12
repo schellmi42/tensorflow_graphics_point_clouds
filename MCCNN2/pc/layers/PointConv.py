@@ -32,7 +32,7 @@ non_linearity_types = {'relu': tf.nn.relu,
                        'elu': tf.nn.elu}
 
 
-""" Class to represent a Monte-Carlo convolution layer
+""" Class to represent a PointConv convolution layer
 
   Attributes:
     _num_features_in: An `ìnt`, the number of features per input point
@@ -43,23 +43,21 @@ non_linearity_types = {'relu': tf.nn.relu,
 """
 
 
-class MCConv:
+class PointConv:
   """ Monte-Carlo convolution for point clouds.
 
-  Based on the paper [Monte Carlo Convolution for Learning on Non-Uniformly
-  Sampled Point Clouds. Hermosilla et al., 2018]
-  (https://arxiv.org/abs/1806.01759).
-  Uses a multiple MLPs as convolution kernels.
+  Based on the paper [PointConv: Deep Convolutional Networks on 3D Point Clouds. 
+    Wu et al., 2019]
+  (https://arxiv.org/abs/1811.07246).
+  Uses a single MLP with one hidden layer as convolution kernel.
 
   Args:
     num_features_in: An `int`, C_in, the number of features per input point.
     num_features_out: An `int`, C_out, the number of features to compute.
     num_dims: An `int`, the input dimension to the kernel MLP. Should be the
-      dimensionality of the point cloud..
-    num_mlps: An `int`, number of MLPs used to compute the output features.
-      Warning: num_features_out should be divisible by num_mlps.
-    mlp_size: An ìnt list`, list with the number of layers and hidden neurons
-      of the MLP used as kernel, defaults to `[16]`. (optional).
+      dimensionality of the point cloud.
+    size_hidden: An ìnt`, the number of neurons in the hidden layer of the
+        kernel MLP, must be in `[8, 16, 32]`, defaults to `8`. (optional).
     non_linearity_type: An `string`, specifies the type of the activation
       function used inside the kernel MLP.
       Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU. (optional)
@@ -73,9 +71,8 @@ class MCConv:
                num_features_in,
                num_features_out,
                num_dims,
-               num_mlps = 4,
-               mlp_size=[8],
-               non_linearity_type='leaky_relu',
+               size_hidden=32,
+               non_linearity_type='relu',
                initializer_weights=None,
                initializer_biases=None,
                name=None):
@@ -84,13 +81,12 @@ class MCConv:
 
     with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
                                  [self, num_features_out, num_features_in,
-                                  num_features_out, num_dims, num_mlps,
-                                  mlp_size, non_linearity_type, 
-                                  initializer_weights, initializer_biases]):
+                                  num_features_out, num_dims, size_hidden,
+                                  non_linearity_type, initializer_weights,
+                                  initializer_biases]):
       self._num_features_in = num_features_in
       self._num_features_out = num_features_out
-      self._num_mlps = num_mlps
-      self._mlp_size = mlp_size
+      self._size_hidden = size_hidden
       self._num_dims = num_dims
       self._non_linearity_type = non_linearity_type
 
@@ -101,50 +97,67 @@ class MCConv:
 
       # initialize variables
       if initializer_weights is None:
-        initializer_weights = tf.initializers.TruncatedNormal
+        initializer_weights = tf.initializers.GlorotNormal
       if initializer_biases is None:
         initializer_biases = tf.initializers.zeros
 
-      self._weights_tf = []
-      self._bias_tf = []
-      prev_num_inut = self._num_dims
-      for cur_layer in self._mlp_size:
+      # Hidden layer of the kernel.
+      self._basis_axis_tf = tf.compat.v1.get_variable(
+          self._name + '_hidden_vectors',
+          shape=[self._num_dims, self._size_hidden],
+          initializer=initializer_weights(),
+          dtype=tf.float32,
+          trainable=True)
+      self._basis_bias_tf = tf.compat.v1.get_variable(
+          self._name + '_hidden_biases',
+          shape=[1, self._size_hidden],
+          initializer=initializer_biases(),
+          dtype=tf.float32,
+          trainable=True)
 
-        std_dev = tf.math.sqrt(1.0 / float(prev_num_inut))
-        self._weights_tf.append(tf.compat.v1.get_variable(
-            self._name + '_hidden_vectors',
-            shape=[self._num_mlps, prev_num_inut, cur_layer],
-            initializer=initializer_weights(stddev=std_dev),
-            dtype=tf.float32,
-            trainable=True))
-        self._bias_tf.append(tf.compat.v1.get_variable(
-            self._name + '_hidden_biases',
-            shape=[self._num_mlps, 1, cur_layer],
-            initializer=initializer_biases(),
-            dtype=tf.float32,
-            trainable=True))
-        prev_num_inut = cur_layer
-
-      std_dev = tf.math.sqrt(2.0 / \
-                             float(cur_layer * self._num_features_in))
-      self._final_weights_tf = \
+      # Convolution weights.
+      self._weights = \
           tf.compat.v1.get_variable(
               self._name + '_conv_weights',
-              shape=[self._num_mlps,
-                     cur_layer * self._num_features_in,
-                     self._num_features_out//self._num_mlps],
-              initializer=initializer_weights(stddev=std_dev),
+              shape=[self._size_hidden * self._num_features_in,
+                     self._num_features_out],
+              initializer=initializer_weights(),
               dtype=tf.float32, trainable=True)
+
+      # Weights of the non-linear transform of the pdf.
+      self._weights_pdf = \
+          [tf.compat.v1.get_variable(
+              self._name + '_pdf_weights_1',
+              shape=[1, 16],
+              initializer=initializer_weights(),
+              dtype=tf.float32, trainable=True),
+          tf.compat.v1.get_variable(
+              self._name + '_pdf_weights_2',
+              shape=[16, 1],
+              initializer=initializer_weights(),
+              dtype=tf.float32, trainable=True)]
+
+      self._biases_pdf = \
+          [tf.compat.v1.get_variable(
+              self._name + '_pdf_biases_1',
+              shape=[1, 16],
+              initializer=initializer_biases(),
+              dtype=tf.float32, trainable=True),
+          tf.compat.v1.get_variable(
+              self._name + '_pdf_biases_2',
+              shape=[1, 1],
+              initializer=initializer_biases(),
+              dtype=tf.float32, trainable=True)]
               
 
-  def _monte_carlo_conv(self,
+  def _point_conv(self,
                         kernel_inputs,
                         neighborhood,
                         pdf,
                         features,
-                        non_linearity_type='leaky_relu'):
-    """ Method to compute a Monte-Carlo integrated convolution using multiple
-    MLPs as implicit convolution kernel functions.
+                        non_linearity_type='relu'):
+    """ Method to compute a PointConv convolution using a single
+    MLP with one hidden layer as implicit convolution kernel function.
 
     Args:
       kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
@@ -161,37 +174,37 @@ class MCConv:
     """
 
     # Compute the hidden layer MLP
-    cur_inputs = tf.tile(tf.reshape(kernel_inputs, [1, -1, self._num_dims]), 
-      [self._num_mlps, 1, 1])
-    for cur_layer_iter in range(len(self._weights_tf)):
-      cur_inputs = tf.matmul(cur_inputs, self._weights_tf[cur_layer_iter]) + \
-        self._bias_tf[cur_layer_iter]
-      cur_inputs = non_linearity_types[non_linearity_type.lower()](cur_inputs)
-    cur_inputs = tf.reshape(tf.transpose(cur_inputs, [1, 0, 2]), 
-      [-1, self._mlp_size[-1]*self._num_mlps]) \
-      / tf.reshape(pdf, [-1, 1])
+    basis_neighs = tf.matmul(kernel_inputs, self._basis_axis_tf) + \
+       self._basis_bias_tf
+    basis_neighs = non_linearity_types[non_linearity_type.lower()](basis_neighs)
+    
+    # Normalizer the pdf
+    max_pdf = tf.math.unsorted_segment_max(pdf, neighborhood._original_neigh_ids[:, 1], 
+        tf.shape(neighborhood._samples_neigh_ranges)[0])
+    neigh_max_pdfs = tf.gather(max_pdf, neighborhood._original_neigh_ids[:, 1])
+    cur_pdf = pdf / neigh_max_pdfs
+    cur_pdf = tf.reshape(cur_pdf, [-1, 1])
+
+    # Non-linear transform pdf
+    cur_pdf = tf.nn.relu(tf.matmul(cur_pdf, self._weights_pdf[0]) + self._biases_pdf[0])
+    cur_pdf = tf.matmul(cur_pdf, self._weights_pdf[1]) + self._biases_pdf[1]
+
+    # Scale features
+    basis_neighs = basis_neighs / cur_pdf
 
     # Compute the projection to the samples.
     weighted_features = basis_proj(
-        cur_inputs,
+        basis_neighs,
         features,
         neighborhood)
-
-    # Reshape features
-    weighted_features = tf.transpose(tf.reshape(weighted_features, 
-                                                [-1, self._num_features_in, 
-                                                 self._num_mlps, 
-                                                 self._mlp_size[-1]]),
-                                     [2, 0, 1, 3])
 
     #Compute convolution - hidden layer to output (linear)
     convolution_result = tf.matmul(
         tf.reshape(weighted_features,
-                   [self._num_mlps, -1, self._num_features_in * self._mlp_size[-1]]),
-        self._final_weights_tf)
+                   [-1, self._num_features_in * self._size_hidden]),
+        self._weights)
 
-    return tf.reshape(tf.transpose(convolution_result, [1, 0, 2]),
-                      [-1, self._num_features_out])
+    return convolution_result
 
 
   def __call__(self,
@@ -264,11 +277,10 @@ class MCConv:
           point_cloud_in._points, neigh._original_neigh_ids[:, 0])
       center_point_coords = tf.gather(
           point_cloud_out._points, neigh._original_neigh_ids[:, 1])
-      points_diff = (neigh_point_coords - center_point_coords) / \
-          tf.reshape(radii_tensor, [1, self._num_dims])
+      points_diff = (neigh_point_coords - center_point_coords)
 
-      #Compute Monte-Carlo convolution
-      convolution_result = self._monte_carlo_conv(
+      #Compute PointConv convolution
+      convolution_result = self._point_conv(
           points_diff, neigh, pdf, features, self._non_linearity_type)
 
       return _format_output(convolution_result,

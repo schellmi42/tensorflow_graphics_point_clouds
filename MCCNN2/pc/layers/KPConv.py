@@ -22,6 +22,7 @@ from MCCNN2.pc import Grid
 from MCCNN2.pc import Neighborhood
 from MCCNN2.pc import KDEMode
 
+from MCCNN2.pc.custom_ops import basis_proj
 from MCCNN2.pc.layers.utils import _format_output, spherical_kernel_points, \
     random_rotation
 
@@ -121,7 +122,7 @@ class KPConv:
         self._kernel_offsets_weights = \
             tf.compat.v1.get_variable(
                 self._name + '_kernel_point_offset_weights',
-                shape=[self._num_features_in,
+                shape=[self._num_kernel_points*self._num_features_in,
                        self._num_kernel_points * self._num_dims],
                 initializer=tf.initializers.zeros,
                 dtype=tf.float32,
@@ -143,8 +144,7 @@ class KPConv:
       self._weights = \
           tf.compat.v1.get_variable(
               self._name + '_conv_weights',
-              shape=[self._num_kernel_points,
-                     self._num_features_in,
+              shape=[self._num_kernel_points*self._num_features_in,
                      self._num_features_out],
               initializer=initializer_weights(stddev=std_dev),
               dtype=tf.float32,
@@ -176,31 +176,46 @@ class KPConv:
     """
     # neighbor pairs ids
     neighbors = neighborhood._original_neigh_ids
-    # kernel weights from distances, shape [K, M]
+    # kernel weights from distances, shape [M, K]
     kernel_offsets = self._get_offsets(kernel_input, neighborhood, features)
-    points_diff = tf.expand_dims(kernel_input, 0) - \
-        (tf.expand_dims(self._kernel_points, 1) + kernel_offsets)
+    points_diff = tf.expand_dims(kernel_input, 1) - \
+        (tf.expand_dims(self._kernel_points, 0) + kernel_offsets)
     points_dist = tf.linalg.norm(points_diff, axis=2)
     kernel_weights = self._weighting(points_dist, self._sigma)
+    
+    # Pad zeros to fullfil requirements of the basis_proj custom op,
+    # 8, 16, 32, or 64 basis are allowed.
+    if self._num_kernel_points < 8:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 8-self._num_kernel_points]])
+    elif self._num_kernel_points > 8 and self._num_kernel_points < 16:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 16-self._num_kernel_points]])
+    elif self._num_kernel_points > 16 and self._num_kernel_points < 32:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 32-self._num_kernel_points]])
+    elif self._num_kernel_points > 32 and self._num_kernel_points < 64:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 64-self._num_kernel_points]])
 
     # save values for regularization loss computation
     self._cur_point_dist = points_dist
     self._cur_neighbors = neighbors
 
-    # weighted features per kernel and input features dim, shape [K, M, C1]
-    features_per_nb = tf.gather(features, neighbors[:, 0])
-    weighted_features = tf.expand_dims(features_per_nb, axis=0) * \
-        tf.expand_dims(kernel_weights, axis=2)
+    # Compute the projection to the samples.
+    weighted_features = basis_proj(
+        kernel_weights,
+        features,
+        neighborhood)
+    weighted_features = weighted_features[:, :, 0:self._num_kernel_points]
 
-    # matrix multiplication treating kernel dimension as batch dimension
-    # shape [K, M, C1] x [K, C1, C2] -> [K, M, C2]
-    convolution_result = tf.matmul(weighted_features, self._weights)
-    # sum over kernel dimension, shape [M, C2]
-    convolution_result = tf.reduce_sum(convolution_result, axis=0)
-    # sum over neighbors, shape [N2, C2]
-    return  tf.math.unsorted_segment_sum(convolution_result,
-                                         neighbors[:, 1],
-                                         self._num_output_points)
+    #Compute convolution - hidden layer to output (linear)
+    convolution_result = tf.matmul(
+        tf.reshape(weighted_features,
+                   [-1, self._num_features_in * self._num_kernel_points]),
+        self._weights)
+
+    return convolution_result
 
   def __call__(self,
                features,
@@ -316,39 +331,52 @@ class KPConv:
     """
     # neighbor pairs ids
     neighbors = neighborhood._original_neigh_ids
-    # kernel weights from distances, shape [K, M]
-    points_diff = tf.expand_dims(kernel_input, 0) - \
-        tf.expand_dims(self._kernel_points, 1)
+    # kernel weights from distances, shape [M, K]
+    points_diff = tf.expand_dims(kernel_input, 1) - \
+        tf.expand_dims(self._kernel_points, 0)
     points_dist = tf.linalg.norm(points_diff, axis=2)
     kernel_weights = self._weighting(points_dist, self._sigma)
 
-    # weighted features per kernel and input features dim, shape [K, M, C1]
-    features_per_nb = tf.gather(features, neighbors[:, 0])
-    weighted_features = tf.expand_dims(features_per_nb, axis=0) * \
-        tf.expand_dims(kernel_weights, axis=2)
+    # Pad zeros to fullfil requirements of the basis_proj custom op,
+    # 8, 16, or 32 basis are allowed.
+    if self._num_kernel_points < 8:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 8-self._num_kernel_points]])
+    elif self._num_kernel_points > 8 and self._num_kernel_points < 16:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 16-self._num_kernel_points]])
+    elif self._num_kernel_points > 16 and self._num_kernel_points < 32:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 32-self._num_kernel_points]])
+    elif self._num_kernel_points > 32 and self._num_kernel_points < 64:
+        kernel_weights = tf.pad(kernel_weights,
+            [[0, 0], [0, 64-self._num_kernel_points]])
 
-    # matrix multiplication treating kernel dimension as batch dimension
-    # shape [K, M, C1] x [K, C1, D] -> [K, M, D*K]
-    convolution_result = tf.matmul(weighted_features,
-                                   self._kernel_offsets_weights)
-    # sum over kernel dimension, shape [M, D*K]
-    convolution_result = tf.reduce_sum(convolution_result, axis=0)
-    # sum over neighbors, shape [N2, D*K]
-    offset_per_center = tf.math.unsorted_segment_sum(convolution_result,
-                                                     neighbors[:, 1],
-                                                     self._num_output_points)
+    # Compute the projection to the samples.
+    weighted_features = basis_proj(
+        kernel_weights,
+        features,
+        neighborhood)
+    weighted_features = weighted_features[:, :, 0:self._num_kernel_points]
+
+    # Compute convolution - hidden layer to output (linear)
+    offset_per_center = tf.matmul(
+        tf.reshape(weighted_features,
+                   [-1, self._num_features_in * self._size_hidden]),
+        self._kernel_offsets_weights)
+
     # save for regularization loss computation
     self._offsets = tf.reshape(offset_per_center, [self._num_output_points,
                                                    self._num_kernel_points,
                                                    self._num_dims])
     # project back onto neighbor pairs, shape [M, D*K]
     offset_per_nb = tf.gather(offset_per_center, neighbors[:, 1])
-    # reshape to shape [K, M, self._num_dims]
-    return  tf.transpose(tf.reshape(offset_per_nb,
-                                    [neighbors.shape[0],
+    # reshape to shape [M, K, self._num_dims]
+    return  tf.reshape(offset_per_nb, 
+                                     [neighbors.shape[0],
                                      self._num_kernel_points,
-                                     self._num_dims]),
-                         [1, 0, 2])
+                                     self._num_dims])
+
 
   def regularization_loss(self, name=None):
     """ The regularization loss for deformable kernel points.

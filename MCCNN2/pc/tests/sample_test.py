@@ -29,7 +29,7 @@ from MCCNN2.pc.tests import utils
 class SamplingTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (1000, 8, 0.1, 2),
+    (1000, 8, 0.1, 3),
     (1000, 8, 0.1, 3),
     (100, 16, 0.1, 4)
   )
@@ -93,7 +93,7 @@ class SamplingTest(test_case.TestCase):
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points * batch_size, dimension=dimension,
         sizes=np.ones(batch_size, dtype=int) * num_points)
-    print(points.shape, batch_ids.shape)
+    #print(points.shape, batch_ids.shape)
     point_cloud = PointCloud(points=points, batch_ids=batch_ids)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes)

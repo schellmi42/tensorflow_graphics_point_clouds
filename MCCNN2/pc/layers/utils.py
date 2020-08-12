@@ -164,7 +164,7 @@ def spherical_kernel_points(num_points, rotate=True, name=None):
   with tf.compat.v1.name_scope(
       name, "KPConv kernel points",
       [num_points, rotate]):
-    print()
+
     if num_points not in [5, 7, 13, 15, 18]:
       raise ValueError('KPConv currently only supports kernel sizes' + \
                        ' [5, 7, 13, 15, 18]')
@@ -205,7 +205,7 @@ def spherical_kernel_points(num_points, rotate=True, name=None):
       hex1 = _hexagon(0.5, np.sqrt(3) / 2)
       hex2 = _hexagon(-0.5, np.sqrt(3) / 2)
       points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]], hex1, hex2),
-                              axis=1)
+                              axis=0)
       points = tf.Variable(points, dtype=tf.float32)
     elif num_points == 18:
       penta1 = _pentagon(1 / np.sqrt(2), 0.5)

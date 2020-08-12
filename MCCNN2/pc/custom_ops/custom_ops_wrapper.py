@@ -172,44 +172,29 @@ def _compute_pdf_grad(op, *grads):
   return [inPtsGrad, None, None, None, None]
 
 
-def basis_proj(kernel_inputs, neighborhood, pdf, features,
-               basis, non_linearity_type):
-  """ Method to compute the Monte-Carlo integrated latent vectors of a
-  one hidden layer MLP, with a non-linear activation function. The MLP is
-  the implicit convolution kernel function.
+def basis_proj(neigh_basis, features, neighborhood):
+  """ Method to aggregate the features*basis for different neighborhoods.
 
   Args:
-    kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
-      kernel MLP.
-    neighborhood: A `Neighborhood` instance.
-    pdf:  A `float` `Tensor` of shape `[M]`.
+    neigh_basis: A `float` `Tensor` of shape `[M, H]`, the projection of 
+        each neighbor to the different basis.
     features: A `float` `Tensor` of shape `[N_in, C]`, the input features.
-    basis: A list of two `tf.Variables`, the weights and biases of the
-      hidden layer of the MLP.
-      1. weights of shape `[H, L]`
-      2. biases of shape `[H,1]`
-    non_linearity_type: An `int`, specifies the type of the activation
-      function used. (RELU - 2, LRELU - 3, ELU - 4)
+    neighborhood: A `Neighborhood` instance.    
 
   Returns:
     A `float` `Tensor` of shape ``[N_out, C, H]`, the weighted latent features.
   """
   return tfg_custom_ops.basis_proj(
-      kernel_inputs,
+      neigh_basis,
       features,
       neighborhood._original_neigh_ids,
-      neighborhood._samples_neigh_ranges,
-      pdf,
-      basis,
-      non_linearity_type)
+      neighborhood._samples_neigh_ranges)
 
 
 @tf.RegisterGradient("BasisProj")
 def _basis_proj_grad(op, *grads):
-  feature_grads, basis_grads, kernel_in_grads, pdf_grads = \
+  basis_grads, feature_grads = \
       tfg_custom_ops.basis_proj_grads(
           op.inputs[0], op.inputs[1], op.inputs[2],
-          op.inputs[3], op.inputs[4], op.inputs[5],
-          grads[0], op.get_attr("basis_type"))
-  return [kernel_in_grads, feature_grads, None, None,
-          pdf_grads, basis_grads]
+          op.inputs[3], grads[0])
+  return [basis_grads, feature_grads, None, None]

@@ -29,38 +29,28 @@ namespace mccnn{
      *  Method to compute a monte carlo convolution using an kernel sample.
      *  @param  pBasisType              Type of basis functions used.
      *  @param  pNumSamples             Number of samples.
-     *  @param  pNumNeighbors           Number of neighbors.
      *  @param  pNumInFeatures          Number of input features.
-     *  @param  pInKernelInGPUPtr       Input gpu pointer to the array
-     *      with the inputs to the kernel.
      *  @param  pInPtFeaturesGPUPtr     Input gpu pointer to the array
      *      with the input features.
+     *  @param  pInBasisGPUPtr          Input gpu pointer with the basis
+     *      functions.
      *  @param  pInNeighborsGPUPtr      Input gpu pointer with the list
      *      of neighbors.
      *  @param  pInSampleNeighIGPUPtr   Input gpu pointer with the 
      *      last neighbor index for each sample.
-     *  @param  pInBasisGPUPtr          Input gpu pointer with the basis
-     *      functions.
-     *  @param  pInPDFsGPUPtr           Input gpu pointer with the
-     *      pdf values for each neighbor.
      *  @param  pOutFeaturesGPUPtr      Output gpu pointer in which
      *      the new features will be stored.
-     *  @paramt D                       Number of dimensions.
      *  @paramt K                       Number of basis functions.
      */
-    template<int D, int K>
+    template<int K>
     void basis_proj_gpu(
         std::unique_ptr<IGPUDevice>& pDevice,
-        const BasisFunctType pBasisType,
         const unsigned int pNumSamples,
-        const unsigned int pNumNeighbors,
         const unsigned int pNumInFeatures,
-        const float* pInKernelInGPUPtr,
         const float* pInPtFeaturesGPUPtr,
+        const float* pInBasisGPUPtr,
         const int* pInNeighborsGPUPtr,
         const int* pInSampleNeighIGPUPtr,
-        const float* pInBasisGPUPtr,
-        const float* pInPDFsGPUPtr,
         float*  pOutFeaturesGPUPtr);
 }
 

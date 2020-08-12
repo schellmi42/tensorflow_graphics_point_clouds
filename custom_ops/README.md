@@ -7,7 +7,7 @@ for a detailed guide about how to add an op we refer to this template.
 The c++-toolchains are dependent on the latest tensorflow-custom-op docker container, to set it up run
 ```bash
   docker pull tensorflow/tensorflow:2.1.0-custom-op-gpu-ubuntu16
-  sudo docker run --gpus all --privileged -it -v ${PWD}:/working_dir -w /working_dir tensorflow/tensorflow:2.1.0-custom-op-gpu-ubuntu16
+  sudo docker run --gpus all --privileged -it -v ${PWD}:/working_dir -w /working_dir tensorflow/tensorflow:2.2.0-custom-op-gpu-ubuntu16
   root@docker: ./configure.sh
 ```
 
@@ -25,7 +25,7 @@ The package `.whl` is located in `artifacts/`, by default it should be a python3
 
 To install the package via pip run
 ```bash
-  pip3 install pkg_builds/*.whl
+  pip3 install artifacts/*.whl
 ```
 
 To test out the package run

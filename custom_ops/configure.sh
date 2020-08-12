@@ -74,16 +74,16 @@ else
   done
 fi
 
-while [[ "$TF_CUDA_VERSION" == "" ]]; do
-  read -p "Are you building against TensorFlow 2.1(including RCs) or newer?[Y/n] " INPUT
+while [[ "$TF_VERSION" == "" ]] || [[ "$TF_CUDA_VERSION" == "" ]]; do
+  read -p "Specify the version of tensorflow used to compile (e.g 2.2)" INPUT
   case $INPUT in
-    [Yy]* ) echo "Build against TensorFlow 2.1 or newer."; TF_CUDA_VERSION=10.1;;
-    [Nn]* ) echo "Build against TensorFlow <2.1."; TF_CUDA_VERSION=10.0;;
-    "" ) echo "Build against TensorFlow 2.1 or newer."; TF_CUDA_VERSION=10.1;;
+    2.0 ) echo "Build against TensorFlow 2.0."; TF_CUDA_VERSION=10.0; TF_VERSION=2.0.0;;
+    2.1 ) echo "Build against TensorFlow 2.1."; TF_CUDA_VERSION=10.1; TF_VERSION=2.1.0;;
+    2.2 ) echo "Build against TensorFlow 2.2."; TF_CUDA_VERSION=10.1; TF_VERSION=2.2.0;;
+    2.3 ) echo "Build against TensorFlow 2.3."; TF_CUDA_VERSION=10.1; TF_VERSION=2.3.0;;
     * ) echo "Invalid selection: " $INPUT;;
   esac
 done
-
 
 # CPU
 if [[ "$TF_NEED_CUDA" == "0" ]]; then
@@ -102,7 +102,7 @@ if [[ "$TF_NEED_CUDA" == "0" ]]; then
     fi
     # Install CPU version
     echo 'Installing tensorflow......\n'
-    pip install tensorflow
+    pip install tensorflow==$TF_VERSION
   fi
 
 else
@@ -121,7 +121,7 @@ else
     fi
     # Install CPU version
     echo 'Installing tensorflow-gpu .....\n'
-    ${PIP} install tensorflow-gpu
+    ${PIP} install tensorflow-gpu==$TF_VERSION
   fi
 fi
 

@@ -98,6 +98,7 @@ __global__ void compute_grads_in_features(
                 curWeight = pInPtProjBasisGPUPtr[neighIndex*K + localId];                
 
                 //Save the features in shared memory.
+                //THIS REQUIRES K >= pGroupFeatures
                 if(localId < pGroupFeatures)
                     features[groupId*pGroupFeatures + localId] = pInFeaturesGPUPtr[
                         neighAndSampleIndices.x*pNumInFeatures 
@@ -152,37 +153,27 @@ __global__ void compute_grads_in_features(
 ///////////////////////// CPU
           
 
-template<int D, int K>
+template<int K>
 void mccnn::basis_proj_grads_gpu(
     std::unique_ptr<IGPUDevice>& pDevice,
-    const BasisFunctType pBasisType,
     const unsigned int pNumPts,
     const unsigned int pNumSamples,
     const unsigned int pNumNeighbors,
-    const unsigned int pNumInFeatures, 
-    const float* pInKernelInGPUPtr,
+    const unsigned int pNumInFeatures,
     const float* pInPtFeaturesGPUPtr,
+    const float* pInBasisGPUPtr,
     const int* pInNeighborsGPUPtr,
     const int* pInSampleNeighIGPUPtr,
-    const float* pInBasisGPUPtr,
-    const float* pInPDFsGPUPtr,
-    const float* pInGradGPUPtr,
+    const float* pInGradientsGPUPtr,
     float* pOutFeatGradsGPUPtr,
-    float* pOutBasisGradsGPUPtr,
-    float* pOutKernelsInGradsGPUPtr,
-    float* pOutPDFGradsGPUPtr)
+    float* pOutBasisGradsGPUPtr)
 {
     //Get the cuda stream.
     auto cudaStream = pDevice->getCUDAStream();
 
-    //Get the number of parameters per basis function.
-    unsigned int numParamsBasis = mccnn::get_num_params_x_basis(pBasisType, D);
-
     //Initialize to zero the output array.
     pDevice->memset(pOutFeatGradsGPUPtr, 0, sizeof(float)*pNumPts*pNumInFeatures);
-    pDevice->memset(pOutBasisGradsGPUPtr, 0, sizeof(float)*K*numParamsBasis);
-    pDevice->memset(pOutKernelsInGradsGPUPtr, 0, sizeof(float)*D*pNumNeighbors);
-    pDevice->memset(pOutPDFGradsGPUPtr, 0, sizeof(float)*pNumNeighbors);
+    pDevice->memset(pOutBasisGradsGPUPtr, 0, sizeof(float)*K*pNumNeighbors);
     pDevice->check_error(__FILE__, __LINE__);
 
     //Get the device properties.
@@ -191,18 +182,6 @@ void mccnn::basis_proj_grads_gpu(
     //Get information of the Device.
     unsigned int numMP = gpuProps.numMPs_;
     unsigned int blockSize = 64;
-
-    //Compute the size of the temporal buffers.
-    float* tmpBuffer = pDevice->getFloatTmpGPUBuffer(pNumNeighbors*K);
-    float* tmpBuffer2 = pDevice->getFloatTmpGPUBuffer(pNumNeighbors*K);
-    pDevice->memset(tmpBuffer2, 0, sizeof(float)*pNumNeighbors*K);
-    pDevice->check_error(__FILE__, __LINE__);
-
-    //The the projector object and project the points.
-    std::unique_ptr<BasisInterface<D, K>> basis = 
-        mccnn::basis_function_factory<D, K>(pBasisType);
-    basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, 
-        pInKernelInGPUPtr, pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer);
 
     //Determine the group of features.
     unsigned int groupFeatSize = min(MULTIPLE_IN_FEATURES, pNumInFeatures);
@@ -225,36 +204,27 @@ void mccnn::basis_proj_grads_gpu(
     compute_grads_in_features<K>
         <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
         groupFeatSize, pNumSamples, pNumInFeatures, pInPtFeaturesGPUPtr,
-        tmpBuffer, (const int2*)pInNeighborsGPUPtr, pInSampleNeighIGPUPtr,
-        pInGradGPUPtr, pOutFeatGradsGPUPtr, tmpBuffer2);
+        pInBasisGPUPtr, (const int2*)pInNeighborsGPUPtr, pInSampleNeighIGPUPtr,
+        pInGradientsGPUPtr, pOutFeatGradsGPUPtr, pOutBasisGradsGPUPtr);
     pDevice->check_error(__FILE__, __LINE__);
 
-    //Compute the gradients of the basis and the point coordinates.
-    basis->compute_grads_basis_proj_pt_coords(pDevice, pNumNeighbors, 
-        pInKernelInGPUPtr, pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer2, 
-        pOutBasisGradsGPUPtr, pOutKernelsInGradsGPUPtr, pOutPDFGradsGPUPtr);
 }
 
 ///////////////////////// CPU Template declaration
 
-#define COMPUTE_BASIS_PROJ_GRADS_TEMP_DECL(Dims, K)         \
-    template void mccnn::basis_proj_grads_gpu<Dims, K>(     \
-        std::unique_ptr<IGPUDevice>& pDevice,               \
-        const BasisFunctType pBasisType,                    \
-        const unsigned int pNumPts,                         \
-        const unsigned int pNumSamples,                     \
-        const unsigned int pNumNeighbors,                   \
-        const unsigned int pNumInFeatures,                  \
-        const float* pInKernelInGPUPtr,                     \
-        const float* pInPtFeaturesGPUPtr,                   \
-        const int* pInNeighborsGPUPtr,                      \
-        const int* pInSampleNeighIGPUPtr,                   \
-        const float* pInBasisGPUPtr,                        \
-        const float* pInPDFsGPUPtr,                         \
-        const float* pInGradGPUPtr,                         \
-        float* pOutFeatGradsGPUPtr,                         \
-        float* pOutBasisGradsGPUPtr,                        \
-        float* pOutKernelsInGradsGPUPtr,                    \
-        float* pOutPDFGradsGPUPtr);   
+#define COMPUTE_BASIS_PROJ_GRADS_TEMP_DECL(K)           \
+    template void mccnn::basis_proj_grads_gpu<K>(       \
+        std::unique_ptr<IGPUDevice>& pDevice,           \
+        const unsigned int pNumPts,                     \
+        const unsigned int pNumSamples,                 \
+        const unsigned int pNumNeighbors,               \
+        const unsigned int pNumInFeatures,              \
+        const float* pInPtFeaturesGPUPtr,               \
+        const float* pInBasisGPUPtr,                    \
+        const int* pInNeighborsGPUPtr,                  \
+        const int* pInSampleNeighIGPUPtr,               \
+        const float* pInGradientsGPUPtr,                \
+        float* pOutFeatGradsGPUPtr,                     \
+        float* pOutBasisGradsGPUPtr);   
 
 DECLARE_TEMPLATE_DIMS_BASIS(COMPUTE_BASIS_PROJ_GRADS_TEMP_DECL)

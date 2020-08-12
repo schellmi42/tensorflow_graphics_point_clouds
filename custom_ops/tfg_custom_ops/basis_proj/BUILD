@@ -32,17 +32,11 @@ cc_library(
 cc_library(
     name = "basis_proj_ops_gpu",
     srcs = [
-        "cc/kernels/basis_hproj.h",
-        "cc/kernels/basis_hproj_kernels.cu.cc",
-        "cc/kernels/basis_kp.h",
-        "cc/kernels/basis_kp_kernels.cu.cc",
         "cc/kernels/basis_proj.h",
         "cc/kernels/basis_proj_kernels.cu.cc",
         "cc/kernels/basis_proj_grads.h",
         "cc/kernels/basis_proj_grads_kernels.cu.cc",
         "cc/kernels/basis_utils.h",
-        "cc/kernels/basis_utils_kernels.cu.cc",
-        "cc/kernels/basis_interface.h",
     ],
     deps = [
         "@local_config_tf//:libtensorflow_framework",

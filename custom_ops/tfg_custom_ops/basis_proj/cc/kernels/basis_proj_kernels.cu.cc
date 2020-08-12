@@ -20,7 +20,6 @@
 #include "tfg_custom_ops/shared/cc/kernels/defines.hpp"
 #include "tfg_custom_ops/shared/cc/kernels/math_helper.h"
 #include "tfg_custom_ops/shared/cc/kernels/cuda_kernel_utils.h"
-
 #include "tfg_custom_ops/basis_proj/cc/kernels/basis_utils.h"
 #include "tfg_custom_ops/basis_proj/cc/kernels/basis_proj.h"
 
@@ -129,20 +128,15 @@ __global__ void compute_weighted_in_features(
 
 ///////////////////////// CPU
           
-
-template<int D, int K>
+template<int K>
 void mccnn::basis_proj_gpu(
     std::unique_ptr<IGPUDevice>& pDevice,
-    const BasisFunctType pBasisType,
     const unsigned int pNumSamples,
-    const unsigned int pNumNeighbors,
-    const unsigned int pNumInFeatures, 
-    const float* pInKernelInGPUPtr,
+    const unsigned int pNumInFeatures,
     const float* pInPtFeaturesGPUPtr,
+    const float* pInBasisGPUPtr,
     const int* pInNeighborsGPUPtr,
     const int* pInSampleNeighIGPUPtr,
-    const float* pInBasisGPUPtr,
-    const float* pInPDFsGPUPtr,
     float*  pOutFeaturesGPUPtr)
 {
     //Get the cuda stream.
@@ -157,15 +151,6 @@ void mccnn::basis_proj_gpu(
 
     //Get information of the Device.
     unsigned int numMP = gpuProps.numMPs_;
-
-    //Compute the size of the temporal buffers.
-    float* tmpBuffer = pDevice->getFloatTmpGPUBuffer(pNumNeighbors*K);
-
-    //The the projector object and project the points.
-    std::unique_ptr<BasisInterface<D, K>> basis = 
-        mccnn::basis_function_factory<D, K>(pBasisType);
-    basis->compute_basis_proj_pt_coords(pDevice, pNumNeighbors, pInKernelInGPUPtr,
-        pInPDFsGPUPtr, pInBasisGPUPtr, tmpBuffer);
 
     //Define the block size.
     unsigned int  blockSize = 64;
@@ -190,7 +175,7 @@ void mccnn::basis_proj_gpu(
     //Compute the accumulation of weighted input features.
     compute_weighted_in_features<K>
         <<<totalNumBlocks, blockSize, sharedMemSize, cudaStream>>>(
-        groupFeatSize, pNumSamples, pNumInFeatures, tmpBuffer, 
+        groupFeatSize, pNumSamples, pNumInFeatures, pInBasisGPUPtr, 
         (const int2*)pInNeighborsGPUPtr, pInSampleNeighIGPUPtr,
         pInPtFeaturesGPUPtr, pOutFeaturesGPUPtr);
     pDevice->check_error(__FILE__, __LINE__);
@@ -198,19 +183,15 @@ void mccnn::basis_proj_gpu(
 
 ///////////////////////// CPU Template declaration
 
-#define COMPUTE_BASIS_PROJ_KS_TEMP_DECL(Dims, K)     \
-    template void mccnn::basis_proj_gpu<Dims, K>(    \
+#define COMPUTE_BASIS_PROJ_KS_TEMP_DECL(K)              \
+    template void mccnn::basis_proj_gpu<K>(             \
         std::unique_ptr<IGPUDevice>& pDevice,           \
-        const BasisFunctType pBasisType,                \
         const unsigned int pNumSamples,                 \
-        const unsigned int pNumNeighbors,               \
         const unsigned int pNumInFeatures,              \
-        const float* pInKernelInGPUPtr,                 \
         const float* pInPtFeaturesGPUPtr,               \
+        const float* pInBasisGPUPtr,                    \
         const int* pInNeighborsGPUPtr,                  \
         const int* pInSampleNeighIGPUPtr,               \
-        const float* pInBasisGPUPtr,                    \
-        const float* pInPDFsGPUPtr,                     \
         float*  pOutFeaturesGPUPtr);
 
 DECLARE_TEMPLATE_DIMS_BASIS(COMPUTE_BASIS_PROJ_KS_TEMP_DECL)
