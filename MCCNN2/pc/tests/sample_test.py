@@ -29,8 +29,8 @@ from MCCNN2.pc.tests import utils
 class SamplingTest(test_case.TestCase):
 
   @parameterized.parameters(
-    (1000, 8, 0.1, 3),
-    (1000, 8, 0.1, 3),
+    (100, 8, 0.1, 3),
+    (100, 8, 0.1, 3),
     (100, 16, 0.1, 4)
   )
   def test_sampling_poisson_disk_on_random(
@@ -84,7 +84,7 @@ class SamplingTest(test_case.TestCase):
     # (100, 32, np.sqrt(2), 2),
     (100, 2, 0.1, 3),
     (100, 8, 0.7, 3),
-    (100, 32, np.sqrt(3), 3),
+    (50, 2, np.sqrt(3), 3),
     # (40, 2, 0.1, 4)
   )
   def test_sampling_average_on_random(
