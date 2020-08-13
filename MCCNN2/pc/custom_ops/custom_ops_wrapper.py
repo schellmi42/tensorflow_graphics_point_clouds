@@ -176,10 +176,10 @@ def basis_proj(neigh_basis, features, neighborhood):
   """ Method to aggregate the features*basis for different neighborhoods.
 
   Args:
-    neigh_basis: A `float` `Tensor` of shape `[M, H]`, the projection of 
+    neigh_basis: A `float` `Tensor` of shape `[M, H]`, the projection of
         each neighbor to the different basis.
     features: A `float` `Tensor` of shape `[N_in, C]`, the input features.
-    neighborhood: A `Neighborhood` instance.    
+    neighborhood: A `Neighborhood` instance.
 
   Returns:
     A `float` `Tensor` of shape ``[N_out, C, H]`, the weighted latent features.

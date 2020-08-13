@@ -426,29 +426,14 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
     return pdf
 
 
-def basis_proj_tf(kernel_inputs,
-                  neighborhood,
-                  pdf,
-                  features,
-                  basis,
-                  non_linearity_type,
-                  name=None):
-  """ Method to compute the Monte-Carlo integrated latent vectors of a
-  one hidden layer MLP, with a non-linear activation function. The MLP is
-  the implicit convolution kernel function.
+def basis_proj_tf(neigh_basis, features, neighborhood, name=None):
+  """ Method to aggregate the features*basis for different neighborhoods.
 
   Args:
-    kernel_inputs: A `float` `Tensor` of shape `[M, L]`, the input to the
-      kernel MLP.
-    neighborhood: A `Neighborhood` instance.
-    pdf:  A `float` `Tensor` of shape `[M]`.
+    neigh_basis: A `float` `Tensor` of shape `[M, H]`, the projection of
+        each neighbor to the different basis.
     features: A `float` `Tensor` of shape `[N_in, C]`, the input features.
-    basis: A list of two `tf.Variables`, the weights and biases of the
-      hidden layer of the MLP.
-      1. weights of shape `[H, L]`
-      2. biases of shape `[H,1]`
-    non_linearity_type: An `int`, specifies the type of the activation
-      function used. (RELU - 2, LRELU - 3, ELU - 4)
+    neighborhood: A `Neighborhood` instance.
 
   Returns:
     A `float` `Tensor` of shape ``[N_out, C, H]`, the weighted latent features.
@@ -456,30 +441,17 @@ def basis_proj_tf(kernel_inputs,
   with tf.compat.v1.name_scope(
         name,
         'basis_projection',
-        [kernel_inputs, neighborhood, pdf, features, basis, non_linearity_type]
+        [neigh_basis, neighborhood, features]
                               ):
-    kernel_inputs = tf.convert_to_tensor(value=kernel_inputs, dtype=tf.float32)
+    neigh_basis = tf.convert_to_tensor(value=neigh_basis, dtype=tf.float32)
     features = tf.convert_to_tensor(value=features, dtype=tf.float32)
-    pdf = tf.convert_to_tensor(value=pdf, dtype=tf.float32)
     # get input in correct shapes
     num_nbh = neighborhood._point_cloud_sampled._points.shape[0]
     features_per_nb = tf.gather(features,
                                 neighborhood._original_neigh_ids[:, 0])
-    hidden_weights = basis[:, :-1]
-    hidden_bias = tf.expand_dims(basis[:, -1], 1)
-    # one layer MLP with activation
-    latent_per_nb = tf.matmul(hidden_weights, tf.transpose(kernel_inputs)) +\
-        hidden_bias
-    if non_linearity_type == 2:
-      latent_act_per_nb = tf.nn.relu(latent_per_nb)
-    elif non_linearity_type == 3:
-      latent_act_per_nb = tf.nn.leaky_relu(latent_per_nb)
-    elif non_linearity_type == 4:
-      latent_act_per_nb = tf.nn.elu(latent_per_nb)
     # Monte-Carlo Integration
     weighted_features_per_nb = tf.expand_dims(features_per_nb, 2) *\
-        tf.expand_dims(tf.transpose(latent_act_per_nb), 1) /\
-        tf.reshape(pdf, [-1, 1, 1])
+        tf.expand_dims(neigh_basis, 1)
     weighted_latent_per_center = tf.math.unsorted_segment_sum(
         weighted_features_per_nb, neighborhood._neighbors[:, 1], num_nbh)
     return weighted_latent_per_center

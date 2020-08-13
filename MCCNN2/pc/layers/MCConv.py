@@ -73,7 +73,7 @@ class MCConv:
                num_features_in,
                num_features_out,
                num_dims,
-               num_mlps = 4,
+               num_mlps=4,
                mlp_size=[8],
                non_linearity_type='leaky_relu',
                initializer_weights=None,
@@ -85,7 +85,7 @@ class MCConv:
     with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
                                  [self, num_features_out, num_features_in,
                                   num_features_out, num_dims, num_mlps,
-                                  mlp_size, non_linearity_type, 
+                                  mlp_size, non_linearity_type,
                                   initializer_weights, initializer_biases]):
       self._num_features_in = num_features_in
       self._num_features_out = num_features_out
@@ -132,10 +132,9 @@ class MCConv:
               self._name + '_conv_weights',
               shape=[self._num_mlps,
                      cur_layer * self._num_features_in,
-                     self._num_features_out//self._num_mlps],
+                     self._num_features_out // self._num_mlps],
               initializer=initializer_weights(stddev=std_dev),
               dtype=tf.float32, trainable=True)
-              
 
   def _monte_carlo_conv(self,
                         kernel_inputs,
@@ -154,22 +153,23 @@ class MCConv:
       features: A `float` `Tensor` of shape `[N, C1]`, the input features.
       non_linearity_type: An `string`, specifies the type of the activation
         function used inside the kernel MLP.
-        Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU. (optional)
+        Possible: `'ReLU', 'leaky_ReLU', 'ELU'`, defaults to leaky ReLU.
+        (optional)
 
     Returns:
       A `float` `Tensor` of shape `[N,C2]`, the output features.
     """
 
     # Compute the hidden layer MLP
-    cur_inputs = tf.tile(tf.reshape(kernel_inputs, [1, -1, self._num_dims]), 
-      [self._num_mlps, 1, 1])
+    cur_inputs = tf.tile(tf.reshape(kernel_inputs, [1, -1, self._num_dims]),
+                         [self._num_mlps, 1, 1])
     for cur_layer_iter in range(len(self._weights_tf)):
       cur_inputs = tf.matmul(cur_inputs, self._weights_tf[cur_layer_iter]) + \
         self._bias_tf[cur_layer_iter]
       cur_inputs = non_linearity_types[non_linearity_type.lower()](cur_inputs)
-    cur_inputs = tf.reshape(tf.transpose(cur_inputs, [1, 0, 2]), 
-      [-1, self._mlp_size[-1]*self._num_mlps]) \
-      / tf.reshape(pdf, [-1, 1])
+    cur_inputs = tf.reshape(tf.transpose(cur_inputs, [1, 0, 2]),
+                            [-1, self._mlp_size[-1] * self._num_mlps]) \
+        / tf.reshape(pdf, [-1, 1])
 
     # Compute the projection to the samples.
     weighted_features = basis_proj(
@@ -178,21 +178,21 @@ class MCConv:
         neighborhood)
 
     # Reshape features
-    weighted_features = tf.transpose(tf.reshape(weighted_features, 
-                                                [-1, self._num_features_in, 
-                                                 self._num_mlps, 
+    weighted_features = tf.transpose(tf.reshape(weighted_features,
+                                                [-1, self._num_features_in,
+                                                 self._num_mlps,
                                                  self._mlp_size[-1]]),
                                      [2, 0, 1, 3])
 
     #Compute convolution - hidden layer to output (linear)
     convolution_result = tf.matmul(
-        tf.reshape(weighted_features,
-                   [self._num_mlps, -1, self._num_features_in * self._mlp_size[-1]]),
+        tf.reshape(
+            weighted_features,
+            [self._num_mlps, -1, self._num_features_in * self._mlp_size[-1]]),
         self._final_weights_tf)
 
     return tf.reshape(tf.transpose(convolution_result, [1, 0, 2]),
                       [-1, self._num_features_out])
-
 
   def __call__(self,
                features,

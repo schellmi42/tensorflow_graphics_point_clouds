@@ -25,7 +25,7 @@ from MCCNN2.pc.layers import MCConv
 from MCCNN2.pc.custom_ops import basis_proj
 
 
-class BasisProjTFTest(test_case.TestCase):
+class BasisProjTest(test_case.TestCase):
 
   @parameterized.parameters(
     # neighbor ids are currently corrupted on dimension 2: todo fix
@@ -58,20 +58,21 @@ class BasisProjTFTest(test_case.TestCase):
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-    bandwidth = np.float32(np.repeat(0.2, dimension))
-    #pdf = neighborhood.get_pdf(bandwidth=bandwidth)
     nb_ids = neighborhood._original_neigh_ids
     # tf
     conv_layer = MCConv(
         num_features[0], num_features[1], dimension, 1, [hidden_size])
 
-    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size])
+    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0],
+                                  [dimension, hidden_size])
     basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
 
     neigh_point_coords = points[nb_ids[:, 0]]
     center_point_coords = point_samples[nb_ids[:, 1]]
     kernel_input = (neigh_point_coords - center_point_coords) / radius
-    basis_neighs = tf.matmul(kernel_input.astype(np.float32), basis_weights_tf) + basis_biases_tf
+    basis_neighs = \
+        tf.matmul(kernel_input.astype(np.float32), basis_weights_tf) + \
+        basis_biases_tf
     basis_neighs = tf.nn.relu(basis_neighs)
 
     weighted_latent_per_sample_tf = basis_proj(basis_neighs,
@@ -79,7 +80,6 @@ class BasisProjTFTest(test_case.TestCase):
                                                neighborhood)
 
     # numpy
-    pdf = neighborhood.get_pdf().numpy()
     neighbor_ids = neighborhood._original_neigh_ids.numpy()
     nb_ranges = neighborhood._samples_neigh_ranges.numpy()
     # extract variables
@@ -93,7 +93,7 @@ class BasisProjTFTest(test_case.TestCase):
         / np.expand_dims(cell_sizes, 0)
 
     latent_per_nb = np.dot(point_diff, hidden_weights) + hidden_biases
-    
+
     latent_relu_per_nb = np.maximum(latent_per_nb, 0)
     # Monte-Carlo integration after first layer
     # weighting with pdf
@@ -112,7 +112,7 @@ class BasisProjTFTest(test_case.TestCase):
                         weighted_latent_per_sample)
 
   @parameterized.parameters(
-    (8, 4, [8, 8], 2, np.sqrt(3)*1.25, 8, 3)
+    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 8, 3)
   )
   def test_basis_proj_jacobian(self,
                                num_points,
@@ -135,8 +135,6 @@ class BasisProjTFTest(test_case.TestCase):
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-    bandwidth = np.float32(np.repeat(0.2, dimension))
-    pdf = neighborhood.get_pdf(bandwidth=bandwidth)
     nb_ids = neighborhood._original_neigh_ids
     # tf
     conv_layer = MCConv(
@@ -146,10 +144,13 @@ class BasisProjTFTest(test_case.TestCase):
     center_point_coords = point_samples[nb_ids[:, 1].numpy()]
     kernel_input = (neigh_point_coords - center_point_coords) / radius
 
-    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size])
+    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0],
+                                  [dimension, hidden_size])
     basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
 
-    basis_neighs = tf.matmul(kernel_input.astype(np.float32), basis_weights_tf) + basis_biases_tf
+    basis_neighs = \
+        tf.matmul(kernel_input.astype(np.float32), basis_weights_tf) +\
+        basis_biases_tf
     basis_neighs = tf.nn.leaky_relu(basis_neighs)
 
     _, _, counts = tf.unique_with_counts(neighborhood._neighbors[:, 1])
@@ -171,7 +172,9 @@ class BasisProjTFTest(test_case.TestCase):
                           neighborhood) / (max_num_nb)
 
       self.assert_jacobian_is_correct_fn(
-          basis_proj_basis_neighs, [np.float32(basis_neighs)], atol=1e-4, delta=1e-3)
+          basis_proj_basis_neighs,
+          [np.float32(basis_neighs)],
+          atol=1e-4, delta=1e-3)
 
 
 if __name__ == '__main___':

@@ -10,7 +10,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific
-"""Class to test regular grid data structure"""
+"""Class to test basis projection"""
 
 import os
 import sys
@@ -30,12 +30,9 @@ class BasisProjTFTest(test_case.TestCase):
   @parameterized.parameters(
     # neighbor ids are currently corrupted on dimension 2: todo fix
     # (2000, 200, [3, 3], 16, 0.7, 4, 2),
-    # (4000, 400, [3, 3], 8, np.sqrt(2), 8, 2),
     (2000, 200, [1, 3], 16, 0.7, 8, 3),
     (4000, 400, [3, 3], 8, 0.7, 8, 3),
-    (4000, 100, [3, 1], 1, np.sqrt(3), 16, 3),
     (2000, 200, [3, 3], 16, 0.7, 8, 4),
-    (4000, 400, [1, 3], 8, np.sqrt(4), 32, 4)
   )
   def test_basis_proj(self,
                       num_points,
@@ -58,50 +55,47 @@ class BasisProjTFTest(test_case.TestCase):
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-    bandwidth = np.float32(np.repeat(0.2, dimension))
-    pdf = neighborhood.get_pdf(bandwidth=bandwidth)
     nb_ids = neighborhood._original_neigh_ids
     # tf
     conv_layer = MCConv(
         num_features[0], num_features[1], dimension, 1, [hidden_size])
 
+    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0],
+                                  [dimension, hidden_size])
+    basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
+
     neigh_point_coords = points[nb_ids[:, 0]]
     center_point_coords = point_samples[nb_ids[:, 1]]
     kernel_input = (neigh_point_coords - center_point_coords) / radius
+    basis_neighs = \
+        tf.matmul(kernel_input.astype(np.float32), basis_weights_tf) + \
+        basis_biases_tf
+    basis_neighs = tf.nn.relu(basis_neighs)
 
-    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size])
-    basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
-    basis_tf = tf.concat([basis_weights_tf, basis_biases_tf], axis= 0)
-    basis_tf = tf.transpose(basis_tf, [1,0])
-
-    weighted_latent_per_sample_tf = basis_proj_tf(kernel_input,
-                                                  neighborhood,
-                                                  pdf,
+    weighted_latent_per_sample_tf = basis_proj_tf(basis_neighs,
                                                   features,
-                                                  basis_tf,
-                                                  2)
+                                                  neighborhood)
 
     # numpy
-    pdf = neighborhood.get_pdf().numpy()
     neighbor_ids = neighborhood._original_neigh_ids.numpy()
     nb_ranges = neighborhood._samples_neigh_ranges.numpy()
     # extract variables
-    hidden_weights = basis_tf[:, :-1].numpy()
-    hidden_biases = basis_tf[:, -1].numpy()
-    hidden_biases = np.expand_dims(hidden_biases, 1)
+    hidden_weights = basis_weights_tf.numpy()
+    hidden_biases = basis_biases_tf.numpy()
 
     features_on_neighbors = features[neighbor_ids[:, 0]]
     # compute first layer of kernel MLP
     point_diff = (points[neighbor_ids[:, 0]] -\
                   point_samples[neighbor_ids[:, 1]])\
         / np.expand_dims(cell_sizes, 0)
-    latent_per_nb = np.dot(hidden_weights, point_diff.T) + hidden_biases
+
+    latent_per_nb = np.dot(point_diff, hidden_weights) + hidden_biases
+
     latent_relu_per_nb = np.maximum(latent_per_nb, 0)
     # Monte-Carlo integration after first layer
     # weighting with pdf
     weighted_features_per_nb = np.expand_dims(features_on_neighbors, 2) * \
-        np.expand_dims(latent_relu_per_nb.T, 1) / \
-        np.expand_dims(pdf, [1, 2])
+        np.expand_dims(latent_relu_per_nb, 1)
     nb_ranges = np.concatenate(([0], nb_ranges), axis=0)
     # sum (integration)
     weighted_latent_per_sample = \
@@ -110,12 +104,13 @@ class BasisProjTFTest(test_case.TestCase):
       weighted_latent_per_sample[i] = \
           np.sum(weighted_features_per_nb[nb_ranges[i]:nb_ranges[i + 1]],
                  axis=0)
+    
 
     self.assertAllClose(weighted_latent_per_sample_tf,
-                        weighted_latent_per_sample)
+                        weighted_latent_per_sample, atol=1e-3)
 
   @parameterized.parameters(
-    (100, 4, [3, 3], 2, np.sqrt(3), 8, 3)
+    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 8, 3)
   )
   def test_basis_proj_jacobian(self,
                                num_points,
@@ -138,60 +133,46 @@ class BasisProjTFTest(test_case.TestCase):
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-    bandwidth = np.float32(np.repeat(0.2, dimension))
-    pdf = neighborhood.get_pdf(bandwidth=bandwidth)
     nb_ids = neighborhood._original_neigh_ids
     # tf
     conv_layer = MCConv(
         num_features[0], num_features[1], dimension, 1, [hidden_size])
 
-    neigh_point_coords = points[nb_ids[:, 0]]
-    center_point_coords = point_samples[nb_ids[:, 1]]
+    neigh_point_coords = points[nb_ids[:, 0].numpy()]
+    center_point_coords = point_samples[nb_ids[:, 1].numpy()]
     kernel_input = (neigh_point_coords - center_point_coords) / radius
 
-    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size])
+    basis_weights_tf = tf.reshape(conv_layer._weights_tf[0],
+                                  [dimension, hidden_size])
     basis_biases_tf = tf.reshape(conv_layer._bias_tf[0], [1, hidden_size])
-    basis_tf = tf.concat([basis_weights_tf, basis_biases_tf], axis= 0)
-    weights = tf.transpose(basis_tf, [1,0])
+
+    basis_neighs = \
+        tf.matmul(kernel_input.astype(np.float32), basis_weights_tf) +\
+        basis_biases_tf
+    basis_neighs = tf.nn.leaky_relu(basis_neighs)
 
     _, _, counts = tf.unique_with_counts(neighborhood._neighbors[:, 1])
     max_num_nb = tf.reduce_max(counts).numpy()
 
     with self.subTest(name='features'):
       def basis_proj_features(features_in):
-        return basis_proj_tf(kernel_input,
-                             neighborhood,
-                             pdf,
+        return basis_proj_tf(basis_neighs,
                              features_in,
-                             weights,
-                             2) / (max_num_nb)
-      self.assert_jacobian_is_correct_fn(
-          basis_proj_features, [np.float32(features)], atol=1e-3)
+                             neighborhood) / (max_num_nb)
 
-    with self.subTest(name='weights'):
-      def basis_proj_weights(weights_in):
-        return basis_proj_tf(kernel_input,
-                             neighborhood,
-                             pdf,
-                             features,
-                             weights_in,
-                             2) / (max_num_nb)
       self.assert_jacobian_is_correct_fn(
-          basis_proj_weights, [weights], atol=1e-3)
+          basis_proj_features, [np.float32(features)], atol=1e-4, delta=1e-3)
 
-    with self.subTest(name='points'):
-      def basis_proj_points(points_in):
-        neigh_point_coords = tf.gather(points_in, nb_ids[:, 0])
-        center_point_coords = point_samples[nb_ids[:, 1]]
-        kernel_input = (neigh_point_coords - center_point_coords) / radius
-        return basis_proj_tf(kernel_input,
-                             neighborhood,
-                             pdf,
+    with self.subTest(name='neigh_basis'):
+      def basis_proj_basis_neighs(basis_neighs_in):
+        return basis_proj_tf(basis_neighs_in,
                              features,
-                             weights,
-                             2) / (max_num_nb)
+                             neighborhood) / (max_num_nb)
+
       self.assert_jacobian_is_correct_fn(
-          basis_proj_points, [np.float32(points)], atol=1e-3)
+          basis_proj_basis_neighs,
+          [np.float32(basis_neighs)],
+          atol=1e-4, delta=1e-3)
 
 
 if __name__ == '__main___':

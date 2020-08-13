@@ -220,6 +220,7 @@ class KPConv:
         kernel_weights,
         features,
         neighborhood)
+    # remove padding
     weighted_features = weighted_features[:, :, 0:self._num_kernel_points]
 
     #Compute convolution - hidden layer to output (linear)
@@ -370,6 +371,7 @@ class KPConv:
         kernel_weights,
         features,
         neighborhood)
+    # remove padding
     weighted_features = weighted_features[:, :, 0:self._num_kernel_points]
 
     # Compute convolution - hidden layer to output (linear)
