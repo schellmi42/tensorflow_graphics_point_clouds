@@ -100,14 +100,14 @@ class KPConvTest(test_case.TestCase):
   @parameterized.parameters(
     (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 15, 3)
   )
-  def test_conv_jacobian_params(self,
-                                num_points,
-                                num_samples,
-                                num_features,
-                                batch_size,
-                                radius,
-                                num_kernel_points,
-                                dimension):
+  def test_conv_rigid_jacobian_params(self,
+                                      num_points,
+                                      num_samples,
+                                      num_features,
+                                      batch_size,
+                                      radius,
+                                      num_kernel_points,
+                                      dimension):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
         batch_size, num_points, dimension=dimension)
@@ -143,6 +143,74 @@ class KPConvTest(test_case.TestCase):
       weights = conv_layer._weights
       self.assert_jacobian_is_correct_fn(
           conv_weights, [weights], atol=1e-4, delta=1e-3)
+
+  @parameterized.parameters(
+    (8, 4, [2, 2], 2, np.sqrt(3) * 1.25, 5, 3)
+  )
+  def test_conv_deformable_jacobian_params(self,
+                                           num_points,
+                                           num_samples,
+                                           num_features,
+                                           batch_size,
+                                           radius,
+                                           num_kernel_points,
+                                           dimension):
+    cell_sizes = np.float32(np.repeat(radius, dimension))
+    points, batch_ids = utils._create_random_point_cloud_segmented(
+        batch_size, num_points, dimension=dimension)
+    point_cloud = PointCloud(points, batch_ids)
+    point_samples, batch_ids_samples = \
+        utils._create_random_point_cloud_segmented(
+            batch_size, num_samples, dimension=dimension)
+
+    point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
+    grid = Grid(point_cloud, cell_sizes)
+    neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
+    conv_layer = KPConv(
+        num_features[0], num_features[1], num_kernel_points, deformable=True)
+
+    features = np.random.rand(num_points, num_features[0])
+
+    with self.subTest(name='features'):
+      def conv_features(features_in):
+        conv_result = conv_layer(
+          features_in, point_cloud, point_cloud_samples, radius, neighborhood)
+        return conv_result
+
+      self.assert_jacobian_is_correct_fn(
+          conv_features, [features], atol=1e-4, delta=1e-3)
+
+    with self.subTest(name='weights'):
+      def conv_weights(weigths_in):
+        conv_layer._weights = weigths_in
+        conv_result = conv_layer(
+          features, point_cloud, point_cloud_samples, radius, neighborhood)
+        return conv_result
+
+      weights = conv_layer._weights
+      self.assert_jacobian_is_correct_fn(
+          conv_weights, [weights], atol=1e-4, delta=1e-3)
+
+    with self.subTest(name='offsets'):
+      def conv_offset_weights(weigths_in):
+        conv_layer._kernel_offsets_weights = weigths_in
+        conv_result = conv_layer(
+          features, point_cloud, point_cloud_samples, radius, neighborhood)
+        return conv_result
+
+      weights = conv_layer._kernel_offsets_weights
+      self.assert_jacobian_is_correct_fn(
+          conv_offset_weights, [weights], atol=1e-3, delta=1e-3)
+
+    with self.subTest(name='loss'):
+      def conv_loss(features):
+        _ = conv_layer(
+          features, point_cloud, point_cloud_samples, radius, neighborhood)
+        return conv_layer.regularization_loss()
+
+      weights = conv_layer._kernel_offsets_weights
+      self.assert_jacobian_is_correct_fn(
+          conv_loss, [features], atol=1e-4, delta=1e-3)
 
   @parameterized.parameters(
     # neighbor ids are currently corrupted on dimension 2: todo fix

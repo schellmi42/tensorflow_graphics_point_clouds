@@ -376,7 +376,7 @@ class KPConv:
     # Compute convolution - hidden layer to output (linear)
     offset_per_center = tf.matmul(
         tf.reshape(weighted_features,
-                   [-1, self._num_features_in * self._size_hidden]),
+                   [-1, self._num_features_in * self._num_kernel_points]),
         self._kernel_offsets_weights)
 
     # save for regularization loss computation
@@ -407,7 +407,7 @@ class KPConv:
       neighbors = self._cur_neighbors
 
       # reshape to [M, K]
-      point_dist = (tf.transpose(self._cur_point_dist) / self._sigma)**2
+      point_dist = (self._cur_point_dist / self._sigma)**2
       min_dists_per_nbh = tf.math.unsorted_segment_min(point_dist,
                                                        neighbors[:, 1],
                                                        self._num_output_points)
