@@ -104,7 +104,6 @@ class BasisProjTFTest(test_case.TestCase):
       weighted_latent_per_sample[i] = \
           np.sum(weighted_features_per_nb[nb_ranges[i]:nb_ranges[i + 1]],
                  axis=0)
-    
 
     self.assertAllClose(weighted_latent_per_sample_tf,
                         weighted_latent_per_sample, atol=1e-3)

@@ -37,6 +37,7 @@ def _linear_weighting(values, sigma):
 
   Returns:
     A `float` `Tensor` of shape `[K, M]`.
+
   """
   return tf.nn.relu(1 - values / sigma)
 
@@ -83,8 +84,6 @@ class KPConv:
       kernel points. (optional)
     initializer_weights: A `tf.initializer` for the weights,
       default `TruncatedNormal`. (optional)
-    initializer_biases: A `tf.initializer` for the biases,
-      default: `zeros`.(optional)
 
   Raises:
     ValueError, if no custom kernel points are passed for dimension not equal
@@ -286,7 +285,7 @@ class KPConv:
 
       if kernel_influence_dist is None:
         # normalized
-        self._sigma = 0.4
+        self._sigma = tf.constant(0.4)
       else:
         self._sigma = tf.convert_to_tensor(
           value=kernel_influence_dist / conv_radius, dtype=tf.float32)

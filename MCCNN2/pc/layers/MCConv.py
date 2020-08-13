@@ -59,7 +59,7 @@ class MCConv:
     num_mlps: An `int`, number of MLPs used to compute the output features.
       Warning: num_features_out should be divisible by num_mlps.
     mlp_size: An ìnt list`, list with the number of layers and hidden neurons
-      of the MLP used as kernel, defaults to `[16]`. (optional).
+      of the MLP used as kernel, defaults to `[8]`. (optional).
     non_linearity_type: An `string`, specifies the type of the activation
       function used inside the kernel MLP.
       Possible: `'ReLU', 'lReLU', 'ELU'`, defaults to leaky ReLU. (optional)

@@ -25,5 +25,5 @@ from .building_blocks import PointResNet, \
     PointResNetBottleNeck, PointResNetSpatialBottleNeck
 from .KPConv import KPConv
 from .PointConv import PointConv
-from .utils import positional_encoding, spherical_kernel_points, \
+from .utils import spherical_kernel_points, \
     cube_kernel_points

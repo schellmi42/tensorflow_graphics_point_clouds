@@ -10,7 +10,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific
-"""Class to test Monte Carlo convolutions"""
+"""Class to test kernel point convolutions"""
 
 import os
 import sys
@@ -21,20 +21,15 @@ from tensorflow_graphics.util import test_case
 
 from MCCNN2.pc import PointCloud, Grid, Neighborhood, KDEMode, AABB
 from MCCNN2.pc.tests import utils
-from MCCNN2.pc.layers import MCConv
+from MCCNN2.pc.layers import KPConv
 
 
-class MCConvTest(test_case.TestCase):
+class KPConvTest(test_case.TestCase):
 
   @parameterized.parameters(
-    # neighbor ids are currently corrupted on dimension 2: todo fix
-    # (2000, 200, [3, 3], 16, 0.7, 4, 2),
-    # (4000, 400, [3, 3], 8, np.sqrt(2), 8, 2),
-    (2000, 200, [1, 3], 16, 0.7, 8, 3),
-    (4000, 400, [3, 3], 8, 0.7, 8, 3),
-    (4000, 100, [3, 1], 1, np.sqrt(3), 16, 3),
-    (2000, 200, [3, 3], 16, 0.7, 8, 4),
-    (4000, 400, [1, 3], 8, np.sqrt(4), 32, 4)
+    (2000, 200, [1, 3], 16, 0.7, 5, 3),
+    (4000, 400, [3, 3], 8, 0.7, 5, 3),
+    (4000, 100, [3, 1], 1, np.sqrt(3), 5, 3),
   )
   def test_convolution(self,
                        num_points,
@@ -42,7 +37,7 @@ class MCConvTest(test_case.TestCase):
                        num_features,
                        batch_size,
                        radius,
-                       hidden_size,
+                       num_kernel_points,
                        dimension):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
@@ -58,58 +53,52 @@ class MCConvTest(test_case.TestCase):
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     # tf
-    conv_layer = MCConv(
-        num_features[0], num_features[1], dimension, 1, [hidden_size],
-        non_linearity_type='relu')
+    conv_layer = KPConv(
+        num_features[0], num_features[1], num_kernel_points)
     conv_result_tf = conv_layer(
         features, point_cloud, point_cloud_samples, radius, neighborhood)
 
     # numpy
-    pdf = neighborhood.get_pdf().numpy()
     neighbor_ids = neighborhood._original_neigh_ids.numpy()
     nb_ranges = neighborhood._samples_neigh_ranges.numpy()
+    nb_ranges = np.concatenate(([0], nb_ranges), axis=0)
+    kernel_points = conv_layer._kernel_points.numpy()
+    sigma = conv_layer._sigma.numpy()
 
     # extract variables
-    hidden_weights = \
-        tf.reshape(conv_layer._weights_tf[0], [dimension, hidden_size]).numpy()
-    hidden_biases = \
-        tf.reshape(conv_layer._bias_tf[0], [1, hidden_size]).numpy()
-    weights = \
-        tf.reshape(conv_layer._final_weights_tf,
-                   [num_features[0] * hidden_size, num_features[1]]).numpy()
+    weights = conv_layer._weights.numpy()
 
     features_on_neighbors = features[neighbor_ids[:, 0]]
-    # compute first layer of kernel MLP
+    # compute distances to kernel points
     point_diff = (points[neighbor_ids[:, 0]] -\
                   point_samples[neighbor_ids[:, 1]])\
         / np.expand_dims(cell_sizes, 0)
-
-    latent_per_nb = np.dot(point_diff, hidden_weights) + hidden_biases
-
-    latent_relu_per_nb = np.maximum(latent_per_nb, 0)
-
-    # Monte-Carlo integration after first layer
-    # weighting with pdf
-    weighted_features_per_nb = np.expand_dims(features_on_neighbors, 2) * \
-        np.expand_dims(latent_relu_per_nb, 1) / \
-        np.expand_dims(pdf, [1, 2])
-    nb_ranges = np.concatenate(([0], nb_ranges), axis=0)
-    # sum (integration)
-    weighted_latent_per_sample = \
-        np.zeros([num_samples, num_features[0], hidden_size])
+    kernel_point_diff = np.expand_dims(point_diff, axis=1) -\
+        np.expand_dims(kernel_points, axis=0)
+    distances = np.linalg.norm(kernel_point_diff, axis=2)
+    # compute linear interpolation weights for features based on distances
+    kernel_weights = np.maximum(1 - (distances / sigma), 0)
+    weighted_features = np.expand_dims(features_on_neighbors, axis=2) *\
+        np.expand_dims(kernel_weights, axis=1)
+    # sum over neighbors (integration)
+    weighted_features_per_sample = \
+        np.zeros([num_samples, num_features[0], num_kernel_points])
     for i in range(num_samples):
-      weighted_latent_per_sample[i] = \
-          np.sum(weighted_features_per_nb[nb_ranges[i]:nb_ranges[i + 1]],
+      weighted_features_per_sample[i] = \
+          np.sum(weighted_features[nb_ranges[i]:nb_ranges[i + 1]],
                  axis=0)
-    # second layer of MLP (linear)
-    weighted_latent_per_sample = np.reshape(weighted_latent_per_sample,
-                                            [num_samples, -1])
-    conv_result_np = np.matmul(weighted_latent_per_sample, weights)
+    # convolution with summation over kernel dimension
+    conv_result_np = \
+        np.matmul(
+            weighted_features_per_sample.reshape(
+                -1,
+                num_features[0] * num_kernel_points),
+            weights)
 
-    self.assertAllClose(conv_result_tf, conv_result_np)
+    self.assertAllClose(conv_result_tf, conv_result_np, atol=1e-5)
 
   @parameterized.parameters(
-    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 8, 3)
+    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 15, 3)
   )
   def test_conv_jacobian_params(self,
                                 num_points,
@@ -117,7 +106,7 @@ class MCConvTest(test_case.TestCase):
                                 num_features,
                                 batch_size,
                                 radius,
-                                hidden_size,
+                                num_kernel_points,
                                 dimension):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
@@ -130,8 +119,8 @@ class MCConvTest(test_case.TestCase):
     point_cloud_samples = PointCloud(point_samples, batch_ids_samples)
     grid = Grid(point_cloud, cell_sizes)
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
-    conv_layer = MCConv(
-        num_features[0], num_features[1], dimension, 1, [hidden_size])
+    conv_layer = KPConv(
+        num_features[0], num_features[1], num_kernel_points)
 
     features = np.random.rand(num_points, num_features[0])
 
@@ -144,36 +133,14 @@ class MCConvTest(test_case.TestCase):
       self.assert_jacobian_is_correct_fn(
           conv_features, [features], atol=1e-4, delta=1e-3)
 
-    with self.subTest(name='params_basis_axis_proj'):
-      def conv_basis(weights_tf_in):
-        conv_layer._weights_tf[0] = weights_tf_in
-        conv_result = conv_layer(
-          features, point_cloud, point_cloud_samples, radius, neighborhood)
-        return conv_result
-
-      weights_tf = conv_layer._weights_tf[0]
-      self.assert_jacobian_is_correct_fn(
-          conv_basis, [weights_tf], atol=1e-4, delta=1e-3)
-
-    with self.subTest(name='params_basis_bias_proj'):
-      def conv_basis(bias_tf_in):
-        conv_layer._bias_tf[0] = bias_tf_in
-        conv_result = conv_layer(
-          features, point_cloud, point_cloud_samples, radius, neighborhood)
-        return conv_result
-
-      bias_tf = conv_layer._bias_tf[0]
-      self.assert_jacobian_is_correct_fn(
-          conv_basis, [bias_tf], atol=1e-4, delta=1e-4)
-
-    with self.subTest(name='params_second_layer'):
+    with self.subTest(name='weights'):
       def conv_weights(weigths_in):
-        conv_layer._final_weights_tf = weigths_in
+        conv_layer._weights = weigths_in
         conv_result = conv_layer(
           features, point_cloud, point_cloud_samples, radius, neighborhood)
         return conv_result
 
-      weights = conv_layer._final_weights_tf
+      weights = conv_layer._weights
       self.assert_jacobian_is_correct_fn(
           conv_weights, [weights], atol=1e-4, delta=1e-3)
 
@@ -181,7 +148,7 @@ class MCConvTest(test_case.TestCase):
     # neighbor ids are currently corrupted on dimension 2: todo fix
     # (2000, 200, 16, 0.7, 2),
     # (4000, 400, 8, np.sqrt(2), 2),
-    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 8, 3),
+    (8, 4, [8, 8], 2, np.sqrt(3) * 1.25, 15, 3),
     # (4000, 400, [1, 1], 8, np.sqrt(3), 8, 3),
     # (4000, 100, [2, 4], 1, np.sqrt(3), 8, 3),
     # (2000, 200, [4, 2], 16, 0.7, 8, 4),
@@ -193,7 +160,7 @@ class MCConvTest(test_case.TestCase):
                                 num_features,
                                 batch_size,
                                 radius,
-                                hidden_size,
+                                num_kernel_points,
                                 dimension):
     cell_sizes = np.float32(np.repeat(radius, dimension))
     points, batch_ids = utils._create_random_point_cloud_segmented(
@@ -210,8 +177,8 @@ class MCConvTest(test_case.TestCase):
     neighborhood = Neighborhood(grid, cell_sizes, point_cloud_samples)
     neighborhood.compute_pdf()
 
-    conv_layer = MCConv(
-          num_features[0], num_features[1], dimension, 1, [hidden_size], 'elu')
+    conv_layer = KPConv(
+          num_features[0], num_features[1], num_kernel_points)
 
     def conv_points(points_in):
       point_cloud._points = points_in
@@ -224,7 +191,7 @@ class MCConvTest(test_case.TestCase):
       return conv_result
 
     self.assert_jacobian_is_correct_fn(
-        conv_points, [np.float32(points)], atol=1e-4, delta=1e-3)
+        conv_points, [np.float32(points)], atol=2e-4, delta=1e-3)
 
 
 if __name__ == '__main___':
