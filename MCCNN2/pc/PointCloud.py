@@ -109,14 +109,7 @@ class _AABB:
 
 
 class PointCloud:
-
-  def __init__(self,
-               points,
-               batch_ids=None,
-               batch_size=None,
-               sizes=None,
-               name=None):
-    """Constructor.
+  """ Class to represent point clouds.
 
     Note:
       In the following, A1 to An are optional batch dimensions.
@@ -131,6 +124,13 @@ class PointCloud:
         Note that `sizes[A1, ..., An] <= V` or `sum(sizes) == N`.
       batch_size (int): Size of the batch.
     """
+
+  def __init__(self,
+               points,
+               batch_ids=None,
+               batch_size=None,
+               sizes=None,
+               name=None):
     with tf.compat.v1.name_scope(
         name, "construct point cloud",
         [self, points, batch_ids, batch_size, sizes]):

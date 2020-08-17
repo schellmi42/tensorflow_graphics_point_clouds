@@ -13,9 +13,11 @@ tf.random.set_seed(42)
 
 quick_test = False
 
+# -- loading data ---
+
 data_dir = '../2019 - ModelNet_PointNet/'
 num_classes = 40  # modelnet 10 or 40
-points_per_file = 1024  # number of points loaded per model
+points_per_file = 5000  # number of points loaded per model
 samples_per_model = 1024  # number of input points per file
 
 labels = []
@@ -55,9 +57,8 @@ for i, filename in enumerate(train_set):
   points, features = \
       io.load_points_from_file_to_numpy(filename,
                                         max_num_points=points_per_file)
-  # selection = np.random.choice(ids, 1024)
-  points = points  # [selection]
-  features = features  # [selection]
+  points = points
+  features = features
   train_data_points[i] = points
   train_data_features[i] = features
   if i % 100 == 0:
@@ -73,9 +74,8 @@ for i, filename in enumerate(test_set):
   points, features = \
       io.load_points_from_file_to_numpy(filename,
                                         max_num_points=points_per_file)
-  # selection = np.random.choice(ids, 1024)
-  points = points  # [selection]
-  features = features  # [selection]
+  points = points
+  features = features
   test_data_points[i] = points
   test_data_features[i] = features
   if i % 100 == 0:
@@ -87,15 +87,27 @@ for i, filename in enumerate(test_set):
 #-----------------------------------------------
 
 def identity_layer(x, *args, **kwargs):
+  ''' Layer which returns the input features unchanged.
+  '''
   return x
 
 
 class conv_block():
+  ''' A small ResNet block
+
+  Args:
+    num_features_in: An `int`, the number of input features.
+    num_features_out: An `int`, the number of output features.
+    layer_type: A `string`, the type of convolution used,
+      can be 'MCConv', 'KPConv', 'PointConv'.
+    strided: A `bool`, indicates if the spatial resolution changes.
+      If `True` uses a MaxPool layer to adjust the spatial dimension.
+
+  '''
 
   def __init__(self,
                num_features_in,
                num_features_out,
-               hidden_size,
                layer_type,
                strided=False):
 
@@ -163,6 +175,22 @@ class conv_block():
                conv_radius,
                pool_radius=None,
                training=False):
+    '''
+
+    Args:
+      features: The input features.
+      point_cloud_in: A `PointCloud` instance, on which the input features are
+        defined.
+      point_cloud_out: A `PointCloud` instance, on which the output features
+        are defined.
+      conv_radius: The radius used by the convolutional layer.
+      pool_radius: The radius of the pooling layer, only used if strided.
+      training: A `bool`, passed to batch norm layers.
+
+    Returns:
+      Computed features.
+
+    '''
     # -- residual branch --
     # conv1x1, downsampling in feature dimension
     res = self.res_layers[0](features, point_cloud_in)
@@ -192,10 +220,20 @@ class conv_block():
 
 
 class mymodel(tf.keras.Model):
+  ''' Model architecture.
+
+  Args:
+    features_sizes: A `list` of `ints`, the feature dimensions.
+    pool_radii: A `list` of `floats, the radii used for spatial pooling
+      of the point clouds.
+    conv_radii: A `list` of `floats`, the radii used by the convolution
+      layers.
+    layer_type: A `string`, the type of convolution used,
+      can be 'MCConv', 'KPConv', 'PointConv'.
+  '''
 
   def __init__(self,
                feature_sizes,
-               hidden_size,
                pool_radii,
                conv_radii,
                layer_type='MCConv'):
@@ -212,12 +250,10 @@ class mymodel(tf.keras.Model):
     for i in range(self.num_levels):
       self.strided_conv_blocks.append(conv_block(feature_sizes[i + 1],
                                                  feature_sizes[i + 1],
-                                                 hidden_size,
                                                  layer_type,
                                                  strided=True))
       self.conv_blocks.append(conv_block(feature_sizes[i + 1],
                                          feature_sizes[i + 1],
-                                         hidden_size,
                                          layer_type,
                                          strided=False))
     self.global_pooling = pc.layers.GlobalAveragePooling()
@@ -231,19 +267,29 @@ class mymodel(tf.keras.Model):
 
   def __call__(self,
                points,
-               sizes,
                features,
                training):
-    point_cloud = pc.PointCloud(points, sizes)
-    pool_radii = self.pool_radii
-    conv_radii = self.conv_radii
+    ''' Evaluates network.
+
+    Args:
+      points: The point coordinates.
+      features: Input features.
+      training: A `bool`, passed to the batch norm layers.
+
+    Returns:
+      The logits per class.
+
+    '''
+    # spatial downsampling of the point cloud
+    point_cloud = pc.PointCloud(points)
     point_hierarchy = pc.PointHierarchy(point_cloud, pool_radii, 'poisson')
+    # encoder network
     for i in range(self.num_levels):
       features = self.strided_conv_blocks[i](features,
                                              point_hierarchy[i],
                                              point_hierarchy[i + 1],
-                                             self.conv_radii[i],
-                                             self.pool_radii[i],
+                                             conv_radii[i],
+                                             pool_radii[i],
                                              training=training)
       features = self.conv_blocks[i](features,
                                      point_hierarchy[i + 1],
@@ -252,6 +298,7 @@ class mymodel(tf.keras.Model):
                                      training=training)
 
     features = self.global_pooling(features, point_hierarchy[-1])
+    # classification head
     features = self.batch_layers[-2](features, training)
     features = self.activations[-2](features)
     features = self.dense_layers[-2](features)
@@ -262,55 +309,56 @@ class mymodel(tf.keras.Model):
 
 #-----------------------------------------------
 class modelnet_data_generator(tf.keras.utils.Sequence):
+  ''' Small generator of batched data.
+  '''
+  def __init__(self,
+               points,
+               labels,
+               batch_size):
+      self.points = points
+      self.labels = np.array(labels, dtype=int)
+      self.batch_size = batch_size
+      self.epoch_size = len(self.points)
 
-    def __init__(self,
-                 points,
-                 labels,
-                 batch_size):
-        self.points = points
-        self.labels = np.array(labels, dtype=int)
-        self.batch_size = batch_size
-        self.epoch_size = len(self.points)
+      self.ids = np.arange(0, points_per_file)
+      # shuffle data before training
+      self.on_epoch_end()
 
-        self.ids = np.arange(0, points_per_file)
-        # shuffle data before training
-        self.on_epoch_end()
+  def __len__(self):
+    # number of batches per epoch
+    return(int(np.floor(self.epoch_size / self.batch_size)))
 
-    def __len__(self):
-      # number of batches per epoch
-      return(int(np.floor(self.epoch_size / self.batch_size)))
+  def __call__(self):
+    ''' Loads batch and increases batch index.
+    '''
+    data = self.__getitem__(self.index)
+    self.index += 1
+    return data
 
-    def __call__(self):
-      out = self.__getitem__(self.index)
-      self.index += 1
-      return out
+  def __getitem__(self, index):
+    ''' Loads data of current batch and samples random subset of the points.
+    '''
+    labels = \
+        self.labels[index * self.batch_size:(index + 1) * self.batch_size]
+    points = \
+        self.points[index * self.batch_size:(index + 1) * self.batch_size]
+    features = tf.ones([self.batch_size, samples_per_model, 1])
 
-    def __getitem__(self, index):
-      labels = \
-          self.labels[index * self.batch_size:(index + 1) * self.batch_size]
-      points = \
-          self.points[index * self.batch_size:(index + 1) * self.batch_size]
-      features = tf.ones([self.batch_size, samples_per_model, 1])
-      sizes = tf.ones([self.batch_size], dtype=tf.int32) * samples_per_model
+    # sample points
+    sampled_points = np.empty([self.batch_size, samples_per_model, 3])
+    for batch in range(self.batch_size):
+      selection = np.random.choice(self.ids, samples_per_model)
+      sampled_points[batch] = points[batch][selection]
 
-      # sample points
-      sampled_points = np.empty([self.batch_size, samples_per_model, 3])
-      for batch in range(self.batch_size):
-        selection = np.random.choice(self.ids, samples_per_model)
-        sampled_points[batch] = points[batch][selection]
-      return sampled_points, features, sizes, labels
+    return sampled_points, features, labels
 
-    def on_epoch_end(self):
-      shuffle = np.random.permutation(np.arange(0, len(self.points)))
-      self.points = self.points[shuffle]
-      self.labels = self.labels[shuffle]
-      self.index = 0
-
-    # def generator_function(self):
-    #   while True:
-    #     self.on_epoch_end()
-    #     for i in range(len(self)):
-    #       yield self[i]
+  def on_epoch_end(self):
+    ''' Shuffles data and resets batch index.
+    '''
+    shuffle = np.random.permutation(np.arange(0, len(self.points)))
+    self.points = self.points[shuffle]
+    self.labels = self.labels[shuffle]
+    self.index = 0
 
 #-----------------------------------------------
 
@@ -321,7 +369,6 @@ num_epochs = 100
 if quick_test:
   num_epochs = 2
 
-hidden_size = 16
 feature_sizes = [1, 128, 256, 512, 128, num_classes]
 pool_radii = np.array([0.1, 0.2, 0.4])
 conv_radii = pool_radii * 1.5
@@ -340,7 +387,7 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 
 # --- Training Loop---
 def training(model,
-             epoch_print=1):
+             epoch_print=num_epochs):
   train_loss_results = []
   train_accuracy_results = []
   test_loss_results = []
@@ -352,9 +399,9 @@ def training(model,
     epoch_loss_avg = tf.keras.metrics.Mean()
     epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
-    for points, features, sizes, labels in gen_train:
+    for points, features, labels in gen_train:
       with tf.GradientTape() as tape:
-        logits = model(points, sizes, features, training=True)
+        logits = model(points, features, training=True)
         pred = tf.nn.softmax(logits, axis=-1)
         loss = loss_function(y_true=labels, y_pred=pred)
       grads = tape.gradient(loss, model.trainable_variables)
@@ -391,12 +438,12 @@ def training(model,
           test_loss_results[-1],
           test_accuracy_results[-1]))
 
-model_MC = mymodel(feature_sizes, hidden_size, pool_radii, conv_radii,
+model_MC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='MCConv')
 training(model_MC)
-model_KP = mymodel(feature_sizes, hidden_size, pool_radii, conv_radii,
+model_KP = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='KPConv')
 training(model_KP)
-model_PC = mymodel(feature_sizes, hidden_size, pool_radii, conv_radii,
+model_PC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='PointConv')
 training(model_PC)
