@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # np.random.seed(42)
 # tf.random.set_seed(42)
 
-quick_test = True
+quick_test = False
 
 # -- loading data ---
 
@@ -276,19 +276,19 @@ class mymodel(tf.keras.Model):
     '''
     # spatial downsampling of the point cloud
     point_cloud = pc.PointCloud(points)
-    point_hierarchy = pc.PointHierarchy(point_cloud, pool_radii, 'poisson')
+    point_hierarchy = pc.PointHierarchy(point_cloud, self.pool_radii, 'poisson')
     # encoder network
     for i in range(self.num_levels):
       features = self.strided_conv_blocks[i](features,
                                              point_hierarchy[i],
                                              point_hierarchy[i + 1],
-                                             conv_radii[i],
-                                             pool_radii[i],
+                                             self.conv_radii[i],
+                                             self.pool_radii[i],
                                              training=training)
       features = self.conv_blocks[i](features,
                                      point_hierarchy[i + 1],
                                      point_hierarchy[i + 1],
-                                     conv_radii[i],
+                                     self.conv_radii[i],
                                      training=training)
 
     features = self.global_pooling(features, point_hierarchy[-1])
@@ -387,7 +387,7 @@ def training(model,
   test_loss_results = []
   test_accuracy_results = []
 
-  for epoch in range(1):
+  for epoch in range(num_epochs):
     time_epoch_start = time.time()
     # --- Training ---
     epoch_loss_avg = tf.keras.metrics.Mean()
@@ -410,8 +410,8 @@ def training(model,
     epoch_loss_avg = tf.keras.metrics.Mean()
     epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
-    for points, features, sizes, labels in gen_test:
-      logits = model(points, sizes, features, training=False)
+    for points, features, labels in gen_test:
+      logits = model(points, features, training=False)
       pred = tf.nn.softmax(logits, axis=-1)
       loss = loss_function(y_true=labels, y_pred=pred)
       epoch_loss_avg.update_state(loss)
