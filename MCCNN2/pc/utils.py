@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+''' helper functions for point clouds '''
 
 import tensorflow as tf
 from tensorflow_graphics.geometry.convolution.utils import flatten_batch_to_2d
@@ -18,16 +19,17 @@ from MCCNN2.pc import PointCloud
 
 
 def check_valid_point_cloud_input(points, sizes, batch_ids):
-  """Checks that the inputs to the constructor of class 'PointCloud' are valid
+  """Checks that the inputs to the constructor of class 'PointCloud' are valid.
 
   Args:
-    points: float `tensor` of shape [N,D] or [A1,...,An,V,D]
-    sizes:  int `tensor` of shape [A1,...,An] or None
-    batch_ids: int `tensor` of shape [N] or None
+    points: A `float` `Tensor` of shape `[N, D]` or `[A1, ..., An, V, D]`.
+    sizes:  An `int` `Tensor` of shape `[A1, ..., An]` or `None`.
+    batch_ids: An `int` `Tensor` of shape `[N]` or `None`.
 
   Raises:
     Value Error: If input dimensions are invalid or no valid segmentation
       is given.
+
   """
 
   if points.shape.ndims == 2 and sizes is None and batch_ids is None:
@@ -43,17 +45,18 @@ def check_valid_point_cloud_input(points, sizes, batch_ids):
 
 
 def check_valid_point_hierarchy_input(point_cloud, cell_sizes, pool_mode):
-  """ Checks that inputs to the constructor of class 'PontHierarchy' are valid
+  """ Checks that inputs to the constructor of class 'PontHierarchy' are valid.
 
   Args:
-    point_cloud: an instance of class 'PointCloud'
-    cell_sizes: list of float tensors
-    pool_mode: int
+    point_cloud: A 'PointCloud' instance.
+    cell_sizes: A `list` of `float` `Tensors`.
+    pool_mode: An `int`.
 
   Raises:
     TypeError: if input is of invalid type
     ValueError: if pool_mode is invalid, or cell_sizes dimension are invalid
       or non-positive
+
   """
   if not isinstance(point_cloud, (PointCloud)):
     raise TypeError('Input must be instance of class PointCloud')
@@ -69,7 +72,17 @@ def check_valid_point_hierarchy_input(point_cloud, cell_sizes, pool_mode):
           f'{curr_cell_sizes.shape[0]}.')
 
 
-def _flatten_features(features, point_cloud):
+def _flatten_features(features, point_cloud: PointCloud):
+  """ Converts features of shape `[A1, ..., An, C]` to shape `[N, C]`.
+
+  Args:
+    features: A `Tensor`.
+    point_cloud: A `PointCloud` instance.
+
+  Returns:
+    A `Tensor` of shape `[N, C]`.
+
+  """
   if features.shape.ndims > 2:
     sizes = point_cloud.get_sizes()
     features, _ = flatten_batch_to_2d(features, sizes)
@@ -78,7 +91,7 @@ def _flatten_features(features, point_cloud):
   return features
 
 
-def cast_to_num_dims(values, num_dim, dtype=tf.float32):
+def cast_to_num_dims(values, num_dims, dtype=tf.float32):
   """ Converts an input to the specified `dtype` and repeats it `num_dims`
   times.
 
@@ -89,9 +102,10 @@ def cast_to_num_dims(values, num_dim, dtype=tf.float32):
 
   Returns:
     A `dtype` `Tensor` of shape `[num_dims]`.
+
   """
   values = tf.cast(tf.convert_to_tensor(value=values),
                    dtype=dtype)
   if values.shape == [] or values.shape[0] == 1:
-    values = tf.repeat(values, num_dim)
+    values = tf.repeat(values, num_dims)
   return values

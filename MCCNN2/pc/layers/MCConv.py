@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes to represent point cloud convolutions"""
+"""Classes to Monte-Carlo point cloud convolutions"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
-
 
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
@@ -32,17 +31,6 @@ non_linearity_types = {'relu': tf.nn.relu,
                        'elu': tf.nn.elu}
 
 
-""" Class to represent a Monte-Carlo convolution layer
-
-  Attributes:
-    _num_features_in: An `ìnt`, the number of features per input point
-    _num_features_out: An `ìnt`, the number of features to compute
-    _size_hidden: An `ìnt`, the number of neurons in the hidden layer of the
-      kernel MLP
-    _num_dims: An `ìnt`, dimensionality of the point cloud
-"""
-
-
 class MCConv:
   """ Monte-Carlo convolution for point clouds.
 
@@ -52,10 +40,10 @@ class MCConv:
   Uses a multiple MLPs as convolution kernels.
 
   Args:
-    num_features_in: An `int`, C_in, the number of features per input point.
-    num_features_out: An `int`, C_out, the number of features to compute.
+    num_features_in: An `int`, `C_in`, the number of features per input point.
+    num_features_out: An `int`, `C_out`, the number of features to compute.
     num_dims: An `int`, the input dimension to the kernel MLP. Should be the
-      dimensionality of the point cloud..
+      dimensionality of the point cloud.
     num_mlps: An `int`, number of MLPs used to compute the output features.
       Warning: num_features_out should be divisible by num_mlps.
     mlp_size: An ìnt list`, list with the number of layers and hidden neurons
@@ -67,6 +55,7 @@ class MCConv:
       default `TruncatedNormal`. (optional)
     initializer_biases: A `tf.initializer` for the kernel MLP biases,
       default: `zeros`. (optional)
+
   """
 
   def __init__(self,
@@ -79,9 +68,6 @@ class MCConv:
                initializer_weights=None,
                initializer_biases=None,
                name=None):
-    """ Constructior, initializes variables.
-    """
-
     with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
                                  [self, num_features_out, num_features_in,
                                   num_features_out, num_dims, num_mlps,
@@ -158,6 +144,7 @@ class MCConv:
 
     Returns:
       A `float` `Tensor` of shape `[N,C2]`, the output features.
+
     """
 
     # Compute the hidden layer MLP
@@ -234,6 +221,7 @@ class MCConv:
         `[N_out, C_out]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
+
     """
 
     with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",

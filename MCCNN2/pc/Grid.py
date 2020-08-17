@@ -11,23 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent a point cloud distributed in a regular grid.
-
-Attributes:
-  _batch_size (int): Size of the batch.
-  _cell_sizes (float tensor d): Cell size.
-  _point_cloud (PointCloud): Point cloud.
-  _aabb (AABB): AABB.
-  _num_cells (int tensor d): Number of cells of the grids.
-  _cur_keys (int tensor n): Keys of each point.
-  _sorted_keys (int tensor n): Keys of each point sorted.
-  _sorted_points (float tensor nxd):the sorted points.
-  _sorted_indices (int tensor n): Original indices to the original
-    points.
-  _fast_DS (int tensor BxCXxCY): Fast access data structure.
-"""
-
-
 import tensorflow as tf
 
 from MCCNN2.pc.custom_ops import compute_keys, build_grid_ds
@@ -39,10 +22,11 @@ class Grid:
 
   Args:
     point_cloud : A `PointCloud` instance to distribute in the grid.
-    cell_sizes A `float` tensor of shape `[D]`, the sizes of the grid
+    cell_sizes A `float` `Tensor` of shape `[D]`, the sizes of the grid
       cells in each dimension.
     aabb: An `AABB` instance, the bounding box of the grid, if `None`
       the bounding box of `point_cloud` is used. (optional)
+
   """
 
   def __init__(self, point_cloud: PointCloud, cell_sizes, aabb=None,
@@ -94,6 +78,7 @@ class Grid:
       A `int` `Tensor` of shape `[num_cells[0], num_cells[1], 2]`, where
       `[i,j,0]:[i,j,1]` is the range of points in cell `i,j`.
       The indices are with respect to the sorted points of the grid.
+
     """
     if self._fast_DS is None:
       #Build the fast access data structure.

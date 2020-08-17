@@ -11,53 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent a point cloud.
-
-Note:
-  In the following, A1 to An are optional batch dimensions.
-
-The internal representation is a 2D tensor of shape [N,D] with
-segmentation ids of shape [N]. Can be constructed by directly passing
-segmented inputs or by prividing a [A1,..,An,V,D] padded tensor with
-`sizes` indicating the first elements from V to select from each batch
-dimension.
-
-Attributes:
-  _points (float tensor [N,D]): List of points.
-  _sizes (int tensor [A1,,.An]): sizes of the point clouds, None if
-    constructed using segmented input
-  _batch_ids (int tensor n): List of batch ids associated with the points.
-  _batch_size (int): Size of the batch.
-  _batch_shape (int tensor): [A1,..,An] original shape of the batch, None
-    if constructed using segmented input
-  _unflatten (function): Function to reshape segmented [N,D] to
-    [A1,...,An,V,D], zero padded, None if constructed using
-    segmented input
-  _dimension (int): dimensionality of the point clouds
-  _get_segment_id (int tensor [A1,...,An]): tensor that returns the
-    segment id given a relative id in [A1,...,An]
-  _aabb: A `AABB` instance, the bounding box of the point cloud.
-"""
+"""Class to represent a point cloud."""
 
 import tensorflow as tf
 from tensorflow_graphics.geometry.convolution.utils import \
     flatten_batch_to_2d, unflatten_2d_to_batch
 
 from MCCNN2.pc.utils import check_valid_point_cloud_input
-
-"""Class to represent axis aligned bounding box of point clouds.
-
-Note:
-  In the following, A1 to An are optional batch dimensions.
-
-Attributes:
-  _aabb_min: A float 'Tensor' of shape [B,D], list of minimum points of the
-    bounding boxes.
-  _aabb_max: A float 'Tensor' of shape [B,D], list of maximum points of the
-    bounding boxes.
-  _batch_size: An integer, size of the batch.
-  _batch_shape: An int 'Tensor' of shape [B], the batch shape [A1,...,An]
-"""
 
 
 class _AABB:
@@ -66,6 +26,7 @@ class _AABB:
   Args:
     Pointcloud: A 'PointCloud' instance from which to compute the
       axis aligned bounding box.
+
   """
 
   def __init__(self, point_cloud, name=None):
@@ -90,12 +51,13 @@ class _AABB:
       In the following, A1 to An are optional batch dimensions.
 
     Args:
-      ord:    Order of the norm. Supported values are `'euclidean'`,
+      ord: Order of the norm. Supported values are `'euclidean'`,
           `1`, `2`, `np.inf` and any positive real number yielding the
-          corresponding p-norm. Default is `'euclidean'`.
+          corresponding p-norm. Default is `'euclidean'`. (optional)
     Return:
-      diam: A float 'Tensor' of shape [A1,..An], diameters of the
+      diam: A `float` 'Tensor' of shape `[A1, ..., An]`, diameters of the
         bounding boxes
+
     """
 
     with tf.compat.v1.name_scope(
@@ -115,14 +77,15 @@ class PointCloud:
       In the following, A1 to An are optional batch dimensions.
 
     Args:
-      points: A float tensor either of shape [N,D]
-        or of shape [A1,..,An,V,D], possibly padded as indicated by sizes.
+      points: A float `Tensor` either of shape `[N, D]` or of shape
+        `[A1, .., An, V, D]`, possibly padded as indicated by `sizes`.
         Represents the point coordinates.
-      batch_ids: An int tensor of shape [N] associated with the points.
-      sizes:      An `int` tensor of shape `[A1, ..., An]` indicating the
+      batch_ids: An `int` `Tensor` of shape `[N]` associated with the points.
+        Is required if `points` is of shape `[N, D]`.
+      sizes: An `int` `Tensor` of shape `[A1, ..., An]` indicating the
         true input sizes in case of padding (`sizes=None` indicates no padding)
         Note that `sizes[A1, ..., An] <= V` or `sum(sizes) == N`.
-      batch_size (int): Size of the batch.
+      batch_size:  An `int`, the size of the batch.
     """
 
   def __init__(self,
@@ -159,8 +122,8 @@ class PointCloud:
       self._sorted_indices_batch = tf.argsort(self._batch_ids)
 
   def _init_from_padded(self, points):
-    """converting padded [A1,...,An,V,D] tensor into a 2D tensor [N,D] with
-    segmentation ids
+    """converting padded `Tensor` of shape `[A1, ..., An, V, D]` into a 2D
+      `Tensor` of shape `[N,D]` with segmentation ids.
     """
     self._batch_shape = points.shape[:-2]
     if self._batch_size is None:
@@ -176,7 +139,7 @@ class PointCloud:
         repeats=tf.reshape(self._sizes, [-1]))
 
   def _init_from_segmented(self, points):
-    """if input is already 2D tensor with segmentation ids or given sizes
+    """if input is already 2D `Tensor` with segmentation ids or given sizes.
     """
     if self._batch_ids is None:
       if self._batch_size is None:
@@ -193,16 +156,19 @@ class PointCloud:
       In the following, A1 to An are optional batch dimensions.
 
       If called withoud specifying 'id' returns the points in padded format
-      [A1,...,An,V,D]
+      `[A1, ..., An, V, D]`
 
     Args:
-      id (int): Identifier of point cloud in the batch, if None return all
-      max_num_points: (int) specifies the 'V' dimension the method returns,
+      id: An `int`, index of point cloud in the batch, if `None` returns all
+      max_num_points: An `int`, specifies the 'V' dimension the method returns,
           by default uses maximum of 'sizes'. `max_rows >= max(sizes)`
 
     Return:
-      tensor:  if 'id' was given: 2D float tensor of shape
-        if 'id' not given: float tensor of shape [A1,...,An,V,D], zero padded
+      A `float` `Tensor`
+        of shape `[Ni, D]`, if 'id' was given
+      or
+        of shape `[A1, ..., An, V, D]`, zero padded, if no `id` was given.
+
     """
     with tf.compat.v1.name_scope(
         name, "get point clouds", [self, id, max_num_points]):
@@ -227,8 +193,9 @@ class PointCloud:
       if the class was constructed using segmented input the '_sizes' is
       created in this method.
 
-    Return:
-      tensor of shape [A1,..,An]
+    Returns:
+      `Tensor` of shape `[A1, .., An]`.
+
     """
     with tf.compat.v1.name_scope(name, "get point cloud sizes", [self]):
       if self._sizes is None:
@@ -248,17 +215,18 @@ class PointCloud:
     is created in this method.
 
     Note:
-      In the following, A1 to An are optional batch dimensions
+      In the following, A1 to An are optional batch dimensions.
 
     Args:
-      max_num_points: (int) specifies the 'V' dimension the method returns,
+      max_num_points: An `int`, specifies the 'V' dimension the method returns,
         by default uses maximum of 'sizes'. `max_rows >= max(sizes)`
-    Return:
-      method to unflatten the segmented points, which returns [A1,...,An,V,D]
-      tensor, zero padded
+    Returns:
+      A method to unflatten the segmented points, which returns a `Tensor` of
+      shape `[A1,...,An,V,D]`, zero padded.
 
     Raises:
       ValueError: When trying to unflatten unsorted points.
+
     """
     with tf.compat.v1.name_scope(
         name, "get unflatten method", [self, max_num_points]):
@@ -277,6 +245,7 @@ class PointCloud:
 
     Returns:
       A `AABB` instance
+
     """
     if self._aabb is None:
       self._aabb = _AABB(point_cloud=self)
@@ -292,10 +261,11 @@ class PointCloud:
       In the following, A1 to An are optional batch dimensions.
 
     Args:
-      batch_shape: float tensor of shape [A1,...,An]
+      batch_shape: A 1D `int` `Tensor` `[A1,...,An]`.
 
     Raises:
       ValueError: if shape does not sum up to batch size.
+
     """
     with tf.compat.v1.name_scope(
         name, "set batch shape of point cloud", [self, batch_shape]):
@@ -312,25 +282,3 @@ class PointCloud:
           self._sizes = tf.reshape(self._sizes, self._batch_shape)
       else:
         self._batch_shape = None
-
-  def __eq__(self, other, name=None):
-    """Comparison operator.
-
-    Args:
-      other (PointCloud): Other point cloud.
-    Return:
-      True if other is equal to self, False otherwise.
-    """
-    with tf.compat.v1.name_scope(name, "compare point clouds", [self, other]):
-      return self._points.name == other._points.name and \
-        self._batch_ids.name == other._batch_ids.name and \
-        self._batch_size == other._batch_size
-
-  def __hash__(self, name=None):
-    """Method to compute the hash of the object.
-
-    Return:
-      Unique hash value.
-    """
-    with tf.compat.v1.name_scope(name, "hash point cloud", [self]):
-      return hash((self._points.name, self._batch_ids.name, self._batch_size))

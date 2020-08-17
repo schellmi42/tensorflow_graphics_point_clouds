@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes to represent point cloud convolutions"""
+"""Classes for network blocks"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
-
 
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
@@ -46,13 +45,14 @@ class PointResNet:
       each.
     num_dims: An `int, dimensionality of the point cloud.
     layer_type: A `string`, the type of point cloud convolution layer used.
-      Can be `'MCConv'` (default) or `'KPConv'`. (optional)
+      Can be `'MCConv'` (default), `'KPConv'`or `'PointConv' `. (optional)
     projection_shortcuts: A `bool`, if `True` a 1x1 convolution is applied to
       the skip connections. Defaults to `False`. (optional)
     activation: A `tf.function`, the activiation used between layers, defaults
       to `tf.nn.relu`. (optional)
     **kwargs: Additional keyword arguments for the convolution layers.
       (optional)
+
   """
 
   def __init__(self,
@@ -64,8 +64,6 @@ class PointResNet:
                activation=tf.nn.relu,
                name=None,
                **kwargs):
-    """ Constructor, initializes weights.
-    """
     with tf.compat.v1.name_scope(
         name, "Create Monte-Carlo convolution ResNet with pre-activation",
         [num_features, num_blocks, num_dims, layer_type,
@@ -124,6 +122,7 @@ class PointResNet:
         zero padded. (optional)
       **kwargs: Additional keyword arguments for the convolution layers.
         (optional)
+
     """
     with tf.compat.v1.name_scope(
         name,
@@ -185,13 +184,14 @@ class PointResNetBottleNeck:
       each.
     num_dims: An `int, dimensionality of the point cloud.
     layer_type: A `string`, the type of point cloud convolution layer used.
-      Can be `'MCConv'` (default) or `'KPConv'`. (optional)
+      Can be `'MCConv'` (default), `'KPConv'`or `'PointConv' `. (optional)
     projection_shortcuts: A `bool`, if `True` a 1x1 convolution is applied to
       the skip connections.
     activation: A `tf.function`, the activiation used between layers, defaults
       to `tf.nn.relu`.
       **kwargs: Additional keyword arguments for the convolution layers.
         (optional)
+
   """
 
   def __init__(self,
@@ -204,8 +204,6 @@ class PointResNetBottleNeck:
                activation=tf.nn.relu,
                name=None,
                **kwargs):
-    """ Constructor, initializes weights.
-    """
     with tf.compat.v1.name_scope(
         name, "Create Monte-Carlo convolution ResNet with pre-activation",
         [num_features, bottle_neck_num_features, num_blocks, num_dims,
@@ -277,6 +275,7 @@ class PointResNetBottleNeck:
         zero padded. (optional)
       **kwargs: Additional keyword arguments for the convolution layers.
         (optional)
+
     """
     with tf.compat.v1.name_scope(
         name,
@@ -346,7 +345,7 @@ class PointResNetSpatialBottleNeck:
       each (including down- and upsampling).
     num_dims: An `int, dimensionality of the point cloud.
     layer_type: A `string`, the type of point cloud convolution layer used.
-      Can be `'MCConv'` (default) or `'KPConv'`. (optional)
+      Can be `'MCConv'` (default), `'KPConv'`or `'PointConv' `. (optional)
     projection_shortcuts: A `bool`, if `True` a 1x1 convolution is applied to
       the skip connections.
     activation: A `tf.function`, the activiation used between layers, defaults
@@ -364,9 +363,6 @@ class PointResNetSpatialBottleNeck:
                activation=tf.nn.relu,
                name=None,
                **kwargs):
-    """ Constructior, initializes weights.
-
-    """
     with tf.compat.v1.name_scope(
         name,
         "Create Monte-Carlo convolution ResNetBottleNeck with pre-activation",
@@ -447,6 +443,7 @@ class PointResNetSpatialBottleNeck:
         zero padded. (optional)
       **kwargs: Additional keyword arguments for the convolution layers.
         (optional)
+
     """
     with tf.compat.v1.name_scope(
         name,

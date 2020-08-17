@@ -11,14 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Class to represent a point cloud hierarchy.
-
-Attributes:
-  _aabb (AABB): Bounding box of the point cloud.
-  _point_clouds (array of PointCloud): List of point clouds.
-  _sample_ops (array of Sample): List of sampling operations used to
-    create the point hierarchy.
-"""
+"""Class to represent a point cloud hierarchy."""
 
 import numpy as np
 import tensorflow as tf
@@ -41,6 +34,7 @@ class PointHierarchy:
       the cell sizes for the sampling. The length of the list defines
       the number of samplings.
     sample_mode: A `string`, either `'poisson'`or `'cell average'`.
+
   """
 
   def __init__(self,
@@ -101,7 +95,7 @@ class PointHierarchy:
       In the following, A1 to An are optional batch dimensions.
 
       If called withoud specifying 'id' returns the points in padded format
-      [A1,...,An,V,D]
+      `[A1, ..., An, V, D]`.
 
     Args:
       batch_id: An `int`, identifier of point cloud in the batch, if `None`
@@ -111,7 +105,7 @@ class PointHierarchy:
       A list of `float` `Tensors` of shape
           `[N_i, D]`, if 'batch_id' was given
       or
-        `[A1,...,An,V_i,D]`, if no 'batch_id' was given.
+        `[A1, ..., An, V_i, D]`, if no 'batch_id' was given.
     """
     with tf.compat.v1.name_scope(
         name, "get points of specific batch id", [self, batch_id]):
@@ -126,8 +120,9 @@ class PointHierarchy:
     Note:
       In the following, A1 to An are optional batch dimensions.
 
-    Return:
-      list of tensors of shape [A1,..,An]
+    Returns:
+      A `list` of `Tensors` of shape '`[A1, .., An]`'
+
     """
 
     with tf.compat.v1.name_scope(name, "get point hierarchy sizes", [self]):
@@ -137,7 +132,7 @@ class PointHierarchy:
       return sizes
 
   def set_batch_shape(self, batch_shape, name=None):
-    """ Function to change the batch shape
+    """ Function to change the batch shape.
 
       Use this to set a batch shape instead of using 'self._batch_shape'
       to also change dependent variables.
@@ -146,10 +141,11 @@ class PointHierarchy:
       In the following, A1 to An are optional batch dimensions.
 
     Args:
-      batch_shape: float tensor of shape [A1,...,An]
+      batch_shape: An 1D `int` `Tensor` `[A1, ..., An]`.
 
     Raises:
       ValueError: if shape does not sum up to batch size.
+
     """
     with tf.compat.v1.name_scope(
         name, "set batch shape of point hierarchy", [self, batch_shape]):
@@ -167,7 +163,8 @@ class PointHierarchy:
         level `i+1` and `i`.
 
     Returs:
-      A `Neighborhood` instance or a list of `Neighborhood` instances.
+      A `Neighborhood` instance or a `list` of `Neighborhood` instances.
+
     """
     if i is None:
       if transposed:

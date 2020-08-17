@@ -23,7 +23,7 @@ from MCCNN2.pc import Neighborhood
 
 
 class GlobalMaxPooling:
-  """ Global max pooling on a point cloud
+  """ Global max pooling on a point cloud.
   """
 
   def __call__(self,
@@ -47,6 +47,7 @@ class GlobalMaxPooling:
         `[B, C]`, if not `return_padded`
       or
         `[A1, ..., An, C]`, if `return_padded`
+
     """
     with tf.compat.v1.name_scope(
         name, "global max pooling ", [features, point_cloud, return_padded]):
@@ -87,6 +88,7 @@ class GlobalAveragePooling:
         `[B, C]`, if not `return_padded`
       or
         `[A1 ,..., An, C]`, if `return_padded`
+
     """
     with tf.compat.v1.name_scope(
         name, "global average pooling ",
@@ -141,6 +143,7 @@ class _LocalPointPooling:
         `[N_out, C]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
+
     """
     with tf.compat.v1.name_scope(
         name, default_name,
@@ -216,6 +219,7 @@ class MaxPooling(_LocalPointPooling):
         `[N_out, C]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
+
     """
     return super(MaxPooling, self).__call__(
         tf.math.unsorted_segment_max,
@@ -255,6 +259,7 @@ class AveragePooling(_LocalPointPooling):
         `[N_out, C]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
+
     """
     return super(AveragePooling, self).__call__(
         tf.math.unsorted_segment_mean,

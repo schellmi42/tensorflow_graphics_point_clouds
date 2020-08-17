@@ -19,11 +19,11 @@ from __future__ import print_function
 
 from .Pooling import GlobalAveragePooling, GlobalMaxPooling
 from .Pooling import MaxPooling, AveragePooling
+from .Conv1x1 import Conv1x1
 from .MCConv import MCConv
-from .conv1x1 import Conv1x1
-from .building_blocks import PointResNet, \
-    PointResNetBottleNeck, PointResNetSpatialBottleNeck
 from .KPConv import KPConv
 from .PointConv import PointConv
+from .network_blocks import PointResNet, \
+    PointResNetBottleNeck, PointResNetSpatialBottleNeck
 from .utils import spherical_kernel_points, \
     cube_kernel_points

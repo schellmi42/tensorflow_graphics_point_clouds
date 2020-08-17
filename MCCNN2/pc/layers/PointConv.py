@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes to represent point cloud convolutions"""
+"""Classes to for PointConv point cloud convolutions"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
-
 
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
@@ -30,17 +29,6 @@ non_linearity_types = {'relu': tf.nn.relu,
                        'leakyrelu': tf.nn.leaky_relu,
                        'leaky_relu': tf.nn.leaky_relu,
                        'elu': tf.nn.elu}
-
-
-""" Class to represent a PointConv convolution layer
-
-  Attributes:
-    _num_features_in: An `ìnt`, the number of features per input point
-    _num_features_out: An `ìnt`, the number of features to compute
-    _size_hidden: An `ìnt`, the number of neurons in the hidden layer of the
-      kernel MLP
-    _num_dims: An `ìnt`, dimensionality of the point cloud
-"""
 
 
 class PointConv:
@@ -64,6 +52,7 @@ class PointConv:
       default `TruncatedNormal`. (optional)
     initializer_biases: A `tf.initializer` for the kernel MLP biases,
       default: `zeros`. (optional)
+
   """
 
   def __init__(self,
@@ -75,10 +64,7 @@ class PointConv:
                initializer_weights=None,
                initializer_biases=None,
                name=None):
-    """ Constructior, initializes variables.
-    """
-
-    with tf.compat.v1.name_scope(name, "create Monte-Carlo convolution",
+    with tf.compat.v1.name_scope(name, "create PointConv convolution",
                                  [self, num_features_out, num_features_in,
                                   num_features_out, num_dims, size_hidden,
                                   non_linearity_type, initializer_weights,
@@ -169,6 +155,7 @@ class PointConv:
 
     Returns:
       A `float` `Tensor` of shape `[N,C2]`, the output features.
+
     """
 
     # Compute the hidden layer MLP
@@ -248,9 +235,10 @@ class PointConv:
         `[N_out, C_out]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
+
     """
 
-    with tf.compat.v1.name_scope(name, "Monte-Carlo_convolution",
+    with tf.compat.v1.name_scope(name, "PointConv_convolution",
                                  [features, point_cloud_in, point_cloud_out,
                                   radius, neighborhood, bandwidth,
                                   return_sorted]):

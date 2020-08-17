@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Non-GPU implemetations of the custom ops """
+""" tensorflow implemetations of the custom ops """
 
 import tensorflow as tf
 import numpy as np
@@ -19,18 +19,21 @@ from MCCNN2.pc import PointCloud, Grid
 
 
 def compute_keys_tf(point_cloud: PointCloud, num_cells, cell_size, name=None):
-  """
+  """ Computes the regular grid cell keys of a point cloud.
+
     For a point in cell `c` the key is computed as
         \\(key = batch_id * prod_{d=0}^{D} num_cells_{d} + \\)
         \\(sum_{d=0}^{D}( c_{d} prod_{d'=d+1}^{D} num_cells_{d'} ) \\).
     Args:
       point_cloud: A `PointCloud` instance.
-      num_cells: An `int` tensor of shape [D], the total number of cells
+      num_cells: An `int` `Tensor` of shape `[D]`, the total number of cells
         per dimension.
-      cell_size: An `int` tensor of shape [D], the cell sizes per dimension.
+      cell_size: An `int` `Tensor` of shape `[D]`, the cell sizes per
+        dimension.
 
     Returns:
-      An `int` tensor of shape [N], the keys per point.
+      An `int` `Tensor` of shape `[N]`, the keys per point.
+
   """
   with tf.compat.v1.name_scope(
       name, "compute keys", [point_cloud, num_cells, cell_size]):
@@ -57,14 +60,16 @@ def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
 
   Creates a 2D regular grid in the first two dimension, saving the first and
   last index belonging to that cell array.
+
   Args:
-    sorted_keys: An `int` tensor of shape `[N]`, the sorted keys.
-    num_cells: An `int` tensor of shape `[D]`, the total number of cells
+    sorted_keys: An `int` `Tensor` of shape `[N]`, the sorted keys.
+    num_cells: An `int` `Tensor` of shape `[D]`, the total number of cells
       per dimension.
     batch_size: An `int`.
 
   Returns:
-    An `int` tensor of shape [batch_size, num_cells[0], num_cells[1], 2].
+    An `int` `Tensor` of shape `[batch_size, num_cells[0], num_cells[1], 2]`.
+
   """
   with tf.compat.v1.name_scope(
       name, 'build_grid_ds', [sorted_keys, num_cells, batch_size]):
@@ -126,6 +131,7 @@ def find_neighbors_tf(grid,
   neighbors: An `int` `Tensor` of shape `[M, 2]`, indices of the neighbor
       point and the center for each neighbor. Follows the order of
       `grid._sorted_points`.
+
   """
   with tf.compat.v1.name_scope(
       name, "find neighbours",
@@ -219,6 +225,7 @@ def find_neighbors_no_grid(point_cloud,
   neighbors: An `int` `Tensor` of shape `[M, 2]`, indices of the neighbor
       point and the center for each neighbor. Follows the order of
       `grid._sorted_points`.
+
   """
   with tf.compat.v1.name_scope(
       name, 'find neighbors',
@@ -254,14 +261,16 @@ def sampling_tf(neighborhood, sample_mode, name=None):
   Args:
     neighborhood: A `Neighborhood` instance, which contains a point cloud with
       its neighbors.
-    sample_mode: A `SampleMode` value.
+    sample_mode: An `int`specifiying the sample mode,
+      `0` for average, `1` for poisson.
 
   Returns:
-    sampled_points: A `float` tensor of shape [S, D], the sampled points.
-    sampled_batch_ids: An `int` tensor of shape [S], the batch ids.
-    sampled_indices: An `int` tensor of shape [S], the indices to the
+    sampled_points: A `float` `Tensor` of shape [S, D], the sampled points.
+    sampled_batch_ids: An `int` `Tensor` of shape [S], the batch ids.
+    sampled_indices: An `int` `Tensor` of shape [S], the indices to the
       unsampled points.
       Following the order of neighborhood._grid._sorted_points.
+
   """
   with tf.compat.v1.name_scope(name, "sampling", [neighborhood, sample_mode]):
     points = neighborhood._grid._sorted_points
@@ -310,18 +319,6 @@ def sampling_tf(neighborhood, sample_mode, name=None):
     return sampled_points, sampled_batch_ids, sampled_indices
 
 tf.no_gradient('samplingTF')
-
-# def sampling(pNeighborhood, pSampleMode, name=None):
-#   with tf.compat.v1.name_scope(name, "sampling",
-#       [pNeighborhood, pSampleMode]):
-#     return tfg_custom_ops.sampling(
-#       pNeighborhood.grid_.sorted_points,
-#       pNeighborhood.grid_.sorted_batch_ids,
-#       pNeighborhood.grid_.sortedKeys_,
-#       pNeighborhood.grid_.numCells_,
-#       pNeighborhood.neighbors_,
-#       pNeighborhood.samplesNeighRanges_,
-#       pSampleM
 
 
 _pi = tf.constant(np.pi)

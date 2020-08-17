@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes to represent point cloud convolutions"""
+"""Class for kernel point cloud convolutions"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
-
 
 from MCCNN2.pc import PointCloud
 from MCCNN2.pc import Grid
@@ -52,6 +51,7 @@ def _gaussian_weighting(values, sigma):
 
   Returns:
     A `float` `Tensor` of shape `[K, M]`.
+
   """
   sigma = sigma / 3
   return tf.exp(-(values / sigma)**2)
@@ -70,8 +70,8 @@ class KPConv:
     pass initial kernel points of dimension `D` using `custom_kernel_points`.
 
   Args:
-    num_features_in: An `int`, C_in, the number of features per input point.
-    num_features_out: An `int`, C_out, the number of features to compute.
+    num_features_in: An `int`, `C_in`, the number of features per input point.
+    num_features_out: An `int`, `C_out`, the number of features to compute.
     num_kernel_points: An ìnt`, the number of points for representing the
       kernel, default is `15`. (optional)
     num_dims: An `int`, the dimensionality of the point cloud. Defaults to `3`.
@@ -101,9 +101,6 @@ class KPConv:
                custom_kernel_points=None,
                initializer_weights=None,
                name=None):
-    """ Constructior, initializes variables.
-    """
-
     with tf.compat.v1.name_scope(name, "create KP convolution",
                                  [self, num_features_out, num_features_in,
                                   num_kernel_points, deformable,
@@ -142,7 +139,7 @@ class KPConv:
         self._get_offsets = self._kernel_offsets
       else:
         def _zero(*args, **kwargs):
-          """ Replaces `_kernel_offsets` with zeros for rigid KPConv.
+          """ Replaces `_get_offsets` with zeros for rigid KPConv.
           """
           return tf.constant(0.0, dtype=tf.float32)
         self._get_offsets = _zero
@@ -185,6 +182,7 @@ class KPConv:
 
     Returns:
       A `float` `Tensor` of shape `[N2, C2]`, the output features.
+
     """
     # neighbor pairs ids
     neighbors = neighborhood._original_neigh_ids
@@ -271,6 +269,7 @@ class KPConv:
         `[N2, C_out]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
+
     """
 
     with tf.compat.v1.name_scope(name, "Kernel Point_convolution",
@@ -341,6 +340,7 @@ class KPConv:
 
     Returns:
       A `float` `Tensor` of shape `[K, M, D]`, the offsets.
+
     """
     # neighbor pairs ids
     neighbors = neighborhood._original_neigh_ids
@@ -399,6 +399,7 @@ class KPConv:
 
     Returns:
       A 'float`, the sum of repulsory and fitting loss.
+
     """
     with tf.compat.v1.name_scope(name, 'KP Conv regularization loss',
                                  []):

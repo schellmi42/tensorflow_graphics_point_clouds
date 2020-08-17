@@ -27,15 +27,15 @@ def load_points_from_file_to_tensor(filename,
   """ Loads point clouds with features from ASCII files using tf.io.gfile.GFile()
 
   Args:
-    filename: `string` path to the file
-    delimiter: `string` delimiter that separates the points in the file
-    dimension: `int` D1 , the first D1 elements in each line are treated as
-    point coordinates, the rest as features
-    dtype: `tf.dtype` of the output tensors
+    filename: A `string` path to the file.
+    delimiter: A `string` delimiter that separates the points in the file.
+    dimension: An `int` `D1` , the first `D1` elements in each line are
+      treated as point coordinates, the rest as features.
+    dtype: A `tf.dtype` of the output tensors
 
   Returns:
-    points: A `Tensor` of shape [N,D1] and type dtype
-    features: A `Tensor` of shape [N,D2] and type dtype
+    points: A `Tensor` of shape `[N, D1]` and type dtype
+    features: A `Tensor` of shape `[N, D2]` and type dtype
 
   Raises:
     TypeError: if filename is not of type 'string'
@@ -121,21 +121,21 @@ def load_batch_of_points(filenames,
                          point_dimension=3,
                          dtype=tf.float32):
   """ Loads a batch of point clouds form the given ASCII files and creates
-  zero padded tensor for the point coordinates and the features and a 'sizes'
+  zero padded `Tensor` for the point coordinates and the features and a `sizes`
   tensor with the number of points per point cloud.
 
   Args:
-    filenames: `list` of `string`, the paths to the files
-    batch_shape: A 1D int `Tensor`
-    delimiter: `string` delimiter that separates the points in the file
-    point_dimension: `int` D1 , the first D1 elements in each line are treated
-      aspoint coordinates, the rest as features
-    dtype: `tf.dtype` of the output tensors
+    filenames: `list` of `string`, the paths to the files.
+    batch_shape: A 1D `int` `Tensor`, `[A1, ..., An]`.
+    delimiter: A `string` delimiter that separates the points in the file.
+    point_dimension: An `int` `D1` , the first `D1` elements in each line are
+      treated as point coordinates, the rest as features.
+    dtype: A `tf.dtype` of the output.
 
   Returns:
-    points: A `Tensor`of shape [A1,...,An,V,D1] and type `dtype`
-    features: A `Tensor`of shape [A1,...,An,V,D2] and type `dtype`
-    sizes: A int `Tensor`of shape [A1,...,An]
+    points: A `Tensor`of shape `[A1, ..., An, V, D1]` and type `dtype`.
+    features: A `Tensor`of shape `[A1, ..., An, V, D2]` and type `dtype`.
+    sizes: An `int` `Tensor` of shape `[A1, ... , An]`.
   """
 
   batch_size = len(filenames)
@@ -184,21 +184,21 @@ def load_batch_of_meshes(filenames,
                          dtype=tf.float32,
                          **kwargs):
   """ Loads a batch of point clouds from the given mesh files and creates a
-  zero padded tensor for the point coordinates and a 'sizes' tensor with the
+  zero padded `Tensor` for the point coordinates and a `sizes` tensor with the
   number of points per point cloud.
 
   Args:
-    filenames: `list` of `string`, the paths to the files
-    batch_shape: A 1D int `Tensor` [A1,...,An]
-    filename: `string` path to the file
-    file_type: A string specifying the type of the file (e.g. 'obj', 'stl'). If
-      not specified the file_type will be inferred from the file name.
+    filenames: A `list` of `strings`, the paths to the files.
+    batch_shape: A 1D `int` `Tensor` `[A1, ..., An]`
+    filename: A `string`, the path to the file.
+    file_type: A `string` specifying the type of the file (e.g. 'obj', 'stl').
+      If not specified the file_type will be inferred from the file name.
     **kwargs: Additional arguments that should be passed to trimesh.load().
-    dtype: `tf.dtype` of the output tensors
+    dtype: A `tf.dtype` of the output tensors
 
   Returns:
-    points: A `Tensor`of shape [A1,...,An,V,3] and type `dtype`
-    sizes: A int `Tensor`of shape [A1,...,An]
+    points: A `Tensor`of shape `[A1, ..., An, V, 3]` and type `dtype`.
+    sizes: A int `Tensor`of shape `[A1, ..., An]`.
   """
   batch_size = len(filenames)
   points = []

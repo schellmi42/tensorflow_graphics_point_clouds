@@ -60,6 +60,7 @@ class Neighborhood:
       If None, the sorted points from the grid will be used.
     max_neighbors: An `int`, maximum number of neighbors per sample,
       if `0` all neighbors are selected.
+
   """
 
   def __init__(self,
@@ -119,6 +120,7 @@ class Neighborhood:
       mode: 'KDEMode', mode used to determine the bandwidth. (optional)
       normalize: A `bool`, if `True` each value is divided by be size of the
         respective neighborhood. (optional)
+
     """
     with tf.compat.v1.name_scope(
         name, "compute pdf for neighbours",
@@ -146,6 +148,7 @@ class Neighborhood:
 
   def get_pdf(self, **kwargs):
     """ Method which returns the pdfs of the neighborhoods.
+
     If no pdf was computed before, it will compute one using the provided
     arguments.
 
@@ -155,6 +158,7 @@ class Neighborhood:
 
     Returns:
       A `float` `Tensor` of shape `[M]`, the estimated densities.
+
     """
     if self._pdf is None:
       self.compute_pdf(**kwargs)

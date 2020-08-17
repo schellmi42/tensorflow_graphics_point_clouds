@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes to represent point cloud convolutions"""
+"""Class to represent point cloud 1x1 convolution"""
 
 import tensorflow as tf
 from MCCNN2.pc.utils import _flatten_features
@@ -21,16 +21,16 @@ from MCCNN2.pc import PointCloud
 
 
 class Conv1x1:
-  """ A 1x1 convolution on the point feautures. This op reshapes the arguments
+  """ A 1x1 convolution on the point features. This op reshapes the arguments
   to pass them to `tf.keras.layers.Conv1D` to perform the equivalent
   convolution operation.
 
-  Note: This uses less memory than a `MCConv` with a 1x1 neighborhood,
-  but is slower for large `num_features_in`.
+  Note: This uses less memory than a point cloud convolution layer with a 1x1
+    neighborhood, but might be slower for large feature dimensions.
 
   Args:
-    num_features_in: An `int` C_in, the number of input features.
-    num_features_out: An `int` C_out, the number of output features.
+    num_features_in: An `int` `C_in`, the number of input features.
+    num_features_out: An `int` `C_out`, the number of output features.
     **kwargs: Additional keyword arguments to be passed to
       `tf.keras.layers.Conv1D`. (optional)
 
@@ -71,6 +71,7 @@ class Conv1x1:
         `[N_out, C_out]`, if `return_padded` is `False`
       or
         `[A1, ..., An, V_out, C_out]`, if `return_padded` is `True`.
+
     """
     features = tf.cast(tf.convert_to_tensor(value=features),
                        dtype=tf.float32)

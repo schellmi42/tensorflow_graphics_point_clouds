@@ -8,10 +8,10 @@ import os
 import time
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-np.random.seed(42)
-tf.random.set_seed(42)
+# np.random.seed(42)
+# tf.random.set_seed(42)
 
-quick_test = False
+quick_test = True
 
 # -- loading data ---
 
@@ -20,10 +20,10 @@ num_classes = 40  # modelnet 10 or 40
 points_per_file = 5000  # number of points loaded per model
 samples_per_model = 1024  # number of input points per file
 
-labels = []
+category_names = []
 with open(data_dir + f'modelnet{num_classes}_shape_names.txt') as inFile:
   for line in inFile:
-    labels.append(line.replace('\n', ''))
+    category_names.append(line.replace('\n', ''))
 
 train_set = []
 train_labels = []
@@ -31,10 +31,10 @@ with open(data_dir + f'modelnet{num_classes}_train.txt') as inFile:
   for line in inFile:
     line = line.replace('\n', '')
     category = line[:-5]
-    train_set. append(data_dir + category + '/' + line + '.txt')
-    if category not in labels:
+    train_set.append(data_dir + category + '/' + line + '.txt')
+    if category not in category_names:
       raise ValueError('Unknown category ' + category)
-    train_labels.append(labels.index(category))
+    train_labels.append(category_names.index(category))
 
 test_set = []
 test_labels = []
@@ -42,42 +42,36 @@ with open(data_dir + f'modelnet{num_classes}_test.txt') as inFile:
   for line in inFile:
     line = line.replace('\n', '')
     category = line[:-5]
-    test_set. append(data_dir + category + '/' + line + '.txt')
-    if category not in labels:
+    test_set.append(data_dir + category + '/' + line + '.txt')
+    if category not in category_names:
       raise ValueError('Unknown category ' + category)
-    test_labels.append(labels.index(category))
+    test_labels.append(category_names.index(category))
 
-num_classes = len(labels)
+num_classes = len(category_names)
 
 train_data_points = np.empty([len(train_set), points_per_file, 3])
-train_data_features = np.empty([len(train_set), points_per_file, 3])
-# ids = np.arange(0, 10000)
+
 print(f'### loading modelnet{num_classes} train ###')
 for i, filename in enumerate(train_set):
-  points, features = \
+  points, _ = \
       io.load_points_from_file_to_numpy(filename,
                                         max_num_points=points_per_file)
   points = points
-  features = features
   train_data_points[i] = points
-  train_data_features[i] = features
   if i % 100 == 0:
     print(f'{i}/{len(train_set)}')
   if quick_test and i > 100:
     break
 
 test_data_points = np.empty([len(test_set), points_per_file, 3])
-test_data_features = np.empty([len(test_set), points_per_file, 3])
 
 print(f'### loading modelnet{num_classes} test ###')
 for i, filename in enumerate(test_set):
-  points, features = \
+  points, _ = \
       io.load_points_from_file_to_numpy(filename,
                                         max_num_points=points_per_file)
   points = points
-  features = features
   test_data_points[i] = points
-  test_data_features[i] = features
   if i % 100 == 0:
     print(f'{i}/{len(test_set)}')
   if quick_test and i > 100:

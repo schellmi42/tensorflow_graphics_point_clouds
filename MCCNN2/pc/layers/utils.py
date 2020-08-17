@@ -38,6 +38,7 @@ def _format_output(features, point_cloud, return_sorted, return_padded):
       `[N, C]`, if `return_padded` is `False`
     or
       `[A1, ..., An, V, C]`, if `return_padded` is `True`.
+
   """
 
   if return_padded:
@@ -52,7 +53,7 @@ def random_rotation(points, name=None):
   """ Method to rotate 3D points randomly.
 
   Args:
-    points: A `float` `Tensor` of rshape `[N, 3]`.
+    points: A `float` `Tensor` of shape `[N, 3]`.
 
   Returns:
     A `float` `Tensor` of the same shape as `points`.
@@ -86,6 +87,7 @@ def _hexagon(scale, z_shift):
 
   Returns:
     A `np.array` of shape `[6, 3]`.
+
   """
   phi = np.sqrt(3) / 2
   points = [[0, 1, 0],
@@ -109,6 +111,7 @@ def _pentagon(scale, z_shift):
 
   Returns:
     A `np.array` of shape `[5, 3]`.
+
   """
   c1 = (np.sqrt(5) - 1) / 4
   c2 = (np.sqrt(5) + 1) / 4
@@ -134,6 +137,7 @@ def square(scale, z_shift):
 
   Returns:
     A `np.array` of shape `[4, 3]`.
+
   """
   points = [[1, 0, 0],
             [0, 1, 0],
@@ -203,13 +207,13 @@ def spherical_kernel_points(num_points, rotate=True, name=None):
                             [-phi, 0, -1]], dtype=tf.float32)
     elif num_points == 15:
       hex1 = _hexagon(0.5, np.sqrt(3) / 2)
-      hex2 = _hexagon(-0.5, np.sqrt(3) / 2)
+      hex2 = _hexagon(-0.5, np.sqrt(3) / 2)[1, 0, 2]  # rotated 90 deg in xy
       points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]], hex1, hex2),
                               axis=0)
       points = tf.Variable(points, dtype=tf.float32)
     elif num_points == 18:
       penta1 = _pentagon(1 / np.sqrt(2), 0.5)
-      penta2 = _pentagon(1.0, 0.0)[1, 0, 2]
+      penta2 = -_pentagon(1.0, 0.0) # flipped in xy
       penta3 = _pentagon(-1 / np.sqrt(2), 0.5)
       points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]],
                                penta1, penta2, penta3),
@@ -242,5 +246,6 @@ def _identity(features, *args, **kwargs):
   """ Simple identity layer, to be used as placeholder.
 
   Used to replace projection shortcuts, if not desired.
+
   """
   return features

@@ -25,12 +25,14 @@ def compute_keys(point_cloud, num_cells, cell_size, name=None):
         \\(sum_{d=0}^{D}( c_{d} prod_{d'=d+1}^{D} num_cells_{d'} ) \\).
     Args:
       point_cloud: A `PointCloud` instance.
-      num_cells: An `int` tensor of shape [D], the total number of cells
+      num_cells: An `int` `Tensor` of shape `[D]`, the total number of cells
         per dimension.
-      cell_size: An `int` tensor of shape [D], the cell sizes per dimension.
+      cell_size: An `int` `Tensor` of shape `[D]`, the cell sizes per
+        dimension.
 
     Returns:
-      An `int` tensor of shape [N], the keys per point.
+      An `int` `Tensor` of shape `[N]`, the keys per point.
+
   """
   with tf.compat.v1.name_scope(
       name, "compute keys", [point_cloud, num_cells, cell_size]):
@@ -50,13 +52,14 @@ def build_grid_ds(sorted_keys, num_cells, batch_size, name=None):
   Creates a 2D regular grid in the first two dimension, saving the first and
   last index belonging to that cell array.
   Args:
-    sorted_keys: An `int` tensor of shape [N], the sorted keys.
-    num_cells: An `int` tensor of shape [D], the total number of cells
+    sorted_keys: An `int` `Tensor` of shape `[N]`, the sorted keys.
+    num_cells: An `int` `Tensor` of shape `[D]`, the total number of cells
       per dimension.
     batch_size: An `int`.
 
   Returns:
-    An `int` tensor of shape [num_cells[0], num_cells[1], 2].
+    An `int` `Tensor` of shape `[batch_size, num_cells[0], num_cells[1], 2]`.
+
   """
   with tf.compat.v1.name_scope(
       name, "build grid ds", [sorted_keys, num_cells, batch_size]):
@@ -79,15 +82,18 @@ def find_neighbors(grid,
   Args:
     grid: A Grid instance, from which the neighbors are chosen.
     point_cloud_centers: A `PointCloud` instance, containing the center points.
-    radii: An `float` tensor of shape [D], the radii to select neighbors from.
+    radii: An `float` `Tensor` of shape `[D]`, the radii to select neighbors
+      from.
     max_neighbors: An `int`, if `0` all neighbors are selected.
 
   Returns:
-  center_neigh_ranges: An `int` tensor of shape [N], end of the ranges per
+  center_neigh_ranges: An `int` `Tensor` of shape `[N]`, end of the ranges per
       center point. You can get the neighbor ids of point `i` (i>0) with
         `neighbors[center_neigh_ranges[i-1]:center_neigh_ranges[i]]`.
-  neighbors: An `int` tensor of shape [M, 2], indices of the neighbor point and
-      the center for each neighbor. Follows the order of `grid._sorted_points`.
+  neighbors: An `int` `Tensor` of shape [M, 2], indices of the neighbor point
+      and the center for each neighbor. Follows the order of
+     `grid._sorted_points`.
+
   """
   with tf.compat.v1.name_scope(
       name, "find neighbours",
@@ -112,14 +118,16 @@ def sampling(neighborhood, sample_mode, name=None):
   Args:
     neighborhood: A `Neighborhood` instance, which contains a point cloud with
       its neighbors.
-    sample_mode: A `SampleMode` value.
+    sample_mode: An `int`specifiying the sample mode,
+      `0` for average, `1` for poisson.
 
   Returns:
-    sampled_points: A `float` tensor of shape [S, D], the sampled points.
-    sampled_batch_ids: An `int` tensor of shape [S], the batch ids.
-    sampled_indices: An `int` tensor of shape [S], the indices to the
+    sampled_points: A `float` `Tensor` of shape `[S, D]`, the sampled points.
+    sampled_batch_ids: An `int` `Tensor` of shape `[S]`, the batch ids.
+    sampled_indices: An `int` `Tensor` of shape `[S]`, the indices to the
       unsampled points.
       Following the order of neighborhood._grid._sorted_points.
+
   """
   with tf.compat.v1.name_scope(name, "sampling", [neighborhood, sample_mode]):
     return tfg_custom_ops.sampling(
@@ -183,6 +191,7 @@ def basis_proj(neigh_basis, features, neighborhood):
 
   Returns:
     A `float` `Tensor` of shape ``[N_out, C, H]`, the weighted latent features.
+    
   """
   return tfg_custom_ops.basis_proj(
       neigh_basis,
