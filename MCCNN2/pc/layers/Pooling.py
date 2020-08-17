@@ -151,7 +151,7 @@ class _LocalPointPooling:
       pooling_radius = tf.convert_to_tensor(
           value=pooling_radius, dtype=tf.float32)
       if pooling_radius.shape[0] == 1:
-        pooling_radius = tf.repeat(pooling_radius, point_cloud_in.dimension_)
+        pooling_radius = tf.repeat(pooling_radius, point_cloud_in._dimension)
 
       # Compute the grid.
       grid_in = Grid(point_cloud_in, pooling_radius)

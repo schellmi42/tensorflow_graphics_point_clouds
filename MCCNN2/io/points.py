@@ -68,6 +68,7 @@ def load_points_from_file_to_tensor(filename,
 def load_points_from_file_to_numpy(filename,
                                    delimiter=',',
                                    dimension=3,
+                                   max_num_points=None,
                                    dtype=np.float32):
   """ Loads point clouds with features from ASCII files using tf.io.gfile.GFile()
 
@@ -75,7 +76,8 @@ def load_points_from_file_to_numpy(filename,
     filename: `string` path to the file
     delimiter: `string` delimiter that separates the points in the file
     dimension: `int` D1 , the first D1 elements in each line are treated as
-    point coordinates, the rest as features
+      point coordinates, the rest as features
+    max_num_points: An `int` the maximum number of lines to read.
     dtype: `np.dtype` of the output array
 
   Returns:
@@ -93,11 +95,16 @@ def load_points_from_file_to_numpy(filename,
   if isinstance(filename, str):
     if tf.io.gfile.exists(filename):
       with tf.io.gfile.GFile(filename, 'r') as in_file:
+        i = 0
         for line in in_file:
-          line_elements = line[:-1].split(delimiter)
-          points.append(line_elements[0:dimension])
-          if len(line_elements) > 3:
-            features.append(line_elements[dimension:])
+          if max_num_points is not None and i < max_num_points:
+            line_elements = line[:-1].split(delimiter)
+            points.append(line_elements[0:dimension])
+            if len(line_elements) > 3:
+              features.append(line_elements[dimension:])
+          else:
+            break
+          i += 1
 
       points = np.array(points, dtype=dtype)
       features = np.array(features, dtype=dtype)
@@ -121,8 +128,8 @@ def load_batch_of_points(filenames,
     filenames: `list` of `string`, the paths to the files
     batch_shape: A 1D int `Tensor`
     delimiter: `string` delimiter that separates the points in the file
-    dimension: `int` D1 , the first D1 elements in each line are treated as
-      point coordinates, the rest as features
+    point_dimension: `int` D1 , the first D1 elements in each line are treated
+      aspoint coordinates, the rest as features
     dtype: `tf.dtype` of the output tensors
 
   Returns:
