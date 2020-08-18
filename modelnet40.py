@@ -1,6 +1,7 @@
 # noqa: E501
 import tensorflow as tf
 import MCCNN2.pc as pc
+from MCCNN2.pc import layers
 import MCCNN2.io as io
 import numpy as np
 import tensorflow_graphics
@@ -58,7 +59,7 @@ for i, filename in enumerate(train_set):
                                         max_num_points=points_per_file)
   points = points
   train_data_points[i] = points
-  if i % 100 == 0:
+  if i % 500 == 0:
     print(f'{i}/{len(train_set)}')
   if quick_test and i > 100:
     break
@@ -72,7 +73,7 @@ for i, filename in enumerate(test_set):
                                         max_num_points=points_per_file)
   points = points
   test_data_points[i] = points
-  if i % 100 == 0:
+  if i % 500 == 0:
     print(f'{i}/{len(test_set)}')
   if quick_test and i > 100:
     break
@@ -113,27 +114,27 @@ class conv_block():
     # -- residual layers --
     residual_feature_size = num_features_out // 2
 
-    self.res_layers.append(pc.layers.Conv1x1(
+    self.res_layers.append(layers.Conv1x1(
         num_features_in=num_features_in,
         num_features_out=residual_feature_size))
     self.BN_layers.append(tf.keras.layers.BatchNormalization())
     self.activation_layers.append(tf.keras.layers.LeakyReLU())
 
     if layer_type == 'MCConv':
-      self.res_layers.append(pc.layers.MCConv(
+      self.res_layers.append(layers.MCConv(
           num_features_in=residual_feature_size,
           num_features_out=residual_feature_size,
           num_dims=3,
           num_mlps=4,
           mlp_size=[8]))
     elif layer_type == 'PointConv':
-      self.res_layers.append(pc.layers.PointConv(
+      self.res_layers.append(layers.PointConv(
           num_features_in=residual_feature_size,
           num_features_out=residual_feature_size,
           num_dims=3,
           size_hidden=8))
     elif layer_type == 'KPConv':
-      self.res_layers.append(pc.layers.KPConv(
+      self.res_layers.append(layers.KPConv(
           num_features_in=residual_feature_size,
           num_features_out=residual_feature_size,
           num_dims=3,
@@ -143,18 +144,18 @@ class conv_block():
 
     self.BN_layers.append(tf.keras.layers.BatchNormalization())
     self.activation_layers.append(tf.keras.layers.LeakyReLU())
-    self.res_layers.append(pc.layers.Conv1x1(
+    self.res_layers.append(layers.Conv1x1(
         num_features_in=residual_feature_size,
         num_features_out=num_features_out))
     self.BN_layers.append(tf.keras.layers.BatchNormalization())
 
     # -- skip layers --
     if strided:
-      self.skip_layers.append(pc.layers.MaxPooling())
+      self.skip_layers.append(layers.MaxPooling())
     else:
       self.skip_layers.append(identity_layer)
 
-    self.skip_layers.append(pc.layers.Conv1x1(
+    self.skip_layers.append(layers.Conv1x1(
         num_features_in=num_features_in,
         num_features_out=num_features_out))
     self.BN_layers.append(tf.keras.layers.BatchNormalization())
@@ -217,11 +218,11 @@ class mymodel(tf.keras.Model):
   ''' Model architecture.
 
   Args:
-    features_sizes: A `list` of `ints`, the feature dimensions.
+    features_sizes: A `list` of `ints`, the feature dimensions. Shape `[L+3]`.
     pool_radii: A `list` of `floats, the radii used for spatial pooling
-      of the point clouds.
+      of the point clouds. Shape `[L]`.
     conv_radii: A `list` of `floats`, the radii used by the convolution
-      layers.
+      layers. Shape `[L]`.
     layer_type: A `string`, the type of convolution used,
       can be 'MCConv', 'KPConv', 'PointConv'.
   '''
@@ -250,7 +251,7 @@ class mymodel(tf.keras.Model):
                                          feature_sizes[i + 1],
                                          layer_type,
                                          strided=False))
-    self.global_pooling = pc.layers.GlobalAveragePooling()
+    self.global_pooling = layers.GlobalAveragePooling()
     # -- classification head ---
     self.batch_layers.append(tf.keras.layers.BatchNormalization())
     self.activations.append(tf.keras.layers.LeakyReLU())
@@ -363,7 +364,7 @@ num_epochs = 100
 if quick_test:
   num_epochs = 2
 
-feature_sizes = [1, 128, 256, 512, 128, num_classes]
+feature_sizes = [1, 128, 1024, 512, 128, num_classes]
 pool_radii = np.array([0.1, 0.2, 0.4])
 conv_radii = pool_radii * 1.5
 
@@ -381,7 +382,7 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 
 # --- Training Loop---
 def training(model,
-             epoch_print=num_epochs):
+             epoch_print=1):
   train_loss_results = []
   train_accuracy_results = []
   test_loss_results = []
@@ -425,7 +426,7 @@ def training(model,
       print('Epoch {:03d} Time: {:.3f}s'.format(
           epoch,
           time_epoch_end - time_epoch_start))
-      print('Training:  Loss: {:.3f}, Accuracy: {:.3%}'.format(
+      print('Training:   Loss: {:.3f}, Accuracy: {:.3%}'.format(
           train_loss_results[-1],
           train_accuracy_results[-1]))
       print('Validation: Loss: {:.3f}, Accuracy: {:.3%}'.format(
