@@ -16,13 +16,13 @@
 import numpy as np
 import tensorflow as tf
 
-from MCCNN2.pc.utils import check_valid_point_hierarchy_input
+from pylib.pc.utils import check_valid_point_hierarchy_input
 
-from MCCNN2.pc import PointCloud
-from MCCNN2.pc import Grid
-from MCCNN2.pc import Neighborhood
-from MCCNN2.pc import sample
-from MCCNN2.pc.utils import cast_to_num_dims
+from pylib.pc import PointCloud
+from pylib.pc import Grid
+from pylib.pc import Neighborhood
+from pylib.pc import sample
+from pylib.pc.utils import cast_to_num_dims
 
 
 class PointHierarchy:

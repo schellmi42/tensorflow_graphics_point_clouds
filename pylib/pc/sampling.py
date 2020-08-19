@@ -15,10 +15,10 @@
 
 import tensorflow as tf
 
-from MCCNN2.pc.custom_ops import sampling
+from pylib.pc.custom_ops import sampling
 
-from MCCNN2.pc import PointCloud, Neighborhood, Grid
-from MCCNN2.pc.utils import cast_to_num_dims
+from pylib.pc import PointCloud, Neighborhood, Grid
+from pylib.pc.utils import cast_to_num_dims
 
 sample_modes = {'average': 1,
                 'cell average': 1,

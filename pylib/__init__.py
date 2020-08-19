@@ -11,5 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific
 
-from MCCNN2 import pc
-from MCCNN2 import io
+from pylib import pc
+from pylib import io

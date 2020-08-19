@@ -1,8 +1,8 @@
 # noqa: E501
 import tensorflow as tf
-import MCCNN2.pc as pc
-from MCCNN2.pc import layers
-import MCCNN2.io as io
+import pylib.pc as pc
+from pylib.pc import layers
+import pylib.io as io
 import numpy as np
 import tensorflow_graphics
 import os
@@ -263,13 +263,16 @@ class mymodel(tf.keras.Model):
   def __call__(self,
                points,
                features,
-               training):
+               training,
+               sampling='poisson disk'):
     ''' Evaluates network.
 
     Args:
       points: The point coordinates.
       features: Input features.
       training: A `bool`, passed to the batch norm layers.
+      sampling: method to sample the point clouds,
+        can be 'posson disk' or 'cell average'
 
     Returns:
       The logits per class.
@@ -277,7 +280,7 @@ class mymodel(tf.keras.Model):
     '''
     # spatial downsampling of the point cloud
     point_cloud = pc.PointCloud(points)
-    point_hierarchy = pc.PointHierarchy(point_cloud, self.pool_radii, 'poisson')
+    point_hierarchy = pc.PointHierarchy(point_cloud, self.pool_radii, 'poisson disk')
     # encoder network
     for i in range(self.num_levels):
       features = self.strided_conv_blocks[i](features,
@@ -364,7 +367,7 @@ num_epochs = 100
 if quick_test:
   num_epochs = 2
 
-feature_sizes = [1, 128, 1024, 512, 128, num_classes]
+feature_sizes = [1, 128, 256, 512, 128, num_classes]
 pool_radii = np.array([0.1, 0.2, 0.4])
 conv_radii = pool_radii * 1.5
 

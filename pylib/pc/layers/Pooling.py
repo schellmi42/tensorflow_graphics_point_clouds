@@ -14,12 +14,12 @@
 """Classes for point cloud spatial pooling operations"""
 
 import tensorflow as tf
-from MCCNN2.pc.utils import _flatten_features
-from MCCNN2.pc.layers.utils import _format_output
+from pylib.pc.utils import _flatten_features
+from pylib.pc.layers.utils import _format_output
 
-from MCCNN2.pc import PointCloud
-from MCCNN2.pc import Grid
-from MCCNN2.pc import Neighborhood
+from pylib.pc import PointCloud
+from pylib.pc import Grid
+from pylib.pc import Neighborhood
 
 
 class GlobalMaxPooling:

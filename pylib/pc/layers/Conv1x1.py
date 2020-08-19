@@ -14,10 +14,10 @@
 """Class to represent point cloud 1x1 convolution"""
 
 import tensorflow as tf
-from MCCNN2.pc.utils import _flatten_features
-from MCCNN2.pc.layers.utils import _format_output
+from pylib.pc.utils import _flatten_features
+from pylib.pc.layers.utils import _format_output
 
-from MCCNN2.pc import PointCloud
+from pylib.pc import PointCloud
 
 
 class Conv1x1:

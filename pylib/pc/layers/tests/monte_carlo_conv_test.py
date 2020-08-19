@@ -19,9 +19,9 @@ import tensorflow as tf
 from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
-from MCCNN2.pc import PointCloud, Grid, Neighborhood, KDEMode, AABB
-from MCCNN2.pc.tests import utils
-from MCCNN2.pc.layers import MCConv
+from pylib.pc import PointCloud, Grid, Neighborhood, KDEMode, AABB
+from pylib.pc.tests import utils
+from pylib.pc.layers import MCConv
 
 
 class MCConvTest(test_case.TestCase):

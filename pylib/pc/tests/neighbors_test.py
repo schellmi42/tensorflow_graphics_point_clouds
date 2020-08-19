@@ -19,10 +19,10 @@ import tensorflow as tf
 from absl.testing import parameterized
 from tensorflow_graphics.util import test_case
 
-from MCCNN2.pc import PointCloud
-from MCCNN2.pc import Grid
-from MCCNN2.pc import Neighborhood
-from MCCNN2.pc.tests import utils
+from pylib.pc import PointCloud
+from pylib.pc import Grid
+from pylib.pc import Neighborhood
+from pylib.pc.tests import utils
 
 
 class NeighborsTest(test_case.TestCase):

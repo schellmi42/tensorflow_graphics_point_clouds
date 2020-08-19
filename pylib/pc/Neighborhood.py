@@ -36,10 +36,10 @@ Attributes:
 import enum
 import tensorflow as tf
 
-from MCCNN2.pc import PointCloud
-from MCCNN2.pc import Grid
-from MCCNN2.pc.custom_ops import find_neighbors, compute_pdf
-from MCCNN2.pc.utils import cast_to_num_dims
+from pylib.pc import PointCloud
+from pylib.pc import Grid
+from pylib.pc.custom_ops import find_neighbors, compute_pdf
+from pylib.pc.utils import cast_to_num_dims
 
 
 class KDEMode(enum.Enum):
@@ -47,6 +47,167 @@ class KDEMode(enum.Enum):
   constant = 0
   num_points = 1
   no_pdf = 2
+
+
+def compute_neighborhoods(grid,
+                          radius,
+                          point_cloud_centers=None,
+                          max_neighbors=0,
+                          return_ranges=False,
+                          return_sorted_ids=False,
+                          name=None):
+  """ Neighborhood of a point cloud.
+
+  Args:
+    grid: A 'Grid' instance, the regular grid data structure.
+    radius: A `float` `Tensor` of shape `[D]`, the radius used to select the
+      neighbors. Should be smaller than the cell size of the grid.
+    point_cloud_centers: A 'PointCloud' instance. Samples point cloud.
+      If None, the sorted points from the grid will be used.
+    max_neighbors: An `int`, maximum number of neighbors per sample,
+      if `0` all neighbors are selected. (optional)
+    return_ranges: A `bool`, if 'True` returns the neighborhood ranges as a
+      second output, default is `False`. (optional)
+    return_sorted_ids: A 'bool', if 'True' the neighbor ids are with respect
+      to the sorted points in the grid, default is `False`. (optional)
+
+  Returns:
+    neighbors: An `int` `Tensor` of shape `[M, 2]`, the indices to neighbor
+      pairs, where element `i` is `[neighbor_id, center_id]`.
+    ranges: If `return_ranges` is `True` returns a second 'int` Tensor` of
+      shape `[N2]`, such that the neighbor indices of center point `i` are
+      `neighbors[ranges[i]]:neigbors[ranges[i+1]]` for `i>0`.
+  """
+
+  with tf.compat.v1.name_scope(
+      name, "compute neighbourhoods of point clouds",
+      [grid, radius, point_cloud_centers, max_neighbors]):
+    radii = cast_to_num_dims(radius, grid._point_cloud._dimension)
+    #Save the attributes.
+    if point_cloud_centers is None:
+      point_cloud_centers = PointCloud(
+          grid._sorted_points, grid._sorted_batch_ids,
+          grid._batch_size)
+
+    #Find the neighbors, with indices with respect to sorted points in the grid
+    nb_ranges, neighbors = find_neighbors(
+      grid, point_cloud_centers, radii, max_neighbors)
+
+    #Original neighIds.
+    if not return_sorted_ids:
+      aux_original_neigh_ids = tf.gather(
+          grid._sorted_indices, neighbors[:, 0])
+      original_neigh_ids = tf.concat([
+        tf.reshape(aux_original_neigh_ids, [-1, 1]),
+        tf.reshape(neighbors[:, 1], [-1, 1])], axis=-1)
+      neighbors = original_neigh_ids
+    if return_ranges:
+      return neighbors, nb_ranges
+    else:
+      return neighbors
+
+
+def density_estimation(point_cloud,
+                       bandwidth=0.2,
+                       scaling=1.0,
+                       mode=KDEMode.constant,
+                       normalize=False,
+                       name=None):
+  """Method to compute the density distribution of a point cloud.
+
+  Note: By default the returned densitity is not normalized.
+
+  Args:
+    point_cloud: A `PointCloud` instance.
+    bandwidth: A `float` or a `float` `Tensor` of shape `[D]`, bandwidth
+      used to compute the pdf. (optional)
+    scaling: A 'float' or a `float` `Tensor` of shape '[D]', the points are
+      divided by this value prior to the KDE.
+    mode: 'KDEMode', mode used to determine the bandwidth. (optional)
+    normalize: A `bool`, if `True` each value is divided by be size of the
+      respective neighborhood. (optional)
+
+  Returns:
+    A `float` `Tensor` of shape `[N]`, the estimated densities.
+  """
+  with tf.compat.v1.name_scope(
+      name, "compute pdf for point cloud",
+      [point_cloud, bandwidth, mode, normalize]):
+
+    bandwidth = cast_to_num_dims(bandwidth, point_cloud._dimension)
+    scaling = cast_to_num_dims(scaling, point_cloud._dimension)
+    if mode == KDEMode.no_pdf:
+      pdf = tf.ones_like(point_cloud._points[:, 0], dtype=tf.float32)
+    else:
+      grid = Grid(point_cloud, scaling)
+      pdf_neighbors, nb_ranges = \
+          compute_neighborhoods(grid,
+                                scaling,
+                                return_ranges=True,
+                                return_sorted_ids=True)
+      pdf_sorted = compute_pdf(grid,
+                               pdf_neighbors,
+                               nb_ranges,
+                               bandwidth,
+                               scaling,
+                               mode.value)
+      unsorted_indices = tf.math.invert_permutation(grid._sorted_indices)
+      pdf = tf.gather(pdf_sorted, unsorted_indices)
+    if normalize:
+      pdf = pdf / point_cloud._points.shape[0]
+    return pdf
+
+
+def density_estimation_in_neighborhoods(point_cloud,
+                                        neighbors,
+                                        bandwidth=0.2,
+                                        scaling=1.0,
+                                        mode=KDEMode.constant,
+                                        normalize=False,
+                                        name=None):
+  """Method to compute the density distribution of a point cloud.
+
+  Note: By default the returned densitity is not normalized.
+
+  Args:
+    point_cloud: A `PointCloud` instance of the neighbor points.
+    neighbors: An `int` `Tensor` of shape `[M, 2]`.The indices to
+      neighbor pairs, defining the neighborhood with centers from
+      `point_cloud_out` and neighbors in `point_cloud_in`.
+    bandwidth: A `float` or `float` `Tensor` of shape `[D]`, bandwidth used to
+      compute the pdf. (optional)
+    scaling: A `float` or `float` `Tensor` of shape `[D]`, used to scale the
+      points. This should be the convolution radius when estimating pdfs for a
+      convolution.
+    mode: 'KDEMode', mode used to determine the bandwidth. (optional)
+    normalize: A `bool`, if `True` each value is divided by be size of the
+      respective neighborhood. (optional)
+
+  Returns:
+    A `float` `Tensor` of shape `[M]`, the estimated densities.
+  """
+  with tf.compat.v1.name_scope(
+      name, "compute pdf for neighbours",
+      [point_cloud, neighbors, bandwidth, mode, normalize]):
+    bandwidth = cast_to_num_dims(bandwidth, point_cloud._dimension)
+    scaling = cast_to_num_dims(scaling, point_cloud._dimension)
+
+    if mode == KDEMode.no_pdf:
+      pdf = tf.ones_like(
+          neighbors[:, 0], dtype=tf.float32)
+    else:
+      pdf = density_estimation(point_cloud,
+                               bandwidth,
+                               scaling,
+                               mode,
+                               False)
+      pdf = tf.gather(pdf, neighbors[:, 0])
+    if normalize:
+      norm_factors = tf.math.segment_sum(
+          tf.ones_like(pdf),
+          neighbors[:, 1])
+      pdf = pdf / tf.gather(norm_factors, neighbors[:, 1])
+    return pdf
 
 
 class Neighborhood:
