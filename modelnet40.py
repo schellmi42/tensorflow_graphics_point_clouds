@@ -132,7 +132,7 @@ class conv_block():
           num_features_in=residual_feature_size,
           num_features_out=residual_feature_size,
           num_dims=3,
-          size_hidden=8))
+          size_hidden=32))
     elif layer_type == 'KPConv':
       self.res_layers.append(layers.KPConv(
           num_features_in=residual_feature_size,
@@ -231,7 +231,8 @@ class mymodel(tf.keras.Model):
                feature_sizes,
                pool_radii,
                conv_radii,
-               layer_type='MCConv'):
+               layer_type='MCConv',
+               dropout_rate=0.0):
     super(mymodel, self).__init__()
     self.num_levels = len(pool_radii)
     self.pool_radii = pool_radii.reshape(-1, 1)
@@ -241,9 +242,10 @@ class mymodel(tf.keras.Model):
     self.batch_layers = []
     self.dense_layers = []
     self.activations = []
+    self.dropouts = []
     # -- encoder network
     for i in range(self.num_levels):
-      self.strided_conv_blocks.append(conv_block(feature_sizes[i + 1],
+      self.strided_conv_blocks.append(conv_block(feature_sizes[i],
                                                  feature_sizes[i + 1],
                                                  layer_type,
                                                  strided=True))
@@ -255,23 +257,25 @@ class mymodel(tf.keras.Model):
     # -- classification head ---
     self.batch_layers.append(tf.keras.layers.BatchNormalization())
     self.activations.append(tf.keras.layers.LeakyReLU())
+    self.dropouts.append(tf.keras.layers.Dropout(dropout_rate))
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-2]))
     self.batch_layers.append(tf.keras.layers.BatchNormalization())
     self.activations.append(tf.keras.layers.LeakyReLU())
+    self.dropouts.append(tf.keras.layers.Dropout(dropout_rate))
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-1]))
 
   def __call__(self,
                points,
                features,
                training,
-               sampling='poisson disk'):
+               sampling_method='poisson disk'):
     ''' Evaluates network.
 
     Args:
       points: The point coordinates.
       features: Input features.
       training: A `bool`, passed to the batch norm layers.
-      sampling: method to sample the point clouds,
+      sampling_method: method to sample the point clouds,
         can be 'posson disk' or 'cell average'
 
     Returns:
@@ -280,7 +284,9 @@ class mymodel(tf.keras.Model):
     '''
     # spatial downsampling of the point cloud
     point_cloud = pc.PointCloud(points)
-    point_hierarchy = pc.PointHierarchy(point_cloud, self.pool_radii, 'poisson disk')
+    point_hierarchy = pc.PointHierarchy(point_cloud,
+                                        self.pool_radii,
+                                        sampling_method)
     # encoder network
     for i in range(self.num_levels):
       features = self.strided_conv_blocks[i](features,
@@ -299,8 +305,10 @@ class mymodel(tf.keras.Model):
     # classification head
     features = self.batch_layers[-2](features, training)
     features = self.activations[-2](features)
+    features = self.dropouts[-2](features, training=training)
     features = self.dense_layers[-2](features)
     features = self.batch_layers[-1](features, training)
+    features = self.dropouts[-1](features, training=training)
     features = self.activations[-1](features)
     return self.dense_layers[-1](features)
 
@@ -360,17 +368,8 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
 
 #-----------------------------------------------
 
-loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
 batch_size = 16
-num_epochs = 100
-if quick_test:
-  num_epochs = 2
-
-feature_sizes = [1, 128, 256, 512, 128, num_classes]
-pool_radii = np.array([0.1, 0.2, 0.4])
-conv_radii = pool_radii * 1.5
-
 
 gen_train = modelnet_data_generator(train_data_points, train_labels,
                                     batch_size)
@@ -381,10 +380,12 @@ lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
     decay_steps=len(gen_train),
     decay_rate=0.95)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
+loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
 
 # --- Training Loop---
 def training(model,
+             num_epochs,
              epoch_print=1):
   train_loss_results = []
   train_accuracy_results = []
@@ -436,12 +437,28 @@ def training(model,
           test_loss_results[-1],
           test_accuracy_results[-1]))
 
+# ----------------------------
+
+num_epochs = 400
+if quick_test:
+  num_epochs = 2
+
+dropout_rate = 0.5
+
+# feature_sizes = [1, 128, 256, 512, 128, num_classes]
+# pool_radii = np.array([0.1, 0.2, 0.4])
+feature_sizes = [1, 64, 128, 256, 512, 1024, 1024, num_classes]
+pool_radii = np.array([0.05, 0.1, 0.2, 0.4, 0.8])
+conv_radii = pool_radii * 1.5
+
 model_MC = mymodel(feature_sizes, pool_radii, conv_radii,
-                   layer_type='MCConv')
-training(model_MC)
+                   layer_type='MCConv', dropout_rate=dropout_rate)
+training(model_MC, num_epochs)
+"""
 model_KP = mymodel(feature_sizes, pool_radii, conv_radii,
-                   layer_type='KPConv')
-training(model_KP)
+                   layer_type='KPConv', dropout_rate=dropout_rate)
+training(model_KP, num_epochs)
 model_PC = mymodel(feature_sizes, pool_radii, conv_radii,
-                   layer_type='PointConv')
-training(model_PC)
+                   layer_type='PointConv', dropout_rate=dropout_rate)
+training(model_PC, num_epochs)
+"""
