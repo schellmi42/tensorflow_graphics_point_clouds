@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow_graphics
 import os
 import time
+import h5py
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # np.random.seed(42)
@@ -16,10 +17,11 @@ quick_test = False
 
 # -- loading data ---
 
-data_dir = '../2019 - ModelNet_PointNet/'
+data_dir = './2019 - ModelNet_PointNet/'
+hdf5_tmp_dir = "./tmp_modelnet"
 num_classes = 40  # modelnet 10 or 40
-points_per_file = 5000  # number of points loaded per model
-samples_per_model = 1024  # number of input points per file
+points_per_file = 10000  # number of points loaded per model
+samples_per_model = 10000  # number of input points per file
 
 category_names = []
 with open(data_dir + f'modelnet{num_classes}_shape_names.txt') as inFile:
@@ -50,33 +52,54 @@ with open(data_dir + f'modelnet{num_classes}_test.txt') as inFile:
 
 num_classes = len(category_names)
 
-train_data_points = np.empty([len(train_set), points_per_file, 3])
+if not os.path.exists(hdf5_tmp_dir):
+  os.mkdir(hdf5_tmp_dir)
 
-print(f'### loading modelnet{num_classes} train ###')
-for i, filename in enumerate(train_set):
-  points, _ = \
+if os.path.exists(hdf5_tmp_dir+"/train_data.hdf5"):
+  h5File = h5py.File(hdf5_tmp_dir+"/train_data.hdf5", "r")
+  train_data_points = h5File["train_data"][()]
+  h5File.close()
+else:
+  train_data_points = np.empty([len(train_set), points_per_file, 3])
+
+  print(f'### loading modelnet{num_classes} train ###')
+  for i, filename in enumerate(train_set):
+    points, _ = \
       io.load_points_from_file_to_numpy(filename,
-                                        max_num_points=points_per_file)
-  points = points
-  train_data_points[i] = points
-  if i % 500 == 0:
-    print(f'{i}/{len(train_set)}')
-  if quick_test and i > 100:
-    break
+                                          max_num_points=points_per_file)
+    points = points
+    train_data_points[i] = points
+    if i % 500 == 0:
+        print(f'{i}/{len(train_set)}')
+    if quick_test and i > 100:
+        break
 
-test_data_points = np.empty([len(test_set), points_per_file, 3])
+  h5File = h5py.File(hdf5_tmp_dir+"/train_data.hdf5", "w")
+  h5File.create_dataset("train_data", data=train_data_points)
+  h5File.close()
 
-print(f'### loading modelnet{num_classes} test ###')
-for i, filename in enumerate(test_set):
-  points, _ = \
-      io.load_points_from_file_to_numpy(filename,
-                                        max_num_points=points_per_file)
-  points = points
-  test_data_points[i] = points
-  if i % 500 == 0:
-    print(f'{i}/{len(test_set)}')
-  if quick_test and i > 100:
-    break
+if os.path.exists(hdf5_tmp_dir+"/test_data.hdf5"):
+  h5File = h5py.File(hdf5_tmp_dir+"/test_data.hdf5", "r")
+  test_data_points = h5File["test_data"][()]
+  h5File.close()
+else:
+
+  test_data_points = np.empty([len(test_set), points_per_file, 3])
+  
+  print(f'### loading modelnet{num_classes} test ###')
+  for i, filename in enumerate(test_set):
+    points, _ = \
+        io.load_points_from_file_to_numpy(filename,
+                                          max_num_points=points_per_file)
+    points = points
+    test_data_points[i] = points
+    if i % 500 == 0:
+      print(f'{i}/{len(test_set)}')
+    if quick_test and i > 100:
+      break
+  h5File = h5py.File(hdf5_tmp_dir+"/test_data.hdf5", "w")
+  h5File.create_dataset("test_data", data=test_data_points)
+  h5File.close()
 
 
 #-----------------------------------------------
@@ -112,12 +135,14 @@ class conv_block():
     self.activation_layers = []
 
     # -- residual layers --
-    residual_feature_size = num_features_out // 2
+    residual_feature_size = num_features_out // 4
 
+    self.BN_layers.append(tf.keras.layers.BatchNormalization(momentum=0.9))
+    self.activation_layers.append(tf.keras.layers.LeakyReLU())
     self.res_layers.append(layers.Conv1x1(
         num_features_in=num_features_in,
         num_features_out=residual_feature_size))
-    self.BN_layers.append(tf.keras.layers.BatchNormalization())
+    self.BN_layers.append(tf.keras.layers.BatchNormalization(momentum=0.9))
     self.activation_layers.append(tf.keras.layers.LeakyReLU())
 
     if layer_type == 'MCConv':
@@ -125,8 +150,8 @@ class conv_block():
           num_features_in=residual_feature_size,
           num_features_out=residual_feature_size,
           num_dims=3,
-          num_mlps=4,
-          mlp_size=[8]))
+          num_mlps=1,
+          mlp_size=[16]))
     elif layer_type == 'PointConv':
       self.res_layers.append(layers.PointConv(
           num_features_in=residual_feature_size,
@@ -142,12 +167,11 @@ class conv_block():
     else:
       raise ValueError("Unknown layer type!")
 
-    self.BN_layers.append(tf.keras.layers.BatchNormalization())
+    self.BN_layers.append(tf.keras.layers.BatchNormalization(momentum=0.9))
     self.activation_layers.append(tf.keras.layers.LeakyReLU())
     self.res_layers.append(layers.Conv1x1(
         num_features_in=residual_feature_size,
         num_features_out=num_features_out))
-    self.BN_layers.append(tf.keras.layers.BatchNormalization())
 
     # -- skip layers --
     if strided:
@@ -155,13 +179,13 @@ class conv_block():
     else:
       self.skip_layers.append(identity_layer)
 
-    self.skip_layers.append(layers.Conv1x1(
-        num_features_in=num_features_in,
-        num_features_out=num_features_out))
-    self.BN_layers.append(tf.keras.layers.BatchNormalization())
+    if num_features_in != num_features_out:
+        self.skip_layers.append(tf.keras.layers.BatchNormalization(momentum=0.9))
+        self.skip_layers.append(tf.keras.layers.LeakyReLU())
+        self.skip_layers.append(layers.Conv1x1(
+            num_features_in=num_features_in,
+            num_features_out=num_features_out))
 
-    # --- union --
-    self.activation_layers.append(tf.keras.layers.LeakyReLU())
 
   def __call__(self,
                features,
@@ -187,31 +211,35 @@ class conv_block():
 
     '''
     # -- residual branch --
-    # conv1x1, downsampling in feature dimension
-    res = self.res_layers[0](features, point_cloud_in)
     # BN + lReLU
-    res = self.BN_layers[0](res, training=training)
+    res = self.BN_layers[0](features, training=training)
     res = self.activation_layers[0](res)
-    # spatial convolution
-    res = self.res_layers[1](res, point_cloud_in, point_cloud_out, conv_radius)
+    # conv1x1, downsampling in feature dimension
+    res = self.res_layers[0](res, point_cloud_in)
     # BN + lReLU
     res = self.BN_layers[1](res, training=training)
     res = self.activation_layers[1](res)
+    # spatial convolution
+    res = self.res_layers[1](res, point_cloud_in, point_cloud_out, conv_radius)
+    # BN + lReLU
+    res = self.BN_layers[2](res, training=training)
+    res = self.activation_layers[2](res)
     # conv 1x1, upsampling in feature dimension
     res = self.res_layers[2](res, point_cloud_out)
-    # BN
-    res = self.BN_layers[2](res, training=training)
+    
     # -- skip connection --
     # spatial maxpooling
     skip = self.skip_layers[0](features, point_cloud_in, point_cloud_out,
                                pool_radius)
-    # conv1x1, upsampling in feature dimension
-    skip = self.skip_layers[1](skip, point_cloud_out)
-    # BN
-    skip = self.BN_layers[3](skip, training=training)
+    if len(self.skip_layers) > 1:
+        # BN + lReLU
+        skip = self.skip_layers[1](skip, training=training)
+        skip = self.skip_layers[2](skip)
+        # conv 1x1, upsampling in feature dimension
+        skip = self.skip_layers[3](skip, point_cloud_out)
 
-    # --- Add + lReLU--
-    return self.activation_layers[2](res + skip)
+    # --- Add ---
+    return res + skip
 
 
 class mymodel(tf.keras.Model):
@@ -237,6 +265,7 @@ class mymodel(tf.keras.Model):
     self.num_levels = len(pool_radii)
     self.pool_radii = pool_radii.reshape(-1, 1)
     self.conv_radii = conv_radii
+    self.init_conv = []
     self.strided_conv_blocks = []
     self.conv_blocks = []
     self.batch_layers = []
@@ -245,21 +274,44 @@ class mymodel(tf.keras.Model):
     self.dropouts = []
     # -- encoder network
     for i in range(self.num_levels):
-      self.strided_conv_blocks.append(conv_block(feature_sizes[i],
-                                                 feature_sizes[i + 1],
+      if i == 0:
+        if layer_type == 'MCConv':
+          self.init_conv.append(layers.MCConv(
+            num_features_in=1,
+            num_features_out=feature_sizes[i],
+            num_dims=3,
+            num_mlps=1,
+            mlp_size=[16]))
+        elif layer_type == 'PointConv':
+          self.init_conv.append(layers.PointConv(
+            num_features_in=1,
+            num_features_out=feature_sizes[i],
+            num_dims=3,
+            size_hidden=32))
+        elif layer_type == 'KPConv':
+          self.init_conv.append(layers.KPConv(
+            num_features_in=1,
+            num_features_out=feature_sizes[i],
+            num_dims=3,
+            num_kernel_points=15))
+        else:
+          raise ValueError("Unknown layer type!") 
+      else:
+        self.strided_conv_blocks.append(conv_block(feature_sizes[i-1],
+                                                 feature_sizes[i],
                                                  layer_type,
                                                  strided=True))
-      self.conv_blocks.append(conv_block(feature_sizes[i + 1],
-                                         feature_sizes[i + 1],
+      self.conv_blocks.append(conv_block(feature_sizes[i],
+                                         feature_sizes[i],
                                          layer_type,
                                          strided=False))
     self.global_pooling = layers.GlobalAveragePooling()
     # -- classification head ---
-    self.batch_layers.append(tf.keras.layers.BatchNormalization())
+    self.batch_layers.append(tf.keras.layers.BatchNormalization(momentum=0.9))
     self.activations.append(tf.keras.layers.LeakyReLU())
     self.dropouts.append(tf.keras.layers.Dropout(dropout_rate))
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-2]))
-    self.batch_layers.append(tf.keras.layers.BatchNormalization())
+    self.batch_layers.append(tf.keras.layers.BatchNormalization(momentum=0.9))
     self.activations.append(tf.keras.layers.LeakyReLU())
     self.dropouts.append(tf.keras.layers.Dropout(dropout_rate))
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-1]))
@@ -268,7 +320,7 @@ class mymodel(tf.keras.Model):
                points,
                features,
                training,
-               sampling_method='poisson disk'):
+               sampling_method='cell average'):
     ''' Evaluates network.
 
     Args:
@@ -289,10 +341,16 @@ class mymodel(tf.keras.Model):
                                         sampling_method)
     # encoder network
     for i in range(self.num_levels):
-      features = self.strided_conv_blocks[i](features,
+      if i == 0:
+        num_pts_in = tf.shape(point_hierarchy[i+1]._points)[0]
+        features = self.init_conv[0](features[0:num_pts_in,:], 
+            point_hierarchy[i + 1], point_hierarchy[i + 1], self.conv_radii[i])
+            
+      else:
+        features = self.strided_conv_blocks[i-1](features,
                                              point_hierarchy[i],
                                              point_hierarchy[i + 1],
-                                             self.conv_radii[i],
+                                             self.pool_radii[i],
                                              self.pool_radii[i],
                                              training=training)
       features = self.conv_blocks[i](features,
@@ -332,7 +390,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
 
   def __len__(self):
     # number of batches per epoch
-    return(int(np.floor(self.epoch_size / self.batch_size)))
+    return self.epoch_size // self.batch_size
 
   def __call__(self):
     ''' Loads batch and increases batch index.
@@ -353,8 +411,19 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     # sample points
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
     for batch in range(self.batch_size):
-      selection = np.random.choice(self.ids, samples_per_model)
-      sampled_points[batch] = points[batch][selection]
+      # Select the points.
+      #selection = np.random.choice(self.ids, samples_per_model)
+      sampled_points[batch] = points[batch][0:samples_per_model]#selection]
+
+      # Data augmentation - Anisotropic scale.
+      cur_scaling = np.random.uniform(size=(1, 3))*0.2 + 0.9
+      sampled_points[batch] = sampled_points[batch]*cur_scaling
+
+      # Data augmentation - Jitter.
+      cur_noise = 0.002*np.random.uniform()
+      noise = np.clip(np.random.normal(size=sampled_points[batch].shape)*cur_noise,
+        -0.005, 0.005)
+      sampled_points[batch] = sampled_points[batch]+noise
 
     return sampled_points, features, labels
 
@@ -370,15 +439,32 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
 
 
 batch_size = 16
+num_epochs = 400
+if quick_test:
+  num_epochs = 2
+dropout_rate = 0.5
 
 gen_train = modelnet_data_generator(train_data_points, train_labels,
                                     batch_size)
 gen_test = modelnet_data_generator(test_data_points, test_labels, batch_size)
 
-lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=0.001,
-    decay_steps=len(gen_train),
-    decay_rate=0.95)
+cur_lr = 0.001
+boundaries = []
+values = []
+for i in range(num_epochs//20):
+  values.append(cur_lr)
+  if i > 0:
+    boundaries.append(len(gen_train)*20*(i))
+  cur_lr *= 0.7
+  cur_lr = max(cur_lr, 0.000001)
+
+lr_decay = tf.keras.optimizers.schedules.PiecewiseConstantDecay(
+    boundaries = boundaries,
+    values = values)
+#lr_decay=tf.keras.optimizers.schedules.ExponentialDecay(
+#    initial_learning_rate=0.001,
+#    decay_steps=len(gen_train),
+#    decay_rate=0.95)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
@@ -398,6 +484,12 @@ def training(model,
     epoch_loss_avg = tf.keras.metrics.Mean()
     epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
+    print()
+    print('Epoch {:03d} Start (LR: {:.6f})'.format(
+      epoch, lr_decay(epoch*len(gen_train))))
+    print()
+
+    iterBatch = 0
     for points, features, labels in gen_train:
       with tf.GradientTape() as tape:
         logits = model(points, features, training=True)
@@ -407,6 +499,13 @@ def training(model,
       optimizer.apply_gradients(zip(grads, model.trainable_variables))
       epoch_loss_avg.update_state(loss)
       epoch_accuracy.update_state(labels, pred)
+      if iterBatch % 10 == 0:
+        print("\r {:03d} / {:03d} Loss: {:.3f}, Accuracy: {:.3%}      ".format(
+            iterBatch, len(gen_train),
+            epoch_loss_avg.result(),
+            epoch_accuracy.result()), end="")
+      iterBatch += 1
+    print()
 
     train_loss_results.append(epoch_loss_avg.result())
     train_accuracy_results.append(epoch_accuracy.result())
@@ -425,31 +524,24 @@ def training(model,
     test_accuracy_results.append(epoch_accuracy.result())
     time_epoch_end = time.time()
 
-    if epoch % epoch_print == 0:
-      # End epoch
-      print('Epoch {:03d} Time: {:.3f}s'.format(
+    # End epoch
+    print('Epoch {:03d} Time: {:.3f}s'.format(
           epoch,
           time_epoch_end - time_epoch_start))
-      print('Training:   Loss: {:.3f}, Accuracy: {:.3%}'.format(
-          train_loss_results[-1],
-          train_accuracy_results[-1]))
-      print('Validation: Loss: {:.3f}, Accuracy: {:.3%}'.format(
-          test_loss_results[-1],
-          test_accuracy_results[-1]))
+    print('Training:   Loss: {:.3f}, Accuracy: {:.3%}'.format(
+        train_loss_results[-1],
+        train_accuracy_results[-1]))
+    print('Validation: Loss: {:.3f}, Accuracy: {:.3%}'.format(
+        test_loss_results[-1],
+        test_accuracy_results[-1]))
 
 # ----------------------------
 
-num_epochs = 400
-if quick_test:
-  num_epochs = 2
-
-dropout_rate = 0.5
-
 # feature_sizes = [1, 128, 256, 512, 128, num_classes]
 # pool_radii = np.array([0.1, 0.2, 0.4])
-feature_sizes = [1, 64, 128, 256, 512, 1024, 1024, num_classes]
-pool_radii = np.array([0.05, 0.1, 0.2, 0.4, 0.8])
-conv_radii = pool_radii * 1.5
+feature_sizes = [128, 256, 512, 1024, 2048, 1024, num_classes]
+pool_radii = np.array([0.02, 0.04, 0.08, 0.16, 0.32])
+conv_radii = pool_radii * 2.0
 
 model_MC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='MCConv', dropout_rate=dropout_rate)
@@ -458,6 +550,7 @@ training(model_MC, num_epochs)
 model_KP = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='KPConv', dropout_rate=dropout_rate)
 training(model_KP, num_epochs)
+
 model_PC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='PointConv', dropout_rate=dropout_rate)
 training(model_PC, num_epochs)
