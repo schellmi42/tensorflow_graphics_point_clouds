@@ -1,4 +1,5 @@
 # noqa: E402
+import os
 import tensorflow as tf
 physical_devices = tf.config.list_physical_devices('GPU')
 try:
@@ -7,18 +8,14 @@ try:
 except ValueError:
   print('Invalid device or cannot modify virtual devices once initialized.')
   pass
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import pylib.pc as pc
 from pylib.pc import layers
 import pylib.io as io
 import numpy as np
 import tensorflow_graphics
-import os
 import time
 import h5py
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-
 
 # np.random.seed(42)
 # tf.random.set_seed(42)
@@ -61,14 +58,15 @@ with open(data_dir + f'modelnet{num_classes}_test.txt') as inFile:
     test_labels.append(category_names.index(category))
 
 num_classes = len(category_names)
-if os.path.exists(hdf5_tmp_dir+"/train_data.hdf5"):
-  h5File = h5py.File(hdf5_tmp_dir+"/train_data.hdf5", "r")
+print(f'### loading modelnet{num_classes} train ###')
+if os.path.exists(hdf5_tmp_dir + "/train_data.hdf5"):
+  h5File = h5py.File(hdf5_tmp_dir + "/train_data.hdf5", "r")
   train_data_points = h5File["train_data"][()]
+  train_data_points = train_data_points[:, 0:points_per_file, :]
   h5File.close()
 else:
   train_data_points = np.empty([len(train_set), points_per_file, 3])
 
-  print(f'### loading modelnet{num_classes} train ###')
   for i, filename in enumerate(train_set):
     points, _ = \
         io.load_points_from_file_to_numpy(filename,
@@ -79,14 +77,15 @@ else:
       print(f'{i}/{len(train_set)}')
     if quick_test and i > 100:
       break
-if os.path.exists(hdf5_tmp_dir+"/test_data.hdf5"):
-  h5File = h5py.File(hdf5_tmp_dir+"/test_data.hdf5", "r")
+
+print(f'### loading modelnet{num_classes} test ###')
+if os.path.exists(hdf5_tmp_dir + "/test_data.hdf5"):
+  h5File = h5py.File(hdf5_tmp_dir + "/test_data.hdf5", "r")
   test_data_points = h5File["test_data"][()]
+  test_data_points = test_data_points[:, 0:points_per_file, :]
   h5File.close()
 else:
   test_data_points = np.empty([len(test_set), points_per_file, 3])
-
-  print(f'### loading modelnet{num_classes} test ###')
   for i, filename in enumerate(test_set):
     points, _ = \
         io.load_points_from_file_to_numpy(filename,
@@ -161,7 +160,7 @@ class mymodel(tf.keras.Model):
         self.batch_layers.append(tf.keras.layers.BatchNormalization())
         self.activations.append(tf.keras.layers.LeakyReLU())
     # global pooling
-    self.global_pooling = layers.GlobalAveragePooling()
+    # self.global_pooling = layers.GlobalAveragePooling()
     self.batch_layers.append(tf.keras.layers.BatchNormalization())
     self.activations.append(tf.keras.layers.LeakyReLU())
     # MLP
@@ -199,15 +198,21 @@ class mymodel(tf.keras.Model):
                                         sampling_method)
     # network evaluation
     for i in range(self.num_layers):
-      features = self.conv_layers[i](features,
-                                     point_hierarchy[i],
-                                     point_hierarchy[i + 1],
-                                     conv_radii[i])
       if i < self.num_layers - 1:
+        features = self.conv_layers[i](features,
+                                       point_hierarchy[i],
+                                       point_hierarchy[i + 1],
+                                       conv_radii[i])
         features = self.batch_layers[i](features, training=training)
         features = self.activations[i](features)
+      else:
+        features = self.conv_layers[i](features,
+                                       point_hierarchy[i],
+                                       point_hierarchy[i + 1],
+                                       conv_radii[i],
+                                       return_sorted=True)
     # classification head
-    features = self.global_pooling(features, point_hierarchy[-1])
+    # features = self.global_pooling(features, point_hierarchy[-1])
     features = self.batch_layers[-2](features, training=training)
     features = self.activations[-2](features)
     # features = self.dropouts[-2](features, training=training)
@@ -288,8 +293,8 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
 
 batch_size = 16
 
-feature_sizes = [1, 128, 256, 512, 256, num_classes]
-sample_radii = np.array([0.1, 0.2, 0.4])
+feature_sizes = [1, 128, 512, 1024, 512, num_classes]
+sample_radii = np.array([0.1, 0.2, 0.4, np.sqrt(3)  * 2])
 conv_radii = sample_radii * 1.5
 
 # initialize data generators
@@ -302,8 +307,8 @@ gen_test = modelnet_data_generator(
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
 lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=0.005,
-    decay_steps=5 * len(gen_train),  # every 5th epoch
+    initial_learning_rate=0.01,
+    decay_steps=10 * len(gen_train),  # every 5th epoch
     decay_rate=0.97)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 
@@ -318,14 +323,16 @@ def training(model,
   train_accuracy_results = []
   test_loss_results = []
   test_accuracy_results = []
+  epoch_loss_avg = tf.keras.metrics.Mean()
+  epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
   for epoch in range(num_epochs):
     time_epoch_start = time.time()
 
     # --- Training ---
-    epoch_loss_avg = tf.keras.metrics.Mean()
-    epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
+    epoch_loss_avg.reset_states()
+    epoch_accuracy.reset_states()
     for points, features, labels in gen_train:
       # evaluate model; forward pass
       with tf.GradientTape() as tape:
@@ -343,8 +350,8 @@ def training(model,
     train_accuracy_results.append(epoch_accuracy.result())
 
     # --- Validation ---
-    epoch_loss_avg = tf.keras.metrics.Mean()
-    epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
+    epoch_loss_avg.reset_states()
+    epoch_accuracy.reset_states()
 
     for points, features, labels in gen_test:
       # evaluate model; forward pass
