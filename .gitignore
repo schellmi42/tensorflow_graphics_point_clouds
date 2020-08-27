@@ -1,6 +1,5 @@
 # builds of CUDA ops
 compile.sh
-MCCNN2/tf_ops/build/
 *.so
 # local test script
 test*.py
@@ -19,3 +18,6 @@ test_point_clouds/
 bazel-*
 artifacts
 .bazelrc
+# data
+*ModelNet_PointNet
+tmp_modelnet

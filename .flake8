@@ -24,6 +24,7 @@ ignore = C901,
          E305,
          E306,
          #E501,
+         E402,  # module level import not at top of file
          E502,
          E731,
          E741,
