@@ -242,7 +242,7 @@ class conv_block():
     return res + skip
 
 
-class mymodel(tf.keras.Model):
+class mymodel(tf.Module):
   ''' Model architecture.
 
   Args:
@@ -261,7 +261,7 @@ class mymodel(tf.keras.Model):
                conv_radii,
                layer_type='MCConv',
                dropout_rate=0.0):
-    super(mymodel, self).__init__()
+    super().__init__(name=None)
     self.num_levels = len(pool_radii)
     self.pool_radii = pool_radii.reshape(-1, 1)
     self.conv_radii = conv_radii
@@ -441,31 +441,23 @@ if quick_test:
   num_epochs = 2
 dropout_rate = 0.5
 
+# initialize data generators
 gen_train = modelnet_data_generator(
     train_data_points, train_labels, batch_size, augment=True)
 gen_test = modelnet_data_generator(
     test_data_points, test_labels, batch_size, augment=False)
 
-cur_lr = 0.001
-boundaries = []
-values = []
-for i in range(num_epochs // 20):
-  values.append(cur_lr)
-  if i > 0:
-    boundaries.append(len(gen_train) * 20 * (i))
-  cur_lr *= 0.7
-  cur_lr = max(cur_lr, 0.000001)
+# loss function and optimizer
+lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=0.001,
+    decay_steps=20 * len(gen_train),  # every 20th epoch
+    decay_rate=0.7,
+    staircase=True)
 
-lr_decay = tf.keras.optimizers.schedules.PiecewiseConstantDecay(
-    boundaries=boundaries,
-    values=values)
-#lr_decay=tf.keras.optimizers.schedules.ExponentialDecay(
-#    initial_learning_rate=0.001,
-#    decay_steps=len(gen_train),
-#    decay_rate=0.975)
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
+#optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
+optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr_decay)
+
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
-
 
 # --- Training Loop---
 def training(model,

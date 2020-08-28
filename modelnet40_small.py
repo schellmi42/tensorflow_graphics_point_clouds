@@ -59,8 +59,8 @@ with open(data_dir + f'modelnet{num_classes}_test.txt') as inFile:
 
 num_classes = len(category_names)
 print(f'### loading modelnet{num_classes} train ###')
-if os.path.exists(hdf5_tmp_dir + "/train_data.hdf5"):
-  h5File = h5py.File(hdf5_tmp_dir + "/train_data.hdf5", "r")
+if os.path.exists(hdf5_tmp_dir + "/train_data_small.hdf5"):
+  h5File = h5py.File(hdf5_tmp_dir + "/train_data_small.hdf5", "r")
   train_data_points = h5File["train_data"][()]
   train_data_points = train_data_points[:, 0:points_per_file, :]
   h5File.close()
@@ -78,9 +78,13 @@ else:
     if quick_test and i > 100:
       break
 
+  h5File = h5py.File(hdf5_tmp_dir + "/train_data_small.hdf5", "w")
+  h5File.create_dataset("train_data", data=train_data_points)
+  h5File.close()
+
 print(f'### loading modelnet{num_classes} test ###')
-if os.path.exists(hdf5_tmp_dir + "/test_data.hdf5"):
-  h5File = h5py.File(hdf5_tmp_dir + "/test_data.hdf5", "r")
+if os.path.exists(hdf5_tmp_dir + "/test_data_small.hdf5"):
+  h5File = h5py.File(hdf5_tmp_dir + "/test_data_small.hdf5", "r")
   test_data_points = h5File["test_data"][()]
   test_data_points = test_data_points[:, 0:points_per_file, :]
   h5File.close()
@@ -97,9 +101,13 @@ else:
     if quick_test and i > 100:
       break
 
+  h5File = h5py.File(hdf5_tmp_dir + "/test_data_small.hdf5", "w")
+  h5File.create_dataset("test_data", data=test_data_points)
+  h5File.close()
+
 
 #-----------------------------------------------
-class mymodel(tf.keras.Model):
+class mymodel(tf.Module):
   ''' Model architecture with `L` convolutional layers followed by
   two dense layers.
 
@@ -121,7 +129,9 @@ class mymodel(tf.keras.Model):
                layer_type='MCConv',
                sampling_method='poisson disk',
                dropout_rate=0.5):
-    super(mymodel, self).__init__()
+    
+    super().__init__(name=None)
+
     self.num_layers = len(sample_radii)
     self.sample_radii = sample_radii.reshape(-1, 1)
     self.conv_radii = conv_radii
@@ -221,10 +231,9 @@ class mymodel(tf.keras.Model):
                                        conv_radii[i],
                                        return_sorted=True)
     # classification head
-    # features = self.global_pooling(features, point_hierarchy[-1])
     features = self.batch_layers[-2](features, training=training)
     features = self.activations[-2](features)
-    # features = self.dropouts[-2](features, training=training)
+    features = self.dropouts[-2](features, training=training)
     features = self.dense_layers[-2](features)
     features = self.batch_layers[-1](features, training=training)
     features = self.activations[-1](features)
@@ -307,27 +316,15 @@ gen_test = modelnet_data_generator(
     test_data_points, test_labels, batch_size, augment=False)
 
 # loss function and optimizer
+lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=0.001,
+    decay_steps=20 * len(gen_train),  # every 20th epoch
+    decay_rate=0.7,
+    staircase=True)
+#optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
+optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr_decay)
+
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
-
-cur_lr = 0.001
-boundaries = []
-values = []
-for i in range(num_epochs // 20):
-  values.append(cur_lr)
-  if i > 0:
-    boundaries.append(len(gen_train) * 20 * (i))
-  cur_lr *= 0.7
-  cur_lr = max(cur_lr, 0.000001)
-
-lr_decay = tf.keras.optimizers.schedules.PiecewiseConstantDecay(
-    boundaries=boundaries,
-    values=values)
-#lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
-#    initial_learning_rate=0.01,
-#    decay_steps=10 * len(gen_train),  # every 5th epoch
-#    decay_rate=0.97)
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
-
 
 # --- Training Loop---
 def training(model,
@@ -346,7 +343,7 @@ def training(model,
     time_epoch_start = time.time()
 
     # --- Training ---
-    iterBatch = 0
+    iter_batch = 0
     epoch_loss_avg.reset_states()
     epoch_accuracy.reset_states()
     for points, features, labels in gen_train:
@@ -357,17 +354,21 @@ def training(model,
         loss = loss_function(y_true=labels, y_pred=pred)
       # backpropagation
       grads = tape.gradient(loss, model.trainable_variables)
+
       optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
       epoch_loss_avg.update_state(loss)
       epoch_accuracy.update_state(labels, pred)
 
-      if iterBatch % 10 == 0:
+      if iter_batch % 10 == 0:
+        
         print("\r {:03d} / {:03d} Loss: {:.3f}, Accuracy: {:.3%}      ".format(
-            iterBatch, len(gen_train),
+            iter_batch, len(gen_train),
             epoch_loss_avg.result(),
-            epoch_accuracy.result()), end="")
-      iterBatch += 1
+            epoch_accuracy.result()
+            ), end="")
+        
+      iter_batch += 1
 
     train_loss_results.append(epoch_loss_avg.result())
     train_accuracy_results.append(epoch_accuracy.result())
@@ -408,6 +409,7 @@ dropout_rate = 0.5
 
 model_MC = mymodel(feature_sizes, sample_radii, conv_radii,
                    layer_type='MCConv', dropout_rate=dropout_rate)
+
 training(model_MC,
          optimizer=optimizer,
          loss_function=loss_function,
