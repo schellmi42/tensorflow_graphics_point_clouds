@@ -159,6 +159,11 @@ class mymodel(tf.keras.Model):
         # batch normalization and activation function
         self.batch_layers.append(tf.keras.layers.BatchNormalization())
         self.activations.append(tf.keras.layers.LeakyReLU())
+        self.conv_layers.append(layers.Conv1x1(
+            num_features_in=feature_sizes[i + 1],
+            num_features_out=feature_sizes[i + 1]))
+        self.batch_layers.append(tf.keras.layers.BatchNormalization())
+        self.activations.append(tf.keras.layers.LeakyReLU())
     # global pooling
     # self.global_pooling = layers.GlobalAveragePooling()
     self.batch_layers.append(tf.keras.layers.BatchNormalization())
@@ -199,14 +204,18 @@ class mymodel(tf.keras.Model):
     # network evaluation
     for i in range(self.num_layers):
       if i < self.num_layers - 1:
-        features = self.conv_layers[i](features,
+        features = self.conv_layers[i*2](features,
                                        point_hierarchy[i],
                                        point_hierarchy[i + 1],
                                        conv_radii[i])
-        features = self.batch_layers[i](features, training=training)
-        features = self.activations[i](features)
+        features = self.batch_layers[i*2](features, training=training)
+        features = self.activations[i*2](features)
+        features = self.conv_layers[i*2+1](features,
+                                       point_hierarchy[i + 1])
+        features = self.batch_layers[i*2+1](features, training=training)
+        features = self.activations[i*2+1](features)
       else:
-        features = self.conv_layers[i](features,
+        features = self.conv_layers[i*2](features,
                                        point_hierarchy[i],
                                        point_hierarchy[i + 1],
                                        conv_radii[i],
@@ -255,47 +264,41 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
   def __getitem__(self, index, samples_per_model=1024):
     ''' Loads data of current batch and samples random subset of the points.
     '''
-    labels = \
-        self.labels[index * self.batch_size:(index + 1) * self.batch_size]
-    points = \
-        self.points[index * self.batch_size:(index + 1) * self.batch_size]
     # constant input feature
     features = tf.ones([self.batch_size, samples_per_model, 1])
 
     # sample points
+    self_indices = self.order[index * self.batch_size:(index + 1) * self.batch_size]
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
+    out_labels = np.empty([self.batch_size])
     for batch in range(self.batch_size):
-      #selection = np.random.choice(self.ids, samples_per_model)
-      sampled_points[batch] = points[batch][0:samples_per_model]
+      
+      sampled_points[batch] = self.points[self_indices[batch]][0:samples_per_model]
+      out_labels[batch] = self.labels[self_indices[batch]]
+
       if self.augment:
         # Data augmentation - Anisotropic scale.
         cur_scaling = np.random.uniform(size=(1, 3)) * 0.2 + 0.9
         sampled_points[batch] = sampled_points[batch] * cur_scaling
-        # Data augmentation - Jitter.
-        cur_noise = 0.002 * np.random.normal()
-        noise = np.clip(
-            np.random.normal(size=sampled_points[batch].shape) * cur_noise,
-            -0.005, 0.005)
-        sampled_points[batch] = sampled_points[batch] + noise
 
-    return sampled_points, features, labels
+    return sampled_points, features, out_labels
 
   def on_epoch_end(self):
     ''' Shuffles data and resets batch index.
     '''
-    shuffle = np.random.permutation(np.arange(0, len(self.points)))
-    self.points = self.points[shuffle]
-    self.labels = self.labels[shuffle]
+    self.order = np.random.permutation(np.arange(0, len(self.points)))
     self.index = 0
 
 #-----------------------------------------------
 
-
+num_epochs = 400
+if quick_test:
+  num_epochs = 2
 batch_size = 16
 
-feature_sizes = [1, 128, 512, 1024, 512, num_classes]
+feature_sizes = [1, 128, 256, 512, 1024, 1024, num_classes]
 sample_radii = np.array([0.1, 0.2, 0.4, np.sqrt(3)  * 2])
-conv_radii = sample_radii * 1.5
+conv_radii = sample_radii
 
 # initialize data generators
 gen_train = modelnet_data_generator(
@@ -306,10 +309,23 @@ gen_test = modelnet_data_generator(
 # loss function and optimizer
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
-lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=0.01,
-    decay_steps=10 * len(gen_train),  # every 5th epoch
-    decay_rate=0.97)
+cur_lr = 0.001
+boundaries = []
+values = []
+for i in range(num_epochs // 20):
+  values.append(cur_lr)
+  if i > 0:
+    boundaries.append(len(gen_train) * 20 * (i))
+  cur_lr *= 0.7
+  cur_lr = max(cur_lr, 0.000001)
+
+lr_decay = tf.keras.optimizers.schedules.PiecewiseConstantDecay(
+    boundaries=boundaries,
+    values=values)
+#lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
+#    initial_learning_rate=0.01,
+#    decay_steps=10 * len(gen_train),  # every 5th epoch
+#    decay_rate=0.97)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 
 
@@ -330,7 +346,7 @@ def training(model,
     time_epoch_start = time.time()
 
     # --- Training ---
-
+    iterBatch = 0
     epoch_loss_avg.reset_states()
     epoch_accuracy.reset_states()
     for points, features, labels in gen_train:
@@ -345,6 +361,13 @@ def training(model,
 
       epoch_loss_avg.update_state(loss)
       epoch_accuracy.update_state(labels, pred)
+
+      if iterBatch % 10 == 0:
+        print("\r {:03d} / {:03d} Loss: {:.3f}, Accuracy: {:.3%}      ".format(
+            iterBatch, len(gen_train),
+            epoch_loss_avg.result(),
+            epoch_accuracy.result()), end="")
+      iterBatch += 1
 
     train_loss_results.append(epoch_loss_avg.result())
     train_accuracy_results.append(epoch_accuracy.result())
@@ -380,10 +403,6 @@ def training(model,
           test_accuracy_results[-1]))
 
 # ----------------------------
-
-num_epochs = 400
-if quick_test:
-  num_epochs = 2
 
 dropout_rate = 0.5
 

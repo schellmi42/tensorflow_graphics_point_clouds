@@ -382,19 +382,20 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
   def __init__(self,
                points,
                labels,
-               batch_size):
+               batch_size,
+               augment):
       self.points = points
       self.labels = np.array(labels, dtype=int)
       self.batch_size = batch_size
       self.epoch_size = len(self.points)
 
-      self.ids = np.arange(0, points_per_file)
+      self.augment = augment
       # shuffle data before training
       self.on_epoch_end()
 
   def __len__(self):
     # number of batches per epoch
-    return self.epoch_size // self.batch_size
+    return(int(np.floor(self.epoch_size / self.batch_size)))
 
   def __call__(self):
     ''' Loads batch and increases batch index.
@@ -403,41 +404,32 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     self.index += 1
     return data
 
-  def __getitem__(self, index):
+  def __getitem__(self, index, samples_per_model=1024):
     ''' Loads data of current batch and samples random subset of the points.
     '''
-    labels = \
-        self.labels[index * self.batch_size:(index + 1) * self.batch_size]
-    points = \
-        self.points[index * self.batch_size:(index + 1) * self.batch_size]
+    # constant input feature
     features = tf.ones([self.batch_size, samples_per_model, 1])
 
     # sample points
+    self_indices = self.order[index * self.batch_size:(index + 1) * self.batch_size]
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
+    out_labels = np.empty([self.batch_size])
     for batch in range(self.batch_size):
-      # Select the points.
-      #selection = np.random.choice(self.ids, samples_per_model)
-      sampled_points[batch] = points[batch][0:samples_per_model]
+      
+      sampled_points[batch] = self.points[self_indices[batch]][0:samples_per_model]
+      out_labels[batch] = self.labels[self_indices[batch]]
 
-      # Data augmentation - Anisotropic scale.
-      cur_scaling = np.random.uniform(size=(1, 3)) * 0.2 + 0.9
-      sampled_points[batch] = sampled_points[batch] * cur_scaling
+      if self.augment:
+        # Data augmentation - Anisotropic scale.
+        cur_scaling = np.random.uniform(size=(1, 3)) * 0.2 + 0.9
+        sampled_points[batch] = sampled_points[batch] * cur_scaling
 
-      # Data augmentation - Jitter.
-      cur_noise = 0.002 * np.random.uniform()
-      noise = np.clip(
-          np.random.normal(size=sampled_points[batch].shape) * cur_noise,
-          -0.005, 0.005)
-      sampled_points[batch] = sampled_points[batch] + noise
-
-    return sampled_points, features, labels
+    return sampled_points, features, out_labels
 
   def on_epoch_end(self):
     ''' Shuffles data and resets batch index.
     '''
-    shuffle = np.random.permutation(np.arange(0, len(self.points)))
-    self.points = self.points[shuffle]
-    self.labels = self.labels[shuffle]
+    self.order = np.random.permutation(np.arange(0, len(self.points)))
     self.index = 0
 
 #-----------------------------------------------
@@ -449,9 +441,10 @@ if quick_test:
   num_epochs = 2
 dropout_rate = 0.5
 
-gen_train = modelnet_data_generator(train_data_points, train_labels,
-                                    batch_size)
-gen_test = modelnet_data_generator(test_data_points, test_labels, batch_size)
+gen_train = modelnet_data_generator(
+    train_data_points, train_labels, batch_size, augment=True)
+gen_test = modelnet_data_generator(
+    test_data_points, test_labels, batch_size, augment=False)
 
 cur_lr = 0.001
 boundaries = []
@@ -469,7 +462,7 @@ lr_decay = tf.keras.optimizers.schedules.PiecewiseConstantDecay(
 #lr_decay=tf.keras.optimizers.schedules.ExponentialDecay(
 #    initial_learning_rate=0.001,
 #    decay_steps=len(gen_train),
-#    decay_rate=0.95)
+#    decay_rate=0.975)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_decay)
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
