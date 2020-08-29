@@ -283,7 +283,7 @@ class KPConv(tf.Module):
 
     if kernel_influence_dist is None:
       # normalized
-      self._sigma = tf.constant(0.4)
+      self._sigma = tf.constant(0.75)
     else:
       self._sigma = tf.convert_to_tensor(
         value=kernel_influence_dist / conv_radius, dtype=tf.float32)
