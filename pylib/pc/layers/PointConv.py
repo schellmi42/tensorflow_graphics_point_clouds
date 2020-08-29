@@ -64,7 +64,7 @@ class PointConv(tf.Module):
                initializer_weights=None,
                initializer_biases=None,
                name=None):
-               
+
     super().__init__(name=name)
 
     self._num_features_in = num_features_in
@@ -87,52 +87,58 @@ class PointConv(tf.Module):
     # Hidden layer of the kernel.
     weights_init_obj = initializer_weights()
     self._basis_axis_tf = tf.Variable(
-          weights_init_obj(shape=[self._num_dims, self._size_hidden], 
-                        dtype=tf.float32),
+          weights_init_obj(
+              shape=[self._num_dims, self._size_hidden],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/hidden_vectors")
+          name=self._name + "/hidden_vectors")
 
     bias_init_obj = initializer_biases()
     self._basis_bias_tf = tf.Variable(
-        bias_init_obj(shape=[1, self._size_hidden], 
-                    dtype=tf.float32),
+        bias_init_obj(
+            shape=[1, self._size_hidden],
+            dtype=tf.float32),
         trainable=True,
-        name=self._name+"/hidden_bias")
+        name=self._name + "/hidden_bias")
 
     # Convolution weights.
     self._weights = tf.Variable(
-          weights_init_obj(shape=[
-                        self._size_hidden * self._num_features_in,
-                        self._num_features_out], 
-                        dtype=tf.float32),
+          weights_init_obj(
+              shape=[
+                  self._size_hidden * self._num_features_in,
+                  self._num_features_out],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/conv_weights")
+          name=self._name + "/conv_weights")
 
     # Weights of the non-linear transform of the pdf.
     self._weights_pdf = \
         [tf.Variable(
-          weights_init_obj(shape=[1, 16], 
-                        dtype=tf.float32),
+          weights_init_obj(
+              shape=[1, 16],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/pdf_weights_1"),
+          name=self._name + "/pdf_weights_1"),
          tf.Variable(
-          weights_init_obj(shape=[16, 1], 
-                        dtype=tf.float32),
+          weights_init_obj(
+              shape=[16, 1],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/pdf_weights_2")]
+          name=self._name + "/pdf_weights_2")]
 
     self._biases_pdf = \
         [tf.Variable(
-          bias_init_obj(shape=[1, 16], 
-                        dtype=tf.float32),
+          bias_init_obj(
+              shape=[1, 16],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/pdf_biases_1"),
+          name=self._name + "/pdf_biases_1"),
          tf.Variable(
-          bias_init_obj(shape=[1, 1], 
-                        dtype=tf.float32),
+          bias_init_obj(
+              shape=[1, 1],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/pdf_biases_2")]
-
+          name=self._name + "/pdf_biases_2")]
 
   def _point_conv(self,
                   kernel_inputs,
@@ -239,12 +245,12 @@ class PointConv(tf.Module):
     """
 
     features = tf.cast(tf.convert_to_tensor(value=features),
-                        dtype=tf.float32)
+                       dtype=tf.float32)
     features = _flatten_features(features, point_cloud_in)
 
     #Create the radii tensor.
     radii_tensor = tf.cast(tf.repeat([radius], self._num_dims),
-                            dtype=tf.float32)
+                           dtype=tf.float32)
     #Create the badnwidth tensor.
     bwTensor = tf.repeat(bandwidth, self._num_dims)
 
@@ -269,6 +275,6 @@ class PointConv(tf.Module):
         points_diff, neigh, pdf, features, self._non_linearity_type)
 
     return _format_output(convolution_result,
-                        point_cloud_out,
-                        return_sorted,
-                        return_padded)
+                          point_cloud_out,
+                          return_sorted,
+                          return_padded)

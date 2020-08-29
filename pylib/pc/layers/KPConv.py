@@ -101,7 +101,7 @@ class KPConv(tf.Module):
                custom_kernel_points=None,
                initializer_weights=None,
                name=None):
-    
+
     super().__init__(name=name)
 
     self._num_features_in = num_features_in
@@ -125,10 +125,10 @@ class KPConv(tf.Module):
                                                     rotate=True)
     else:
       self._kernel_points = tf.convert_to_tensor(value=custom_kernel_points,
-                                                dtype=tf.float32)
+                                                 dtype=tf.float32)
 
     # Reposition the points at radius 0.75.
-    self._kernel_points = self._kernel_points*0.75
+    self._kernel_points = self._kernel_points * 0.75
 
     # initialize variables
     if initializer_weights is None:
@@ -141,10 +141,10 @@ class KPConv(tf.Module):
         tf.Variable(
             weights_init_obj(shape=[
                         self._num_kernel_points * self._num_features_in,
-                        self._num_kernel_points * self._num_dims], 
+                        self._num_kernel_points * self._num_dims],
                         dtype=tf.float32),
             trainable=True,
-            name=self._name+"/weights_deformable")
+            name=self._name + "/weights_deformable")
       self._get_offsets = self._kernel_offsets
     else:
       def _zero(*args, **kwargs):
@@ -157,11 +157,10 @@ class KPConv(tf.Module):
         tf.Variable(
             weights_init_obj(shape=[
                         self._num_kernel_points * self._num_features_in,
-                        self._num_features_out], 
+                        self._num_features_out],
                         dtype=tf.float32),
             trainable=True,
-            name=self._name+"/conv_weights")
-
+            name=self._name + "/conv_weights")
 
   def _kp_conv(self,
                kernel_input,
@@ -277,7 +276,7 @@ class KPConv(tf.Module):
     """
 
     features = tf.cast(tf.convert_to_tensor(value=features),
-                        dtype=tf.float32)
+                       dtype=tf.float32)
     features = _flatten_features(features, point_cloud_in)
     self._num_output_points = point_cloud_out._points.shape[0]
 
@@ -289,7 +288,7 @@ class KPConv(tf.Module):
         value=kernel_influence_dist / conv_radius, dtype=tf.float32)
     #Create the radii tensor.
     radii_tensor = tf.cast(tf.repeat([conv_radius], self._num_dims),
-                            dtype=tf.float32)
+                           dtype=tf.float32)
 
     if neighborhood is None:
       #Compute the grid
@@ -309,9 +308,9 @@ class KPConv(tf.Module):
     #Compute Monte-Carlo convolution
     convolution_result = self._kp_conv(points_diff, neigh, features)
     return _format_output(convolution_result,
-                        point_cloud_out,
-                        return_sorted,
-                        return_padded)
+                          point_cloud_out,
+                          return_sorted,
+                          return_padded)
 
   def _kernel_offsets(self,
                       kernel_input,
@@ -407,8 +406,8 @@ class KPConv(tf.Module):
     # reshape to [M, K]
     point_dist = (self._cur_point_dist / self._sigma)**2
     min_dists_per_nbh = tf.math.unsorted_segment_min(point_dist,
-                                                    neighbors[:, 1],
-                                                    self._num_output_points)
+                                                     neighbors[:, 1],
+                                                     self._num_output_points)
     loss_fit = tf.reduce_sum(min_dists_per_nbh)
 
     # repulsive loss for kernel points with overlapping influence area.
@@ -416,13 +415,13 @@ class KPConv(tf.Module):
     # shape [N2, K, D]
     kernel_points = tf.expand_dims(self._kernel_points, 0) + kernel_offsets
     kernel_dists = tf.linalg.norm(tf.expand_dims(kernel_points, 1) - \
-                                tf.expand_dims(kernel_points, 2),
-                                axis=3)
+                                  tf.expand_dims(kernel_points, 2),
+                                  axis=3)
     kernel_weights = self._weighting(kernel_dists, self._sigma)
     # set weight between same kernel point to zero
     kernel_weights = tf.linalg.set_diag(kernel_weights,
                                         tf.zeros([self._num_output_points,
-                                                self._num_kernel_points]))
+                                                  self._num_kernel_points]))
     loss_rep = tf.reduce_sum(kernel_weights)
 
     return loss_fit + loss_rep
