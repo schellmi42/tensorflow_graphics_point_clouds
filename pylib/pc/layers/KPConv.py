@@ -127,6 +127,9 @@ class KPConv(tf.Module):
       self._kernel_points = tf.convert_to_tensor(value=custom_kernel_points,
                                                 dtype=tf.float32)
 
+    # Reposition the points at radius 0.5.
+    self._kernel_points = self._kernel_points*0.5
+
     # initialize variables
     if initializer_weights is None:
       initializer_weights = tf.initializers.GlorotNormal
