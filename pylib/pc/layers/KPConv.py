@@ -127,8 +127,8 @@ class KPConv(tf.Module):
       self._kernel_points = tf.convert_to_tensor(value=custom_kernel_points,
                                                 dtype=tf.float32)
 
-    # Reposition the points at radius 0.5.
-    self._kernel_points = self._kernel_points*0.5
+    # Reposition the points at radius 0.75.
+    self._kernel_points = self._kernel_points*0.75
 
     # initialize variables
     if initializer_weights is None:
@@ -283,7 +283,7 @@ class KPConv(tf.Module):
 
     if kernel_influence_dist is None:
       # normalized
-      self._sigma = tf.constant(0.75)
+      self._sigma = tf.constant(1.0)
     else:
       self._sigma = tf.convert_to_tensor(
         value=kernel_influence_dist / conv_radius, dtype=tf.float32)
