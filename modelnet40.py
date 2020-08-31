@@ -110,7 +110,7 @@ def identity_layer(x, *args, **kwargs):
   return x
 
 
-class conv_block():
+class conv_block(tf.Module):
   ''' A small ResNet block
 
   Args:
