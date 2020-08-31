@@ -49,18 +49,16 @@ class GlobalMaxPooling:
         `[A1, ..., An, C]`, if `return_padded`
 
     """
-    with tf.compat.v1.name_scope(
-        name, "global max pooling ", [features, point_cloud, return_padded]):
-      features = tf.convert_to_tensor(value=features)
-      features = _flatten_features(features, point_cloud)
-      features = tf.math.unsorted_segment_max(
-          features,
-          segment_ids=point_cloud._batch_ids,
-          num_segments=point_cloud._batch_size)
-      if return_padded:
-        shape = tf.concat((point_cloud._batch_shape, [-1]), axis=0)
-        features = tf.reshape(features, shape)
-      return features
+    features = tf.convert_to_tensor(value=features)
+    features = _flatten_features(features, point_cloud)
+    features = tf.math.unsorted_segment_max(
+        features,
+        segment_ids=point_cloud._batch_ids,
+        num_segments=point_cloud._batch_size)
+    if return_padded:
+      shape = tf.concat((point_cloud._batch_shape, [-1]), axis=0)
+      features = tf.reshape(features, shape)
+    return features
 
 
 class GlobalAveragePooling:
@@ -90,19 +88,16 @@ class GlobalAveragePooling:
         `[A1 ,..., An, C]`, if `return_padded`
 
     """
-    with tf.compat.v1.name_scope(
-        name, "global average pooling ",
-        [features, point_cloud, return_padded]):
-      features = tf.convert_to_tensor(value=features)
-      features = _flatten_features(features, point_cloud)
-      features = tf.math.unsorted_segment_mean(
-          features,
-          segment_ids=point_cloud._batch_ids,
-          num_segments=point_cloud._batch_size)
-      if return_padded:
-        shape = tf.concat((point_cloud._batch_shape, [-1]), axis=0)
-        features = tf.reshape(features, shape)
-      return features
+    features = tf.convert_to_tensor(value=features)
+    features = _flatten_features(features, point_cloud)
+    features = tf.math.unsorted_segment_mean(
+        features,
+        segment_ids=point_cloud._batch_ids,
+        num_segments=point_cloud._batch_size)
+    if return_padded:
+      shape = tf.concat((point_cloud._batch_shape, [-1]), axis=0)
+      features = tf.reshape(features, shape)
+    return features
 
 
 class _LocalPointPooling:
@@ -145,48 +140,30 @@ class _LocalPointPooling:
         `[A1, ..., An, V_out, C]`, if `return_padded` is `True`.
 
     """
-    with tf.compat.v1.name_scope(
-        name, default_name,
-        [features, point_cloud_in, point_cloud_out, return_sorted,
-         pooling_radius, return_padded]):
-      features = tf.convert_to_tensor(value=features)
-      features = _flatten_features(features, point_cloud_in)
-      pooling_radius = tf.convert_to_tensor(
-          value=pooling_radius, dtype=tf.float32)
-      if pooling_radius.shape[0] == 1:
-        pooling_radius = tf.repeat(pooling_radius, point_cloud_in._dimension)
+    features = tf.convert_to_tensor(value=features)
+    features = _flatten_features(features, point_cloud_in)
+    pooling_radius = tf.convert_to_tensor(
+        value=pooling_radius, dtype=tf.float32)
+    if pooling_radius.shape[0] == 1:
+      pooling_radius = tf.repeat(pooling_radius, point_cloud_in._dimension)
 
-      # Compute the grid.
-      grid_in = Grid(point_cloud_in, pooling_radius)
+    # Compute the grid.
+    grid_in = Grid(point_cloud_in, pooling_radius)
 
-      # Compute the neighborhood keys.
-      neigh = Neighborhood(grid_in, pooling_radius, point_cloud_out)
-      # -----------------
-      # quick fix for 2D input
-      # mask points with different batch_id
-      """
-      batch_ids_in = tf.gather(
-          point_cloud_in._batch_ids, neigh._original_neigh_ids[:, 0])
-      batch_ids_out = tf.gather(
-          point_cloud_out._batch_ids, neigh._original_neigh_ids[:, 1])
-      batch_mask = batch_ids_in == batch_ids_out
-      features_on_neighbors = tf.boolean_mask(
-          features_on_neighbors, batch_mask)
-      neigh_out = tf.boolean_mask(neigh._original_neigh_ids[:, 1], batch_mask)
-      """
-      # -------------
-      features_on_neighbors = tf.gather(
-          features, neigh._original_neigh_ids[:, 0])
+    # Compute the neighborhood keys.
+    neigh = Neighborhood(grid_in, pooling_radius, point_cloud_out)
+    features_on_neighbors = tf.gather(
+        features, neigh._original_neigh_ids[:, 0])
 
-      # Pool the features in the neighborhoods
-      features_out = pool_op(
-          data=features_on_neighbors,
-          segment_ids=neigh._original_neigh_ids[:, 1],
-          num_segments=point_cloud_out._points.shape[0])
-      return _format_output(features_out,
-                            point_cloud_out,
-                            return_sorted,
-                            return_padded)
+    # Pool the features in the neighborhoods
+    features_out = pool_op(
+        data=features_on_neighbors,
+        segment_ids=neigh._original_neigh_ids[:, 1],
+        num_segments=point_cloud_out._points.shape[0])
+    return _format_output(features_out,
+                          point_cloud_out,
+                          return_sorted,
+                          return_padded)
 
 
 class MaxPooling(_LocalPointPooling):

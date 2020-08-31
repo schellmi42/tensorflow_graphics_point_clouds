@@ -31,42 +31,39 @@ class Grid:
 
   def __init__(self, point_cloud: PointCloud, cell_sizes, aabb=None,
                name=None):
-    with tf.compat.v1.name_scope(
-        name, "constructor for point cloud regular grid",
-        [self, point_cloud, aabb, cell_sizes]):
-      cell_sizes = tf.cast(tf.convert_to_tensor(value=cell_sizes),
-                           tf.float32)
-      if cell_sizes.shape == [] or cell_sizes.shape[0] == 1:
-        cell_sizes = tf.repeat(cell_sizes, point_cloud._dimension)
-      #Save the attributes.
-      self._batch_size = point_cloud._batch_size
-      self._cell_sizes = cell_sizes
-      self._point_cloud = point_cloud
-      self._aabb = point_cloud.get_AABB()
-      #Compute the number of cells in the grid.
-      aabb_sizes = self._aabb._aabb_max - self._aabb._aabb_min
-      batch_num_cells = tf.cast(
-          tf.math.ceil(aabb_sizes / self._cell_sizes), tf.int32)
-      self._num_cells = tf.maximum(
-          tf.reduce_max(batch_num_cells, axis=0), 1)
+    cell_sizes = tf.cast(tf.convert_to_tensor(value=cell_sizes),
+                         tf.float32)
+    if cell_sizes.shape == [] or cell_sizes.shape[0] == 1:
+      cell_sizes = tf.repeat(cell_sizes, point_cloud._dimension)
+    #Save the attributes.
+    self._batch_size = point_cloud._batch_size
+    self._cell_sizes = cell_sizes
+    self._point_cloud = point_cloud
+    self._aabb = point_cloud.get_AABB()
+    #Compute the number of cells in the grid.
+    aabb_sizes = self._aabb._aabb_max - self._aabb._aabb_min
+    batch_num_cells = tf.cast(
+        tf.math.ceil(aabb_sizes / self._cell_sizes), tf.int32)
+    self._num_cells = tf.maximum(
+        tf.reduce_max(batch_num_cells, axis=0), 1)
 
-      #Compute the key for each point.
-      self._cur_keys = compute_keys(
-          self._point_cloud, self._num_cells,
-          self._cell_sizes)
+    #Compute the key for each point.
+    self._cur_keys = compute_keys(
+        self._point_cloud, self._num_cells,
+        self._cell_sizes)
 
-      #Sort the keys.
-      self._sorted_indices = tf.argsort(
-          self._cur_keys, direction='DESCENDING')
-      self._sorted_keys = tf.gather(self._cur_keys, self._sorted_indices)
+    #Sort the keys.
+    self._sorted_indices = tf.argsort(
+        self._cur_keys, direction='DESCENDING')
+    self._sorted_keys = tf.gather(self._cur_keys, self._sorted_indices)
 
-      #Get the sorted points and batch ids.
-      self._sorted_points = tf.gather(
-          self._point_cloud._points, self._sorted_indices)
-      self._sorted_batch_ids = tf.gather(
-          self._point_cloud._batch_ids, self._sorted_indices)
+    #Get the sorted points and batch ids.
+    self._sorted_points = tf.gather(
+        self._point_cloud._points, self._sorted_indices)
+    self._sorted_batch_ids = tf.gather(
+        self._point_cloud._batch_ids, self._sorted_indices)
 
-      self._fast_DS = None
+    self._fast_DS = None
 
   def get_DS(self):
     """ Method to get the 2D-Grid datastructure.

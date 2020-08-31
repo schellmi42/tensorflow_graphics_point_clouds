@@ -59,22 +59,21 @@ def random_rotation(points, name=None):
     A `float` `Tensor` of the same shape as `points`.
 
   """
-  with tf.compat.v1.name_scope(name, 'random point rotation', [points]):
-    points = tf.convert_to_tensor(value=points)
-    angles = tf.random.uniform([3], 0, 2 * np.pi)
-    sine = tf.math.sin(angles)
-    cosine = tf.math.cos(angles)
-    Rx = tf.stack(([1.0, 0.0, 0.0],
-                   [0.0, cosine[0], -sine[0]],
-                   [0.0, sine[0], cosine[0]]), axis=1)
-    Ry = tf.stack(([cosine[1], 0, sine[1]],
-                   [0.0, 1.0, 0.0],
-                   [-sine[1], 0.0, cosine[1]]), axis=1)
-    Rz = tf.stack(([cosine[2], -sine[2], 0.0],
-                   [sine[2], cosine[2], 0.0],
-                   [0.0, 0.0, 1.0]), axis=1)
-    R = tf.matmul(tf.matmul(Rx, Ry), Rz)
-    return tf.matmul(points, R)
+  points = tf.convert_to_tensor(value=points)
+  angles = tf.random.uniform([3], 0, 2 * np.pi)
+  sine = tf.math.sin(angles)
+  cosine = tf.math.cos(angles)
+  Rx = tf.stack(([1.0, 0.0, 0.0],
+                 [0.0, cosine[0], -sine[0]],
+                 [0.0, sine[0], cosine[0]]), axis=1)
+  Ry = tf.stack(([cosine[1], 0, sine[1]],
+                 [0.0, 1.0, 0.0],
+                 [-sine[1], 0.0, cosine[1]]), axis=1)
+  Rz = tf.stack(([cosine[2], -sine[2], 0.0],
+                 [sine[2], cosine[2], 0.0],
+                 [0.0, 0.0, 1.0]), axis=1)
+  R = tf.matmul(tf.matmul(Rx, Ry), Rz)
+  return tf.matmul(points, R)
 
 
 def _hexagon(scale, z_shift):
@@ -165,63 +164,60 @@ def spherical_kernel_points(num_points, rotate=True, name=None):
     A `float` `Tensor` of shape `[num_points, 3]`.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "KPConv kernel points",
-      [num_points, rotate]):
 
-    if num_points not in [5, 7, 13, 15, 18]:
-      raise ValueError('KPConv currently only supports kernel sizes' + \
-                       ' [5, 7, 13, 15, 18]')
-    if num_points == 5:
-      # Tetrahedron
-      points = tf.Variable([[0, 0, 0],
-                            [0, 0, 1],
-                            [tf.sqrt(8 / 9), 0, -1 / 3],
-                            [- tf.sqrt(2 / 9), tf.sqrt(2 / 3), - 1 / 3],
-                            [-tf.sqrt(2 / 9), - tf.sqrt(2 / 3), -1 / 3]],
-                           dtype=tf.float32)
-    elif num_points == 7:
-      # Octahedron
-      points = tf.Variable([[0, 0, 0],
-                            [1, 0, 0],
-                            [-1, 0, 0],
-                            [0, 1, 0],
-                            [0, -1, 0],
-                            [0, 0, 1],
-                            [0, 0, -1]], dtype=tf.float32)
-    elif num_points == 13:
-      # Icosahedron
-      phi = (1 + tf.sqrt(5)) / 2
-      points = tf.Variable([[0, 0, 0],
-                            [0, 1, phi],
-                            [0, 1, -phi],
-                            [0, -1, phi],
-                            [0, -1, -phi],
-                            [1, phi, 0],
-                            [1, -phi, 0],
-                            [-1, phi, 0],
-                            [-1, -phi, 0],
-                            [phi, 0, 1],
-                            [-phi, 0, 1],
-                            [phi, 0, -1],
-                            [-phi, 0, -1]], dtype=tf.float32)
-    elif num_points == 15:
-      hex1 = _hexagon(0.5, np.sqrt(3) / 2)
-      hex2 = _hexagon(-0.5, np.sqrt(3) / 2)[:,[1, 0, 2]]  # rotated 90 deg in xy
-      points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]], hex1, hex2),
-                              axis=0)
-      points = tf.Variable(points, dtype=tf.float32)
-    elif num_points == 18:
-      penta1 = _pentagon(1 / np.sqrt(2), 0.5)
-      penta2 = -_pentagon(1.0, 0.0) # flipped in xy
-      penta3 = _pentagon(-1 / np.sqrt(2), 0.5)
-      points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]],
-                               penta1, penta2, penta3),
-                              axis=0)
-      points = tf.Variable(points, dtype=tf.float32)
-    if rotate:
-      points = random_rotation(points)
-    return points
+  if num_points not in [5, 7, 13, 15, 18]:
+    raise ValueError('KPConv currently only supports kernel sizes' + \
+                     ' [5, 7, 13, 15, 18]')
+  if num_points == 5:
+    # Tetrahedron
+    points = tf.Variable([[0, 0, 0],
+                          [0, 0, 1],
+                          [tf.sqrt(8 / 9), 0, -1 / 3],
+                          [- tf.sqrt(2 / 9), tf.sqrt(2 / 3), - 1 / 3],
+                          [-tf.sqrt(2 / 9), - tf.sqrt(2 / 3), -1 / 3]],
+                         dtype=tf.float32)
+  elif num_points == 7:
+    # Octahedron
+    points = tf.Variable([[0, 0, 0],
+                          [1, 0, 0],
+                          [-1, 0, 0],
+                          [0, 1, 0],
+                          [0, -1, 0],
+                          [0, 0, 1],
+                          [0, 0, -1]], dtype=tf.float32)
+  elif num_points == 13:
+    # Icosahedron
+    phi = (1 + tf.sqrt(5)) / 2
+    points = tf.Variable([[0, 0, 0],
+                          [0, 1, phi],
+                          [0, 1, -phi],
+                          [0, -1, phi],
+                          [0, -1, -phi],
+                          [1, phi, 0],
+                          [1, -phi, 0],
+                          [-1, phi, 0],
+                          [-1, -phi, 0],
+                          [phi, 0, 1],
+                          [-phi, 0, 1],
+                          [phi, 0, -1],
+                          [-phi, 0, -1]], dtype=tf.float32)
+  elif num_points == 15:
+    hex1 = _hexagon(0.5, np.sqrt(3) / 2)
+    hex2 = _hexagon(-0.5, np.sqrt(3) / 2)[:,[1, 0, 2]]  # rotated 90 deg in xy
+    points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]], hex1, hex2),
+                            axis=0)
+    points = tf.Variable(points, dtype=tf.float32)
+  elif num_points == 18:
+    penta1 = _pentagon(1 / np.sqrt(2), 0.5)
+    penta2 = -_pentagon(1.0, 0.0) # flipped in xy
+    penta3 = _pentagon(-1 / np.sqrt(2), 0.5)
+    points = np.concatenate(([[0, 0, 0], [0, 0, 1], [0, 0, -1]],
+                             penta1, penta2, penta3),
+                            axis=0)
+    points = tf.Variable(points, dtype=tf.float32)
+  if rotate:
+    points = random_rotation(points)
+  return points
 
 
 def cube_kernel_points(cbrt_num_points, name):
@@ -234,12 +230,10 @@ def cube_kernel_points(cbrt_num_points, name):
     A `float` `Tensor` of shape `[cbrt_num_points^3, 3]`.
 
   """
-
-  with tf.compat.v1.name_scope(name, "box kernel points", [cbrt_num_points]):
-    x = np.linspace(0, 1, cbrt_num_points)
-    x, y, z = np.meshgrid(x, x, x)
-    points = np.stack((x.flatten(), y.flatten(), z.flatten()), axis=1)
-    return tf.Variable(points, dtype=tf.float32)
+  x = np.linspace(0, 1, cbrt_num_points)
+  x, y, z = np.meshgrid(x, x, x)
+  points = np.stack((x.flatten(), y.flatten(), z.flatten()), axis=1)
+  return tf.Variable(points, dtype=tf.float32)
 
 
 def _identity(features, *args, **kwargs):

@@ -79,32 +79,29 @@ def compute_neighborhoods(grid,
       `neighbors[ranges[i]]:neigbors[ranges[i+1]]` for `i>0`.
   """
 
-  with tf.compat.v1.name_scope(
-      name, "compute neighbourhoods of point clouds",
-      [grid, radius, point_cloud_centers, max_neighbors]):
-    radii = cast_to_num_dims(radius, grid._point_cloud._dimension)
-    #Save the attributes.
-    if point_cloud_centers is None:
-      point_cloud_centers = PointCloud(
-          grid._sorted_points, grid._sorted_batch_ids,
-          grid._batch_size)
+  radii = cast_to_num_dims(radius, grid._point_cloud._dimension)
+  #Save the attributes.
+  if point_cloud_centers is None:
+    point_cloud_centers = PointCloud(
+        grid._sorted_points, grid._sorted_batch_ids,
+        grid._batch_size)
 
-    #Find the neighbors, with indices with respect to sorted points in the grid
-    nb_ranges, neighbors = find_neighbors(
-      grid, point_cloud_centers, radii, max_neighbors)
+  #Find the neighbors, with indices with respect to sorted points in the grid
+  nb_ranges, neighbors = find_neighbors(
+    grid, point_cloud_centers, radii, max_neighbors)
 
-    #Original neighIds.
-    if not return_sorted_ids:
-      aux_original_neigh_ids = tf.gather(
-          grid._sorted_indices, neighbors[:, 0])
-      original_neigh_ids = tf.concat([
-        tf.reshape(aux_original_neigh_ids, [-1, 1]),
-        tf.reshape(neighbors[:, 1], [-1, 1])], axis=-1)
-      neighbors = original_neigh_ids
-    if return_ranges:
-      return neighbors, nb_ranges
-    else:
-      return neighbors
+  #Original neighIds.
+  if not return_sorted_ids:
+    aux_original_neigh_ids = tf.gather(
+        grid._sorted_indices, neighbors[:, 0])
+    original_neigh_ids = tf.concat([
+      tf.reshape(aux_original_neigh_ids, [-1, 1]),
+      tf.reshape(neighbors[:, 1], [-1, 1])], axis=-1)
+    neighbors = original_neigh_ids
+  if return_ranges:
+    return neighbors, nb_ranges
+  else:
+    return neighbors
 
 
 def density_estimation(point_cloud,
@@ -130,32 +127,29 @@ def density_estimation(point_cloud,
   Returns:
     A `float` `Tensor` of shape `[N]`, the estimated densities.
   """
-  with tf.compat.v1.name_scope(
-      name, "compute pdf for point cloud",
-      [point_cloud, bandwidth, mode, normalize]):
 
-    bandwidth = cast_to_num_dims(bandwidth, point_cloud._dimension)
-    scaling = cast_to_num_dims(scaling, point_cloud._dimension)
-    if mode == KDEMode.no_pdf:
-      pdf = tf.ones_like(point_cloud._points[:, 0], dtype=tf.float32)
-    else:
-      grid = Grid(point_cloud, scaling)
-      pdf_neighbors, nb_ranges = \
-          compute_neighborhoods(grid,
-                                scaling,
-                                return_ranges=True,
-                                return_sorted_ids=True)
-      pdf_sorted = compute_pdf(grid,
-                               pdf_neighbors,
-                               nb_ranges,
-                               bandwidth,
-                               scaling,
-                               mode.value)
-      unsorted_indices = tf.math.invert_permutation(grid._sorted_indices)
-      pdf = tf.gather(pdf_sorted, unsorted_indices)
-    if normalize:
-      pdf = pdf / point_cloud._points.shape[0]
-    return pdf
+  bandwidth = cast_to_num_dims(bandwidth, point_cloud._dimension)
+  scaling = cast_to_num_dims(scaling, point_cloud._dimension)
+  if mode == KDEMode.no_pdf:
+    pdf = tf.ones_like(point_cloud._points[:, 0], dtype=tf.float32)
+  else:
+    grid = Grid(point_cloud, scaling)
+    pdf_neighbors, nb_ranges = \
+        compute_neighborhoods(grid,
+                              scaling,
+                              return_ranges=True,
+                              return_sorted_ids=True)
+    pdf_sorted = compute_pdf(grid,
+                             pdf_neighbors,
+                             nb_ranges,
+                             bandwidth,
+                             scaling,
+                             mode.value)
+    unsorted_indices = tf.math.invert_permutation(grid._sorted_indices)
+    pdf = tf.gather(pdf_sorted, unsorted_indices)
+  if normalize:
+    pdf = pdf / point_cloud._points.shape[0]
+  return pdf
 
 
 def density_estimation_in_neighborhoods(point_cloud,
@@ -186,28 +180,25 @@ def density_estimation_in_neighborhoods(point_cloud,
   Returns:
     A `float` `Tensor` of shape `[M]`, the estimated densities.
   """
-  with tf.compat.v1.name_scope(
-      name, "compute pdf for neighbours",
-      [point_cloud, neighbors, bandwidth, mode, normalize]):
-    bandwidth = cast_to_num_dims(bandwidth, point_cloud._dimension)
-    scaling = cast_to_num_dims(scaling, point_cloud._dimension)
+  bandwidth = cast_to_num_dims(bandwidth, point_cloud._dimension)
+  scaling = cast_to_num_dims(scaling, point_cloud._dimension)
 
-    if mode == KDEMode.no_pdf:
-      pdf = tf.ones_like(
-          neighbors[:, 0], dtype=tf.float32)
-    else:
-      pdf = density_estimation(point_cloud,
-                               bandwidth,
-                               scaling,
-                               mode,
-                               False)
-      pdf = tf.gather(pdf, neighbors[:, 0])
-    if normalize:
-      norm_factors = tf.math.segment_sum(
-          tf.ones_like(pdf),
-          neighbors[:, 1])
-      pdf = pdf / tf.gather(norm_factors, neighbors[:, 1])
-    return pdf
+  if mode == KDEMode.no_pdf:
+    pdf = tf.ones_like(
+        neighbors[:, 0], dtype=tf.float32)
+  else:
+    pdf = density_estimation(point_cloud,
+                             bandwidth,
+                             scaling,
+                             mode,
+                             False)
+    pdf = tf.gather(pdf, neighbors[:, 0])
+  if normalize:
+    norm_factors = tf.math.segment_sum(
+        tf.ones_like(pdf),
+        neighbors[:, 1])
+    pdf = pdf / tf.gather(norm_factors, neighbors[:, 1])
+  return pdf
 
 
 class Neighborhood:
@@ -230,41 +221,38 @@ class Neighborhood:
                point_cloud_sample=None,
                max_neighbors=0,
                name=None):
-    with tf.compat.v1.name_scope(
-        name, "constructor for neighbourhoods of point clouds",
-        [self, grid, radius, point_cloud_sample, max_neighbors]):
-      radii = tf.reshape(tf.cast(tf.convert_to_tensor(value=radius),
-                                 tf.float32), [-1])
-      if radii.shape[0] == 1:
-        radii = tf.repeat(radius, grid._point_cloud._dimension)
-      #Save the attributes.
-      if point_cloud_sample is None:
-        self._equal_samples = True
-        self._point_cloud_sampled = PointCloud(
-            grid._sorted_points, grid._sorted_batch_ids,
-            grid._batch_size)
-      else:
-        self._equal_samples = False
-        self._point_cloud_sampled = point_cloud_sample
-      self._grid = grid
-      self._radii = radii
-      self.max_neighbors = max_neighbors
+    radii = tf.reshape(tf.cast(tf.convert_to_tensor(value=radius),
+                               tf.float32), [-1])
+    if radii.shape[0] == 1:
+      radii = tf.repeat(radius, grid._point_cloud._dimension)
+    #Save the attributes.
+    if point_cloud_sample is None:
+      self._equal_samples = True
+      self._point_cloud_sampled = PointCloud(
+          grid._sorted_points, grid._sorted_batch_ids,
+          grid._batch_size)
+    else:
+      self._equal_samples = False
+      self._point_cloud_sampled = point_cloud_sample
+    self._grid = grid
+    self._radii = radii
+    self.max_neighbors = max_neighbors
 
-      #Find the neighbors.
-      self._samples_neigh_ranges, self._neighbors = find_neighbors(
-        self._grid, self._point_cloud_sampled, self._radii, max_neighbors)
+    #Find the neighbors.
+    self._samples_neigh_ranges, self._neighbors = find_neighbors(
+      self._grid, self._point_cloud_sampled, self._radii, max_neighbors)
 
-      #Original neighIds.
-      aux_original_neigh_ids = tf.gather(
-          self._grid._sorted_indices, self._neighbors[:, 0])
-      self._original_neigh_ids = tf.concat([
-        tf.reshape(aux_original_neigh_ids, [-1, 1]),
-        tf.reshape(self._neighbors[:, 1], [-1, 1])], axis=-1)
+    #Original neighIds.
+    aux_original_neigh_ids = tf.gather(
+        self._grid._sorted_indices, self._neighbors[:, 0])
+    self._original_neigh_ids = tf.concat([
+      tf.reshape(aux_original_neigh_ids, [-1, 1]),
+      tf.reshape(self._neighbors[:, 1], [-1, 1])], axis=-1)
 
-      #Initialize the pdf
-      self._pdf = None
+    #Initialize the pdf
+    self._pdf = None
 
-      self._transposed = None
+    self._transposed = None
 
   def compute_pdf(self,
                   bandwidth=0.2,
@@ -283,29 +271,26 @@ class Neighborhood:
         respective neighborhood. (optional)
 
     """
-    with tf.compat.v1.name_scope(
-        name, "compute pdf for neighbours",
-        [self, bandwidth, mode]):
-      bandwidth = cast_to_num_dims(
-          bandwidth, self._point_cloud_sampled._dimension)
+    bandwidth = cast_to_num_dims(
+        bandwidth, self._point_cloud_sampled._dimension)
 
-      if mode == KDEMode.no_pdf:
-        self._pdf = tf.ones_like(
-            self._neighbors[:, 0], dtype=tf.float32)
+    if mode == KDEMode.no_pdf:
+      self._pdf = tf.ones_like(
+          self._neighbors[:, 0], dtype=tf.float32)
+    else:
+      if self._equal_samples:
+        pdf_neighbors = self
       else:
-        if self._equal_samples:
-          pdf_neighbors = self
-        else:
-          pdf_neighbors = Neighborhood(self._grid, self._radii, None)
-        _pdf = compute_pdf(
-              pdf_neighbors, bandwidth, mode.value)
-        self._pdf = tf.gather(_pdf, self._neighbors[:, 0])
-      if normalize:
-        norm_factors = tf.math.unsorted_segment_sum(
-            tf.ones_like(self._pdf),
-            self._neighbors[:, 1],
-            self._point_cloud_sampled._points.shape[0])
-        self._pdf = self._pdf / tf.gather(norm_factors, self._neighbors[:, 1])
+        pdf_neighbors = Neighborhood(self._grid, self._radii, None)
+      _pdf = compute_pdf(
+            pdf_neighbors, bandwidth, mode.value)
+      self._pdf = tf.gather(_pdf, self._neighbors[:, 0])
+    if normalize:
+      norm_factors = tf.math.unsorted_segment_sum(
+          tf.ones_like(self._pdf),
+          self._neighbors[:, 1],
+          self._point_cloud_sampled._points.shape[0])
+      self._pdf = self._pdf / tf.gather(norm_factors, self._neighbors[:, 1])
 
   def get_pdf(self, **kwargs):
     """ Method which returns the pdfs of the neighborhoods.
@@ -342,7 +327,6 @@ class Neighborhood:
         self._transposed = Neighborhood(
             grid, self._radii, self._grid._point_cloud)
     return self._transposed
-    # return _NeighborhoodTransposed(self)
 
 
 class _NeighborhoodTransposed(Neighborhood):

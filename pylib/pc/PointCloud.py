@@ -31,18 +31,16 @@ class _AABB:
 
   def __init__(self, point_cloud, name=None):
 
-    with tf.compat.v1.name_scope(
-        name, "bounding box constructor", [self, point_cloud]):
-      self._batch_size = point_cloud._batch_size
-      self._batch_shape = point_cloud._batch_shape
-      self.point_cloud_ = point_cloud
+    self._batch_size = point_cloud._batch_size
+    self._batch_shape = point_cloud._batch_shape
+    self.point_cloud_ = point_cloud
 
-      self._aabb_min = tf.math.unsorted_segment_min(
-          data=point_cloud._points, segment_ids=point_cloud._batch_ids,
-          num_segments=self._batch_size) - 1e-9
-      self._aabb_max = tf.math.unsorted_segment_max(
-          data=point_cloud._points, segment_ids=point_cloud._batch_ids,
-          num_segments=self._batch_size) + 1e-9
+    self._aabb_min = tf.math.unsorted_segment_min(
+        data=point_cloud._points, segment_ids=point_cloud._batch_ids,
+        num_segments=self._batch_size) - 1e-9
+    self._aabb_max = tf.math.unsorted_segment_max(
+        data=point_cloud._points, segment_ids=point_cloud._batch_ids,
+        num_segments=self._batch_size) + 1e-9
 
   def get_diameter(self, ord='euclidean', name=None):
     """ Returns the diameter of the bounding box.
@@ -60,14 +58,11 @@ class _AABB:
 
     """
 
-    with tf.compat.v1.name_scope(
-        name, "Compute diameter of bounding box",
-        [self, ord]):
-      diam = tf.linalg.norm(self._aabb_max - self._aabb_min, ord=ord, axis=-1)
-      if self._batch_shape is None:
-        return diam
-      else:
-        return tf.reshape(diam, self._batch_shape)
+    diam = tf.linalg.norm(self._aabb_max - self._aabb_min, ord=ord, axis=-1)
+    if self._batch_shape is None:
+      return diam
+    else:
+      return tf.reshape(diam, self._batch_shape)
 
 
 class PointCloud:
@@ -94,32 +89,29 @@ class PointCloud:
                batch_size=None,
                sizes=None,
                name=None):
-    with tf.compat.v1.name_scope(
-        name, "construct point cloud",
-        [self, points, batch_ids, batch_size, sizes]):
-      points = tf.convert_to_tensor(value=points, dtype=tf.float32)
-      if sizes is not None:
-        sizes = tf.convert_to_tensor(value=sizes, dtype=tf.int32)
-      if batch_ids is not None:
-        batch_ids = tf.convert_to_tensor(value=batch_ids, dtype=tf.int32)
+    points = tf.convert_to_tensor(value=points, dtype=tf.float32)
+    if sizes is not None:
+      sizes = tf.convert_to_tensor(value=sizes, dtype=tf.int32)
+    if batch_ids is not None:
+      batch_ids = tf.convert_to_tensor(value=batch_ids, dtype=tf.int32)
 
-      check_valid_point_cloud_input(points, sizes, batch_ids)
+    check_valid_point_cloud_input(points, sizes, batch_ids)
 
-      self._sizes = sizes
-      self._batch_size = batch_size
-      self._batch_ids = batch_ids
-      self._dimension = points.shape[-1]
-      self._batch_shape = None
-      self._unflatten = None
-      self._aabb = None
+    self._sizes = sizes
+    self._batch_size = batch_size
+    self._batch_ids = batch_ids
+    self._dimension = points.shape[-1]
+    self._batch_shape = None
+    self._unflatten = None
+    self._aabb = None
 
-      if points.shape.ndims > 2:
-        self._init_from_padded(points)
-      else:
-        self._init_from_segmented(points)
+    if points.shape.ndims > 2:
+      self._init_from_padded(points)
+    else:
+      self._init_from_segmented(points)
 
-      #Sort the points based on the batch ids in incremental order.
-      self._sorted_indices_batch = tf.argsort(self._batch_ids)
+    #Sort the points based on the batch ids in incremental order.
+    self._sorted_indices_batch = tf.argsort(self._batch_ids)
 
   def _init_from_padded(self, points):
     """converting padded `Tensor` of shape `[A1, ..., An, V, D]` into a 2D
@@ -170,19 +162,17 @@ class PointCloud:
         of shape `[A1, ..., An, V, D]`, zero padded, if no `id` was given.
 
     """
-    with tf.compat.v1.name_scope(
-        name, "get point clouds", [self, id, max_num_points]):
-      if id is not None:
-        if not isinstance(id, int):
-          slice = self._get_segment_id
-          for slice_id in id:
-            slice = slice[slice_id]
-          id = slice
-        if id > self._batch_size:
-          raise IndexError('batch index out of range')
-        return self._points[self._batch_ids == id]
-      else:
-        return self.get_unflatten(max_num_points=max_num_points)(self._points)
+    if id is not None:
+      if not isinstance(id, int):
+        slice = self._get_segment_id
+        for slice_id in id:
+          slice = slice[slice_id]
+        id = slice
+      if id > self._batch_size:
+        raise IndexError('batch index out of range')
+      return self._points[self._batch_ids == id]
+    else:
+      return self.get_unflatten(max_num_points=max_num_points)(self._points)
 
   def get_sizes(self, name=None):
     """ Returns the sizes of the point clouds in the batch.
@@ -197,15 +187,14 @@ class PointCloud:
       `Tensor` of shape `[A1, .., An]`.
 
     """
-    with tf.compat.v1.name_scope(name, "get point cloud sizes", [self]):
-      if self._sizes is None:
-        _ids, _, self._sizes = tf.unique_with_counts(
-            self._batch_ids)
-        _ids_sorted = tf.argsort(_ids)
-        self._sizes = tf.gather(self._sizes, _ids_sorted)
-        if self._batch_shape is not None:
-          self._sizes = tf.reshape(self._sizes, self._batch_shape)
-      return self._sizes
+    if self._sizes is None:
+      _ids, _, self._sizes = tf.unique_with_counts(
+          self._batch_ids)
+      _ids_sorted = tf.argsort(_ids)
+      self._sizes = tf.gather(self._sizes, _ids_sorted)
+      if self._batch_shape is not None:
+        self._sizes = tf.reshape(self._sizes, self._batch_shape)
+    return self._sizes
 
   def get_unflatten(self, max_num_points=None, name=None):
     """ Returns the method to unflatten the segmented points.
@@ -228,14 +217,12 @@ class PointCloud:
       ValueError: When trying to unflatten unsorted points.
 
     """
-    with tf.compat.v1.name_scope(
-        name, "get unflatten method", [self, max_num_points]):
-      if self._unflatten is None:
-        self._unflatten = lambda data: unflatten_2d_to_batch(
-            data=tf.gather(data, self._sorted_indices_batch),
-            sizes=self.get_sizes(),
-            max_rows=max_num_points)
-      return self._unflatten
+    if self._unflatten is None:
+      self._unflatten = lambda data: unflatten_2d_to_batch(
+          data=tf.gather(data, self._sorted_indices_batch),
+          sizes=self.get_sizes(),
+          max_rows=max_num_points)
+    return self._unflatten
 
   def get_AABB(self) -> _AABB:
     """ Returns the axis aligned bounding box of the point cloud.
@@ -267,18 +254,16 @@ class PointCloud:
       ValueError: if shape does not sum up to batch size.
 
     """
-    with tf.compat.v1.name_scope(
-        name, "set batch shape of point cloud", [self, batch_shape]):
-      if batch_shape is not None:
-        batch_shape = tf.convert_to_tensor(value=batch_shape, dtype=tf.int32)
-        if tf.reduce_prod(batch_shape) != self._batch_size:
-          raise ValueError(
-              f'Incompatible batch size. Must be {self._batch_size} \
-               but is {tf.reduce_prod(batch_shape)}')
-        self._batch_shape = batch_shape
-        self._get_segment_id = tf.reshape(
-            tf.range(0, self._batch_size), self._batch_shape)
-        if self._sizes is not None:
-          self._sizes = tf.reshape(self._sizes, self._batch_shape)
-      else:
-        self._batch_shape = None
+    if batch_shape is not None:
+      batch_shape = tf.convert_to_tensor(value=batch_shape, dtype=tf.int32)
+      if tf.reduce_prod(batch_shape) != self._batch_size:
+        raise ValueError(
+            f'Incompatible batch size. Must be {self._batch_size} \
+             but is {tf.reduce_prod(batch_shape)}')
+      self._batch_shape = batch_shape
+      self._get_segment_id = tf.reshape(
+          tf.range(0, self._batch_size), self._batch_shape)
+      if self._sizes is not None:
+        self._sizes = tf.reshape(self._sizes, self._batch_shape)
+    else:
+      self._batch_shape = None
