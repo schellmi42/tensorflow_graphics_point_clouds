@@ -34,15 +34,13 @@ def compute_keys(point_cloud, num_cells, cell_size, name=None):
       An `int` `Tensor` of shape `[N]`, the keys per point.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "compute keys", [point_cloud, num_cells, cell_size]):
-    aabb = point_cloud.get_AABB()
-    return tfg_custom_ops.compute_keys(
-      point_cloud._points,
-      point_cloud._batch_ids,
-      aabb._aabb_min / cell_size,
-      num_cells,
-      tf.math.reciprocal(cell_size))
+  aabb = point_cloud.get_AABB()
+  return tfg_custom_ops.compute_keys(
+    point_cloud._points,
+    point_cloud._batch_ids,
+    aabb._aabb_min / cell_size,
+    num_cells,
+    tf.math.reciprocal(cell_size))
 tf.no_gradient('ComputeKeys')
 
 
@@ -61,13 +59,11 @@ def build_grid_ds(sorted_keys, num_cells, batch_size, name=None):
     An `int` `Tensor` of shape `[batch_size, num_cells[0], num_cells[1], 2]`.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "build grid ds", [sorted_keys, num_cells, batch_size]):
-    return tfg_custom_ops.build_grid_ds(
-      sorted_keys,
-      num_cells,
-      num_cells,
-      batch_size)
+  return tfg_custom_ops.build_grid_ds(
+    sorted_keys,
+    num_cells,
+    num_cells,
+    batch_size)
 tf.no_gradient('BuildGridDs')
 
 
@@ -95,20 +91,17 @@ def find_neighbors(grid,
      `grid._sorted_points`.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "find neighbours",
-      [grid, point_cloud_centers, radii, max_neighbors]):
-    return tfg_custom_ops.find_neighbors(
-      point_cloud_centers._points,
-      point_cloud_centers._batch_ids,
-      grid._sorted_points,
-      grid._sorted_keys,
-      grid.get_DS(),
-      grid._num_cells,
-      grid._aabb._aabb_min / grid._cell_sizes,
-      tf.math.reciprocal(grid._cell_sizes),
-      tf.math.reciprocal(radii),
-      max_neighbors)
+  return tfg_custom_ops.find_neighbors(
+    point_cloud_centers._points,
+    point_cloud_centers._batch_ids,
+    grid._sorted_points,
+    grid._sorted_keys,
+    grid.get_DS(),
+    grid._num_cells,
+    grid._aabb._aabb_min / grid._cell_sizes,
+    tf.math.reciprocal(grid._cell_sizes),
+    tf.math.reciprocal(radii),
+    max_neighbors)
 tf.no_gradient('FindNeighbors')
 
 
@@ -129,15 +122,14 @@ def sampling(neighborhood, sample_mode, name=None):
       Following the order of neighborhood._grid._sorted_points.
 
   """
-  with tf.compat.v1.name_scope(name, "sampling", [neighborhood, sample_mode]):
-    return tfg_custom_ops.sampling(
-      neighborhood._grid._sorted_points,
-      neighborhood._grid._sorted_batch_ids,
-      neighborhood._grid._sorted_keys,
-      neighborhood._grid._num_cells,
-      neighborhood._neighbors,
-      neighborhood._samples_neigh_ranges,
-      sample_mode)
+  return tfg_custom_ops.sampling(
+    neighborhood._grid._sorted_points,
+    neighborhood._grid._sorted_batch_ids,
+    neighborhood._grid._sorted_keys,
+    neighborhood._grid._num_cells,
+    neighborhood._neighbors,
+    neighborhood._samples_neigh_ranges,
+    sample_mode)
 tf.no_gradient('sampling')
 
 
@@ -155,16 +147,13 @@ def compute_pdf(neighborhood, bandwidth, mode, name=None):
       with respect to the sorted points of the grid in `neighborhood`.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "compute pdf with point gradients",
-      [neighborhood, bandwidth, mode]):
-    return tfg_custom_ops.compute_pdf_with_pt_grads(
-      neighborhood._grid._sorted_points,
-      neighborhood._neighbors,
-      neighborhood._samples_neigh_ranges,
-      tf.math.reciprocal(bandwidth),
-      tf.math.reciprocal(neighborhood._radii),
-      mode)
+  return tfg_custom_ops.compute_pdf_with_pt_grads(
+    neighborhood._grid._sorted_points,
+    neighborhood._neighbors,
+    neighborhood._samples_neigh_ranges,
+    tf.math.reciprocal(bandwidth),
+    tf.math.reciprocal(neighborhood._radii),
+    mode)
 
 
 @tf.RegisterGradient("ComputePdfWithPtGrads")

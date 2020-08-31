@@ -53,32 +53,29 @@ def poisson_disk_sampling(point_cloud,
       ValueError: If no radius or neighborhood is given.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "Poisson disk sampling of point cloud",
-      [point_cloud, radius, neighborhood, return_ids]):
-    if radius is None and neighborhood is None:
-      raise ValueError(
-          "Missing Argument! Either radius or neighborhood must be given!")
-    if neighborhood is None:
-      # compute neighborhood
-      radii = cast_to_num_dims(radius, point_cloud)
-      grid = Grid(point_cloud, radii)
-      neighborhood = Neighborhood(grid, radii)
+  if radius is None and neighborhood is None:
+    raise ValueError(
+        "Missing Argument! Either radius or neighborhood must be given!")
+  if neighborhood is None:
+    # compute neighborhood
+    radii = cast_to_num_dims(radius, point_cloud)
+    grid = Grid(point_cloud, radii)
+    neighborhood = Neighborhood(grid, radii)
 
-    #Compute the sampling.
-    sampled_points, sampled_batch_ids, sampled_indices = \
-        sampling(neighborhood, 1)
+  #Compute the sampling.
+  sampled_points, sampled_batch_ids, sampled_indices = \
+      sampling(neighborhood, 1)
 
-    sampled_point_cloud = PointCloud(
-        points=sampled_points, batch_ids=sampled_batch_ids,
-        batch_size=neighborhood._point_cloud_sampled._batch_size)
+  sampled_point_cloud = PointCloud(
+      points=sampled_points, batch_ids=sampled_batch_ids,
+      batch_size=neighborhood._point_cloud_sampled._batch_size)
 
-    if return_ids:
-      sampled_indices = tf.gather(neighborhood._grid._sorted_indices,
-                                  sampled_indices)
-      return sampled_point_cloud, sampled_indices
-    else:
-      return sampled_point_cloud
+  if return_ids:
+    sampled_indices = tf.gather(neighborhood._grid._sorted_indices,
+                                sampled_indices)
+    return sampled_point_cloud, sampled_indices
+  else:
+    return sampled_point_cloud
 
 
 def cell_average_sampling(point_cloud,
@@ -102,28 +99,25 @@ def cell_average_sampling(point_cloud,
       ValueError: If no radius or grid is given.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "Poisson disk sampling of point cloud",
-      [point_cloud, cell_sizes, grid]):
-    if cell_sizes is None and grid is None:
-      raise ValueError(
-          "Missing Argument! Either cell_sizes or grid must be given!")
-    if grid is None:
-      # compute grid
-      cell_sizes = cast_to_num_dims(cell_sizes, point_cloud)
-      grid = Grid(point_cloud, cell_sizes)
+  if cell_sizes is None and grid is None:
+    raise ValueError(
+        "Missing Argument! Either cell_sizes or grid must be given!")
+  if grid is None:
+    # compute grid
+    cell_sizes = cast_to_num_dims(cell_sizes, point_cloud)
+    grid = Grid(point_cloud, cell_sizes)
 
-    neighborhood = Neighborhood(grid, cell_sizes)
+  neighborhood = Neighborhood(grid, cell_sizes)
 
-    #Compute the sampling.
-    sampled_points, sampled_batch_ids, sampled_indices = \
-        sampling(neighborhood, 0)
+  #Compute the sampling.
+  sampled_points, sampled_batch_ids, sampled_indices = \
+      sampling(neighborhood, 0)
 
-    sampled_point_cloud = PointCloud(
-        points=sampled_points, batch_ids=sampled_batch_ids,
-        batch_size=neighborhood._point_cloud_sampled._batch_size)
+  sampled_point_cloud = PointCloud(
+      points=sampled_points, batch_ids=sampled_batch_ids,
+      batch_size=neighborhood._point_cloud_sampled._batch_size)
 
-    return sampled_point_cloud
+  return sampled_point_cloud
 
 
 def sample(neighborhood, sample_mode='poisson', name=None):
@@ -139,20 +133,18 @@ def sample(neighborhood, sample_mode='poisson', name=None):
       `None` for cell average sampling.
 
   """
-  with tf.compat.v1.name_scope(
-      name, "sample point cloud", [neighborhood, sample_mode]):
-    sample_mode_value = sample_modes[sample_mode.lower()]
-    #Compute the sampling.
-    sampled_points, sampled_batch_ids, sampled_indices = \
-        sampling(neighborhood, sample_mode_value)
+  sample_mode_value = sample_modes[sample_mode.lower()]
+  #Compute the sampling.
+  sampled_points, sampled_batch_ids, sampled_indices = \
+      sampling(neighborhood, sample_mode_value)
 
-    #Save the sampled point cloud.
-    if sample_mode_value == 0:
-      sampled_indices = tf.gather(
-          neighborhood._grid._sorted_indices, sampled_indices)
-    else:
-      sampled_indices = None
-    sampled_point_cloud = PointCloud(
-        points=sampled_points, batch_ids=sampled_batch_ids,
-        batch_size=neighborhood._point_cloud_sampled._batch_size)
-    return sampled_point_cloud, sampled_indices
+  #Save the sampled point cloud.
+  if sample_mode_value == 0:
+    sampled_indices = tf.gather(
+        neighborhood._grid._sorted_indices, sampled_indices)
+  else:
+    sampled_indices = None
+  sampled_point_cloud = PointCloud(
+      points=sampled_points, batch_ids=sampled_batch_ids,
+      batch_size=neighborhood._point_cloud_sampled._batch_size)
+  return sampled_point_cloud, sampled_indices
