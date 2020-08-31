@@ -68,7 +68,7 @@ class MCConv(tf.Module):
                initializer_weights=None,
                initializer_biases=None,
                name=None):
-    
+
     super().__init__(name=name)
 
     self._num_features_in = num_features_in
@@ -106,17 +106,18 @@ class MCConv(tf.Module):
 
       weights_init_obj = initializer_weights(stddev=std_dev)
       self._weights_tf.append(tf.Variable(
-          weights_init_obj(shape=[self._num_mlps, prev_num_inut, cur_layer], 
-                        dtype=tf.float32),
+          weights_init_obj(
+              shape=[self._num_mlps, prev_num_inut, cur_layer],
+              dtype=tf.float32),
           trainable=True,
-          name=self._name+"/weights_"+str(cur_layer_iter)))
+          name=self._name + "/weights_" + str(cur_layer_iter)))
 
       bias_init_obj = initializer_biases()
       self._bias_tf.append(tf.Variable(
-          bias_init_obj(shape=[self._num_mlps, 1, cur_layer], 
+          bias_init_obj(shape=[self._num_mlps, 1, cur_layer],
                         dtype=tf.float32),
           trainable=True,
-          name=self._name+"/bias_"+str(cur_layer_iter)))
+          name=self._name + "/bias_" + str(cur_layer_iter)))
       prev_num_inut = cur_layer
 
     std_dev = tf.math.sqrt(2.0 / \
@@ -124,12 +125,14 @@ class MCConv(tf.Module):
 
     weights_init_obj = initializer_weights(stddev=std_dev)
     self._final_weights_tf = tf.Variable(
-        weights_init_obj(shape=[self._num_mlps,
-                   cur_layer * self._num_features_in,
-                   self._num_features_out // self._num_mlps], 
-                dtype=tf.float32),
+        weights_init_obj(
+            shape=[
+                self._num_mlps,
+                cur_layer * self._num_features_in,
+                self._num_features_out // self._num_mlps],
+            dtype=tf.float32),
         trainable=True,
-        name=self._name+"/final_weights_"+str(cur_layer_iter))
+        name=self._name + "/final_weights_" + str(cur_layer_iter))
 
   def _monte_carlo_conv(self,
                         kernel_inputs,
@@ -234,12 +237,12 @@ class MCConv(tf.Module):
     """
 
     features = tf.cast(tf.convert_to_tensor(value=features),
-                        dtype=tf.float32)
+                       dtype=tf.float32)
     features = _flatten_features(features, point_cloud_in)
 
     #Create the radii tensor.
     radii_tensor = tf.cast(tf.repeat([radius], self._num_dims),
-                            dtype=tf.float32)
+                           dtype=tf.float32)
     #Create the badnwidth tensor.
     bwTensor = tf.repeat(bandwidth, self._num_dims)
 
@@ -265,6 +268,6 @@ class MCConv(tf.Module):
         points_diff, neigh, pdf, features, self._non_linearity_type)
 
     return _format_output(convolution_result,
-                        point_cloud_out,
-                        return_sorted,
-                        return_padded)
+                          point_cloud_out,
+                          return_sorted,
+                          return_padded)

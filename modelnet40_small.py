@@ -215,9 +215,9 @@ class mymodel(tf.Module):
     for i in range(self.num_layers):
       if i < self.num_layers - 1:
         features = self.conv_layers[i*2](features,
-                                       point_hierarchy[i],
-                                       point_hierarchy[i + 1],
-                                       conv_radii[i])
+                                         point_hierarchy[i],
+                                         point_hierarchy[i + 1],
+                                         conv_radii[i])
         features = self.batch_layers[i*2](features, training=training)
         features = self.activations[i*2](features)
         features = self.conv_layers[i*2+1](features,

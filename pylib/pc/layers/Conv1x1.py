@@ -39,8 +39,8 @@ class Conv1x1(tf.Module):
     super().__init__(name=name)
 
     if not(name is None):
-        weigths_name = name+"/weights"
-        bias_name = name+"/bias"
+        weigths_name = name + "/weights"
+        bias_name = name + "/bias"
     else:
         weigths_name = "Conv1x1/weights"
         bias_name = "Conv1x1/bias"
@@ -48,17 +48,19 @@ class Conv1x1(tf.Module):
     std_dev = tf.math.sqrt(2.0 / float(num_features_in))
     weights_init_obj = tf.initializers.TruncatedNormal(stddev=std_dev)
     self._weights_tf = tf.Variable(
-        weights_init_obj(shape=[num_features_in, num_features_out], 
-                    dtype=tf.float32),
+        weights_init_obj(
+            shape=[num_features_in, num_features_out],
+            dtype=tf.float32),
         trainable=True,
-        name = weigths_name)
+        name=weigths_name)
 
     bias_init_obj = tf.initializers.zeros()
     self._bias_tf = tf.Variable(
-        bias_init_obj(shape=[1, num_features_out], 
-                    dtype=tf.float32),
+        bias_init_obj(
+            shape=[1, num_features_out],
+            dtype=tf.float32),
         trainable=True,
-        name = bias_name)
+        name=bias_name)
 
   def __call__(self,
                features,
