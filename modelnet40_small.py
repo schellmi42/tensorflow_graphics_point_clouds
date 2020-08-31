@@ -129,7 +129,7 @@ class mymodel(tf.Module):
                layer_type='MCConv',
                sampling_method='poisson disk',
                dropout_rate=0.5):
-    
+
     super().__init__(name=None)
 
     self.num_layers = len(sample_radii)
@@ -214,22 +214,25 @@ class mymodel(tf.Module):
     # network evaluation
     for i in range(self.num_layers):
       if i < self.num_layers - 1:
-        features = self.conv_layers[i*2](features,
-                                         point_hierarchy[i],
-                                         point_hierarchy[i + 1],
-                                         conv_radii[i])
-        features = self.batch_layers[i*2](features, training=training)
-        features = self.activations[i*2](features)
-        features = self.conv_layers[i*2+1](features,
-                                       point_hierarchy[i + 1])
-        features = self.batch_layers[i*2+1](features, training=training)
-        features = self.activations[i*2+1](features)
+        features = self.conv_layers[i * 2](
+            features,
+            point_hierarchy[i],
+            point_hierarchy[i + 1],
+            conv_radii[i])
+        features = self.batch_layers[i * 2](features, training=training)
+        features = self.activations[i * 2](features)
+        features = self.conv_layers[i * 2 + 1](
+            features,
+            point_hierarchy[i + 1])
+        features = self.batch_layers[i * 2 + 1](features, training=training)
+        features = self.activations[i * 2 + 1](features)
       else:
-        features = self.conv_layers[i*2](features,
-                                       point_hierarchy[i],
-                                       point_hierarchy[i + 1],
-                                       conv_radii[i],
-                                       return_sorted=True)
+        features = self.conv_layers[i * 2](
+            features,
+            point_hierarchy[i],
+            point_hierarchy[i + 1],
+            conv_radii[i],
+            return_sorted=True)
     # classification head
     features = self.batch_layers[-2](features, training=training)
     features = self.activations[-2](features)
@@ -281,7 +284,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
     out_labels = np.empty([self.batch_size])
     for batch in range(self.batch_size):
-      
+
       sampled_points[batch] = self.points[self_indices[batch]][0:samples_per_model]
       out_labels[batch] = self.labels[self_indices[batch]]
 
@@ -326,6 +329,7 @@ optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr_decay)
 
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
 
+
 # --- Training Loop---
 def training(model,
              optimizer,
@@ -361,13 +365,14 @@ def training(model,
       epoch_accuracy.update_state(labels, pred)
 
       if iter_batch % 10 == 0:
-        
-        print("\r {:03d} / {:03d} Loss: {:.3f}, Accuracy: {:.3%}      ".format(
-            iter_batch, len(gen_train),
-            epoch_loss_avg.result(),
-            epoch_accuracy.result()
-            ), end="")
-        
+
+        print(
+            "\r {:03d} / {:03d} Loss: {:.3f}, Accuracy: {:.3%}      ".format(
+                iter_batch, len(gen_train),
+                epoch_loss_avg.result(),
+                epoch_accuracy.result()),
+            end="")
+
       iter_batch += 1
 
     train_loss_results.append(epoch_loss_avg.result())
