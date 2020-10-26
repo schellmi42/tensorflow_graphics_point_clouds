@@ -111,7 +111,7 @@ else:
 
 
 #-----------------------------------------------
-class mymodel(tf.Module):
+class mymodel(tf.keras.Model):
   ''' Model architecture with `L` convolutional layers followed by
   two dense layers.
 
@@ -347,7 +347,9 @@ def training(model,
              optimizer,
              loss_function,
              num_epochs=400,
-             epochs_print=1):
+             epochs_print=1,
+             epoch_save=1
+             ):
   train_loss_results = []
   train_accuracy_results = []
   test_loss_results = []
@@ -419,14 +421,18 @@ def training(model,
       print('Validation: Loss: {:.3f}, Accuracy: {:.3%}'.format(
           test_loss_results[-1],
           test_accuracy_results[-1]))
+    if epoch % epoch_save == 0:
+      model.save_weights('saved_models/' + str(epoch))
 
 # ----------------------------
 
 dropout_rate = 0.5
 
 model_MC = mymodel(feature_sizes, sample_radii, conv_radii,
-                   layer_type='MCConv', dropout_rate=dropout_rate)
+                   layer_type='MCConv', dropout_rate=dropout_rate)                   
 
+# load previously saved model weights
+model_MC.load_weights('saved_models/5')
 training(model_MC,
          optimizer=optimizer,
          loss_function=loss_function,

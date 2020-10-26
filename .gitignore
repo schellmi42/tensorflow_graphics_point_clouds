@@ -21,3 +21,4 @@ artifacts
 # data
 *ModelNet_PointNet
 tmp_modelnet
+saved_models
