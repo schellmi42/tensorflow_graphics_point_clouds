@@ -432,7 +432,8 @@ model_MC = mymodel(feature_sizes, sample_radii, conv_radii,
                    layer_type='MCConv', dropout_rate=dropout_rate)                   
 
 # load previously saved model weights
-model_MC.load_weights('saved_models/5')
+#model_MC.load_weights('saved_models/5')
+
 training(model_MC,
          optimizer=optimizer,
          loss_function=loss_function,
