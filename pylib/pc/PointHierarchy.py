@@ -60,22 +60,37 @@ class PointHierarchy:
       # Check if the cell size is defined for all the dimensions.
       # If not, the last cell size value is tiled until all the dimensions
       # have a value.
-      cur_num_dims = cur_cell_sizes.shape[0]
-      if cur_num_dims < self._dimension:
-        cur_cell_sizes = np.concatenate(
-            (cur_cell_sizes, np.tile(cur_cell_sizes[-1],
-             self._dimension - cur_num_dims)))
-      elif cur_num_dims > self._dimension:
-        raise ValueError(
-            f'Too many dimensions in cell sizes {cur_num_dims} \
-              instead of max. {self._dimension}')
+      cur_num_dims = tf.gather(cur_cell_sizes.shape, 0)
+      cur_cell_sizes = tf.cond(
+          cur_num_dims < self._dimension,
+          lambda: tf.concat((cur_cell_sizes,
+                             tf.tile(tf.gather(cur_cell_sizes,
+                                               [tf.rank(cur_cell_sizes) - 1]),
+                                     [self._dimension - cur_num_dims])),
+                            axis=0),
+          lambda: cur_cell_sizes)
+      tf.assert_greater(
+          self._dimension + 1,
+          cur_num_dims,
+          f'Too many dimensions in cell sizes {cur_num_dims} ' + \
+          f'instead of max. {self._dimension}')
+      # old version, does not run in graph mode
+      # if cur_num_dims < self._dimension:
+      #   cur_cell_sizes = tf.concat((cur_cell_sizes,
+      #                  tf.tile(tf.gather(cur_cell_sizes,
+      #                                    [tf.rank(cur_cell_sizes) - 1]),
+      #                    [self._dimension - cur_num_dims])),
+      #                       axis=0)
+      # if cur_num_dims > self._dimension:
+      #   raise ValueError(
+      #       f'Too many dimensions in cell sizes {cur_num_dims} ' + \
+      #       f'instead of max. {self._dimension}')
+
       self._cell_sizes.append(cur_cell_sizes)
 
       #Create the sampling operation.
-      cell_sizes_tensor = tf.convert_to_tensor(cur_cell_sizes, np.float32)
-
-      cur_grid = Grid(cur_point_cloud, cell_sizes_tensor, self._aabb)
-      cur_neighborhood = Neighborhood(cur_grid, cell_sizes_tensor)
+      cur_grid = Grid(cur_point_cloud, cur_cell_sizes, self._aabb)
+      cur_neighborhood = Neighborhood(cur_grid, cur_cell_sizes)
       cur_point_cloud, _ = sample(cur_neighborhood, sample_mode)
 
       self._neighborhoods.append(cur_neighborhood)

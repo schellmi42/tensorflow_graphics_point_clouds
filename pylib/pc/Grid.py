@@ -36,7 +36,7 @@ class Grid:
     if cell_sizes.shape == [] or cell_sizes.shape[0] == 1:
       cell_sizes = tf.repeat(cell_sizes, point_cloud._dimension)
     #Save the attributes.
-    self._batch_size = point_cloud._batch_size
+    self._batch_size = point_cloud._batch_size_numpy
     self._cell_sizes = cell_sizes
     self._point_cloud = point_cloud
     self._aabb = point_cloud.get_AABB()

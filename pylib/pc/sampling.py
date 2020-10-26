@@ -146,5 +146,5 @@ def sample(neighborhood, sample_mode='poisson', name=None):
     sampled_indices = None
   sampled_point_cloud = PointCloud(
       points=sampled_points, batch_ids=sampled_batch_ids,
-      batch_size=neighborhood._point_cloud_sampled._batch_size)
+      batch_size=neighborhood._point_cloud_sampled._batch_size_numpy)
   return sampled_point_cloud, sampled_indices

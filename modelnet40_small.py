@@ -8,6 +8,9 @@ try:
 except ValueError:
   print('Invalid device or cannot modify virtual devices once initialized.')
   pass
+except IndexError:
+  print('No GPU found')
+  pass
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import pylib.pc as pc
 from pylib.pc import layers
@@ -29,6 +32,7 @@ hdf5_tmp_dir = "./tmp_modelnet"
 num_classes = 40  # modelnet 10 or 40
 points_per_file = 1024  # number of points loaded per model
 samples_per_model = 1024  # number of input points per file
+batch_size = 16
 
 category_names = []
 with open(data_dir + f'modelnet{num_classes}_shape_names.txt') as inFile:
@@ -186,9 +190,17 @@ class mymodel(tf.Module):
     self.dropouts.append(tf.keras.layers.Dropout(dropout_rate))
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-1]))
 
+  @tf.function(
+    input_signature=[
+        tf.TensorSpec(shape=[None, None, 3], dtype=tf.float32),
+        tf.TensorSpec(shape=[None, None, None], dtype=tf.float32),
+        tf.TensorSpec(shape=[None], dtype=tf.int32),
+        tf.TensorSpec(shape=None, dtype=tf.bool)]
+        )
   def __call__(self,
                points,
                features,
+               sizes,
                training):
     ''' Evaluates network.
 
@@ -206,7 +218,7 @@ class mymodel(tf.Module):
     # input point cloud
     # Note: Here all point clouds have the same number of points, so no `sizes`
     #       or `batch_ids` are passed.
-    point_cloud = pc.PointCloud(points)
+    point_cloud = pc.PointCloud(points, sizes=sizes, batch_size=batch_size)
     # spatial downsampling
     point_hierarchy = pc.PointHierarchy(point_cloud,
                                         sample_radii,
@@ -257,6 +269,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
       self.labels = np.array(labels, dtype=int)
       self.batch_size = batch_size
       self.epoch_size = len(self.points)
+      self.sizes = np.ones([batch_size]) * samples_per_model
 
       self.augment = augment
       # shuffle data before training
@@ -306,7 +319,6 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
 num_epochs = 400
 if quick_test:
   num_epochs = 2
-batch_size = 16
 
 feature_sizes = [1, 128, 256, 512, 1024, 1024, num_classes]
 sample_radii = np.array([0.1, 0.2, 0.4, np.sqrt(3)  * 2])
@@ -353,7 +365,7 @@ def training(model,
     for points, features, labels in gen_train:
       # evaluate model; forward pass
       with tf.GradientTape() as tape:
-        logits = model(points, features, training=True)
+        logits = model(points, features, sizes=gen_train.sizes, training=True)
         pred = tf.nn.softmax(logits, axis=-1)
         loss = loss_function(y_true=labels, y_pred=pred)
       # backpropagation
@@ -384,7 +396,7 @@ def training(model,
 
     for points, features, labels in gen_test:
       # evaluate model; forward pass
-      logits = model(points, features, training=False)
+      logits = model(points, features, gen_test.sizes, training=False)
       pred = tf.nn.softmax(logits, axis=-1)
       loss = loss_function(y_true=labels, y_pred=pred)
 

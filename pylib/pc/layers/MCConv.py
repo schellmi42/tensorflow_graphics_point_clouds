@@ -241,8 +241,8 @@ class MCConv(tf.Module):
     features = _flatten_features(features, point_cloud_in)
 
     #Create the radii tensor.
-    radii_tensor = tf.cast(tf.repeat([radius], self._num_dims),
-                           dtype=tf.float32)
+    radius = tf.reshape(tf.convert_to_tensor(value=radius, dtype=tf.float32), [1, 1])
+    radii_tensor = tf.repeat(radius, self._num_dims)
     #Create the badnwidth tensor.
     bwTensor = tf.repeat(bandwidth, self._num_dims)
 

@@ -130,7 +130,7 @@ def sampling(neighborhood, sample_mode, name=None):
     neighborhood._neighbors,
     neighborhood._samples_neigh_ranges,
     sample_mode)
-tf.no_gradient('sampling')
+tf.no_gradient('Sampling')
 
 
 def compute_pdf(neighborhood, bandwidth, mode, name=None):

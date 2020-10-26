@@ -98,9 +98,11 @@ class PointCloud:
     check_valid_point_cloud_input(points, sizes, batch_ids)
 
     self._sizes = sizes
-    self._batch_size = batch_size
+    self._batch_size = tf.convert_to_tensor(value=batch_size, dtype=tf.int32)
+    # compatibility batch size as CPU int for graph mode
+    self._batch_size_numpy = batch_size
     self._batch_ids = batch_ids
-    self._dimension = points.shape[-1]
+    self._dimension = tf.gather(tf.shape(points), tf.rank(points) - 1)
     self._batch_shape = None
     self._unflatten = None
     self._aabb = None
@@ -110,6 +112,9 @@ class PointCloud:
     else:
       self._init_from_segmented(points)
 
+    if self._batch_size_numpy is None:
+      self._batch_size_numpy = self._batch_size
+
     #Sort the points based on the batch ids in incremental order.
     self._sorted_indices_batch = tf.argsort(self._batch_ids)
 
@@ -117,12 +122,12 @@ class PointCloud:
     """converting padded `Tensor` of shape `[A1, ..., An, V, D]` into a 2D
       `Tensor` of shape `[N,D]` with segmentation ids.
     """
-    self._batch_shape = points.shape[:-2]
+    self._batch_shape = tf.shape(points)[:-2]
     if self._batch_size is None:
       self._batch_size = tf.reduce_prod(self._batch_shape)
     if self._sizes is None:
       self._sizes = tf.constant(
-          value=points.shape[-2], shape=self._batch_shape)
+          value=tf.shape(points)[-2], shape=self._batch_shape)
     self._get_segment_id = tf.reshape(
         tf.range(0, self._batch_size), self._batch_shape)
     self._points, self._unflatten = flatten_batch_to_2d(points, self._sizes)
@@ -256,10 +261,14 @@ class PointCloud:
     """
     if batch_shape is not None:
       batch_shape = tf.convert_to_tensor(value=batch_shape, dtype=tf.int32)
-      if tf.reduce_prod(batch_shape) != self._batch_size:
-        raise ValueError(
-            f'Incompatible batch size. Must be {self._batch_size} \
-             but is {tf.reduce_prod(batch_shape)}')
+      tf.assert_equal(
+          tf.reduce_prod(batch_shape), self._batch_size,
+          f'Incompatible batch size. Must be {self._batch_size} \
+              but is {tf.reduce_prod(batch_shape)}')
+      # if tf.reduce_prod(batch_shape) != self._batch_size:
+      #   raise ValueError(
+      #       f'Incompatible batch size. Must be {self._batch_size} \
+      #        but is {tf.reduce_prod(batch_shape)}')
       self._batch_shape = batch_shape
       self._get_segment_id = tf.reshape(
           tf.range(0, self._batch_size), self._batch_shape)
