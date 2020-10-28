@@ -9,6 +9,9 @@ import os
 import time
 import h5py
 
+# for graph mode debugging
+# tf.config.run_functions_eagerly(True)
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # np.random.seed(42)
 # tf.random.set_seed(42)
@@ -21,7 +24,8 @@ data_dir = './2019 - ModelNet_PointNet/'
 hdf5_tmp_dir = "./tmp_modelnet"
 num_classes = 40  # modelnet 10 or 40
 points_per_file = 10000  # number of points loaded per model
-samples_per_model = 10000  # number of input points per file
+samples_per_model = 1024  # number of input points per file
+batch_size = 16
 
 category_names = []
 with open(data_dir + f'modelnet{num_classes}_shape_names.txt') as inFile:
@@ -253,6 +257,8 @@ class mymodel(tf.Module):
       layers. Shape `[L]`.
     layer_type: A `string`, the type of convolution used,
       can be 'MCConv', 'KPConv', 'PointConv'.
+    sampling_method: method to sample the point clouds,
+      can be 'posson disk' or 'cell average'
   '''
 
   def __init__(self,
@@ -260,8 +266,10 @@ class mymodel(tf.Module):
                pool_radii,
                conv_radii,
                layer_type='MCConv',
+               sampling_method='cell average',
                dropout_rate=0.0):
     super().__init__(name=None)
+    self.sampling_method = sampling_method
     self.num_levels = len(pool_radii)
     self.pool_radii = pool_radii.reshape(-1, 1)
     self.conv_radii = conv_radii
@@ -316,29 +324,35 @@ class mymodel(tf.Module):
     self.dropouts.append(tf.keras.layers.Dropout(dropout_rate))
     self.dense_layers.append(tf.keras.layers.Dense(feature_sizes[-1]))
 
+  @tf.function(
+    input_signature=[
+        tf.TensorSpec(shape=[None, None, 3], dtype=tf.float32),
+        tf.TensorSpec(shape=[None, None, None], dtype=tf.float32),
+        tf.TensorSpec(shape=[None], dtype=tf.int32),
+        tf.TensorSpec(shape=None, dtype=tf.bool)]
+        )
   def __call__(self,
                points,
                features,
-               training,
-               sampling_method='cell average'):
+               sizes,
+               training):
     ''' Evaluates network.
 
     Args:
       points: The point coordinates.
       features: Input features.
+      sizes: sizes of the point clouds
       training: A `bool`, passed to the batch norm layers.
-      sampling_method: method to sample the point clouds,
-        can be 'posson disk' or 'cell average'
 
     Returns:
       The logits per class.
 
     '''
     # spatial downsampling of the point cloud
-    point_cloud = pc.PointCloud(points)
+    point_cloud = pc.PointCloud(points, sizes=sizes, batch_size=batch_size)
     point_hierarchy = pc.PointHierarchy(point_cloud,
                                         self.pool_radii,
-                                        sampling_method)
+                                        self.sampling_method)
     # encoder network
     for i in range(self.num_levels):
       if i == 0:
@@ -388,6 +402,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
       self.labels = np.array(labels, dtype=int)
       self.batch_size = batch_size
       self.epoch_size = len(self.points)
+      self.sizes = np.ones([batch_size]) * samples_per_model
 
       self.augment = augment
       # shuffle data before training
@@ -404,7 +419,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     self.index += 1
     return data
 
-  def __getitem__(self, index, samples_per_model=1024):
+  def __getitem__(self, index, samples_per_model=samples_per_model):
     ''' Loads data of current batch and samples random subset of the points.
     '''
     # constant input feature
@@ -415,7 +430,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
     out_labels = np.empty([self.batch_size])
     for batch in range(self.batch_size):
-      
+
       sampled_points[batch] = self.points[self_indices[batch]][0:samples_per_model]
       out_labels[batch] = self.labels[self_indices[batch]]
 
@@ -435,7 +450,7 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
 #-----------------------------------------------
 
 
-batch_size = 16
+
 num_epochs = 400
 if quick_test:
   num_epochs = 2
@@ -458,6 +473,7 @@ lr_decay = tf.keras.optimizers.schedules.ExponentialDecay(
 optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr_decay)
 
 loss_function = tf.keras.losses.SparseCategoricalCrossentropy()
+
 
 # --- Training Loop---
 def training(model,
@@ -482,7 +498,7 @@ def training(model,
     iterBatch = 0
     for points, features, labels in gen_train:
       with tf.GradientTape() as tape:
-        logits = model(points, features, training=True)
+        logits = model(points, features, gen_train.sizes, training=True)
         pred = tf.nn.softmax(logits, axis=-1)
         loss = loss_function(y_true=labels, y_pred=pred)
       grads = tape.gradient(loss, model.trainable_variables)
@@ -505,7 +521,7 @@ def training(model,
     epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
     for points, features, labels in gen_test:
-      logits = model(points, features, training=False)
+      logits = model(points, features, gen_test.sizes, training=False)
       pred = tf.nn.softmax(logits, axis=-1)
       loss = loss_function(y_true=labels, y_pred=pred)
       epoch_loss_avg.update_state(loss)

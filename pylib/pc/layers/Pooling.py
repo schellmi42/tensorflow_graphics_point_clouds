@@ -159,7 +159,7 @@ class _LocalPointPooling:
     features_out = pool_op(
         data=features_on_neighbors,
         segment_ids=neigh._original_neigh_ids[:, 1],
-        num_segments=point_cloud_out._points.shape[0])
+        num_segments=tf.shape(point_cloud_out._points)[0])
     return _format_output(features_out,
                           point_cloud_out,
                           return_sorted,

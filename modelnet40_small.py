@@ -20,6 +20,9 @@ import tensorflow_graphics
 import time
 import h5py
 
+# for graph mode debugging
+#tf.config.run_functions_eagerly(True)
+
 # np.random.seed(42)
 # tf.random.set_seed(42)
 
