@@ -94,11 +94,14 @@ class PointCloud:
       sizes = tf.convert_to_tensor(value=sizes, dtype=tf.int32)
     if batch_ids is not None:
       batch_ids = tf.convert_to_tensor(value=batch_ids, dtype=tf.int32)
+    if batch_size is not None:
+      self._batch_size = tf.convert_to_tensor(value=batch_size, dtype=tf.int32)
+    else:
+      self._batch_size = None
 
     check_valid_point_cloud_input(points, sizes, batch_ids)
 
     self._sizes = sizes
-    self._batch_size = tf.convert_to_tensor(value=batch_size, dtype=tf.int32)
     # compatibility batch size as CPU int for graph mode
     self._batch_size_numpy = batch_size
     self._batch_ids = batch_ids
