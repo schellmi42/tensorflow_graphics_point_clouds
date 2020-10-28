@@ -1,18 +1,19 @@
 # noqa: E501
+# surpress info logs of TF , level 2: no warnings, level 3 no errors
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import tensorflow as tf
 import pylib.pc as pc
 from pylib.pc import layers
 import pylib.io as io
 import numpy as np
 import tensorflow_graphics
-import os
 import time
 import h5py
 
 # for graph mode debugging
 # tf.config.run_functions_eagerly(True)
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # np.random.seed(42)
 # tf.random.set_seed(42)
 
@@ -549,15 +550,16 @@ feature_sizes = [128, 256, 512, 1024, 2048, 1024, num_classes]
 pool_radii = np.array([0.02, 0.04, 0.08, 0.16, 0.32])
 conv_radii = pool_radii * 2.0
 
+"""
 model_MC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='MCConv', dropout_rate=dropout_rate)
 training(model_MC, num_epochs)
-"""
+
 model_KP = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='KPConv', dropout_rate=dropout_rate)
 training(model_KP, num_epochs)
-
+"""
 model_PC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='PointConv', dropout_rate=dropout_rate)
 training(model_PC, num_epochs)
-"""
+

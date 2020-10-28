@@ -1,6 +1,10 @@
 # noqa: E402
+# surpress info logs of TF , level 2: no warnings, level 3 no errors
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
 import tensorflow as tf
+# dynamically allocate GPU memory
 physical_devices = tf.config.list_physical_devices('GPU')
 try:
   tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -11,7 +15,6 @@ except ValueError:
 except IndexError:
   print('No GPU found')
   pass
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import pylib.pc as pc
 from pylib.pc import layers
 import pylib.io as io

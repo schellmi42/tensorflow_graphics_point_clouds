@@ -287,8 +287,10 @@ class KPConv(tf.Module):
       self._sigma = tf.convert_to_tensor(
         value=kernel_influence_dist / conv_radius, dtype=tf.float32)
     #Create the radii tensor.
-    radii_tensor = tf.cast(tf.repeat([conv_radius], self._num_dims),
-                           dtype=tf.float32)
+    conv_radius = tf.reshape(tf.convert_to_tensor(value=conv_radius,
+                                                  dtype=tf.float32),
+                             [1, 1])
+    radii_tensor = tf.repeat(conv_radius, self._num_dims)
 
     if neighborhood is None:
       #Compute the grid
