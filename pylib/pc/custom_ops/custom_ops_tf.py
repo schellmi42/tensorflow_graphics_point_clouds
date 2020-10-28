@@ -72,12 +72,21 @@ def build_grid_ds_tf(sorted_keys, num_cells, batch_size, name=None):
   sorted_keys = tf.cast(tf.convert_to_tensor(value=sorted_keys), tf.int32)
   num_cells = tf.cast(tf.convert_to_tensor(value=num_cells), tf.int32)
 
-  num_keys = sorted_keys.shape[0]
+  num_keys = tf.shape(sorted_keys)[0]
   num_cells_2D = batch_size * num_cells[0] * num_cells[1]
-  if num_cells.shape[0] > 2:
-      cells_per_2D_cell = tf.reduce_prod(num_cells[2:])
-  elif num_cells.shape[0] == 2:
-      cells_per_2D_cell = 1
+  tf.assert_greater(
+      tf.shape(num_cells)[0], 1,
+      'Points must have dimensionality >1.')
+  cells_per_2D_cell = tf.cond(
+    tf.shape(num_cells)[0] > 2,
+    lambda: tf.reduce_prod(num_cells[2:]),
+    lambda: 1
+  )
+  # condition without graph mode
+  # if tf.shape(num_cells)[0] > 2:
+  #     cells_per_2D_cell = tf.reduce_prod(num_cells[2:])
+  # elif tf.shape(num_cells)[0] == 2:
+  #     cells_per_2D_cell = 1
 
   ds_indices = tf.cast(tf.floor(sorted_keys / cells_per_2D_cell),
                        dtype=tf.int32)
@@ -130,8 +139,13 @@ def find_neighbors_tf(grid,
 
   """
   radii = tf.convert_to_tensor(value=radii)
-  if radii.shape[0] == [] or radii.shape[0] == 1:
-    radii = tf.repeat(radii, grid._point_cloud._dimension)
+  radii = tf.cond(
+      tf.logical_or(tf.shape(radii)[0] == [], tf.shape(radii)[0] == 1),
+      lambda: tf.repeat(radii, grid._point_cloud._dimension),
+      lambda: radii)
+  # condition without graph mode
+  # if tf.shape(radii)[0] == [] or tf.shape(radii)[0] == 1:
+  #   radii = tf.repeat(radii, grid._point_cloud._dimension)
   # compute keys of center points in neighbors 2D grid
   center_points = point_cloud_centers._points
   center_batch_ids = point_cloud_centers._batch_ids
@@ -153,7 +167,7 @@ def find_neighbors_tf(grid,
   neighbors = []
   center_neigh_ranges = []
   cur_neigh_range = 0
-  for i in range(center_points.shape[0]):
+  for i in range(tf.shape(center_points)[0]):
     cur_point = center_points[i]
     cur_batch_id = center_batch_ids[i]
     # get cell_ids of adjacent 2D cells (9 in total)
@@ -189,7 +203,7 @@ def find_neighbors_tf(grid,
     cur_neighbors = tf.stack(
         (close_ids, tf.ones_like(close_ids) * i), axis=1)
     neighbors.append(cur_neighbors)
-    cur_neigh_range = cur_neigh_range + cur_neighbors.shape[0]
+    cur_neigh_range = cur_neigh_range + tf.shape(cur_neighbors)[0]
     center_neigh_ranges.append(cur_neigh_range)
 
   neighbors = tf.concat(neighbors, axis=0)
@@ -224,7 +238,7 @@ def find_neighbors_no_grid(point_cloud,
   batch_ids = point_cloud._batch_ids
   center_points = point_cloud_centers._points
   center_batch_ids = point_cloud_centers._batch_ids
-  num_center_points = center_points.shape[0]
+  num_center_points = tf.shape(center_points)[0]
 
   distances = tf.linalg.norm(tf.expand_dims(points, axis=0) - \
                              tf.expand_dims(center_points, axis=1),
@@ -236,7 +250,7 @@ def find_neighbors_no_grid(point_cloud,
 
   neighbors = tf.where(close)
   neighbors = tf.reverse(neighbors, axis=[1])
-  num_neighbors = neighbors.shape[0]
+  num_neighbors = tf.shape(neighbors)[0]
   neigh_ranges = tf.math.unsorted_segment_max(
       tf.range(1, num_neighbors + 1),
       neighbors[:, 1],
@@ -264,12 +278,12 @@ def sampling_tf(neighborhood, sample_mode, name=None):
   """
   points = neighborhood._grid._sorted_points
   batch_ids = neighborhood._grid._sorted_batch_ids
-  num_points = points.shape[0]
+  num_points = tf.shape(points)[0]
   if sample_mode == 0:
     # poisson sampling
     nb_ranges = tf.concat(([0], neighborhood._samples_neigh_ranges), axis=0)
     neighbors = neighborhood._neighbors
-    num_points = neighborhood._grid._sorted_points.shape[0]
+    num_points = tf.shape(neighborhood._grid._sorted_points)[0]
     log_probabilities = tf.ones([num_points])
     sampled_indices = tf.zeros([0], dtype=tf.int64)
     # to set log prob to -inf <=> prob to zero
@@ -284,7 +298,7 @@ def sampling_tf(neighborhood, sample_mode, name=None):
       # set log probability of neighbors to -inf
       sample_neighbors = \
           neighbors[nb_ranges[choice[0]]:nb_ranges[choice[0] + 1], 0]
-      num_neighbors = sample_neighbors.shape[0]
+      num_neighbors = tf.shape(sample_neighbors)[0]
       log_probabilities = tf.tensor_scatter_nd_update(
           log_probabilities,
           tf.expand_dims(sample_neighbors, axis=1),
@@ -297,7 +311,7 @@ def sampling_tf(neighborhood, sample_mode, name=None):
     keys = neighborhood._grid._sorted_keys
     # replace keys with numbers 0 to num_unique keys
     unique, _, counts = tf.unique_with_counts(keys)
-    num_unique_keys = unique.shape[0]
+    num_unique_keys = tf.shape(unique)[0]
     new_keys = tf.repeat(tf.range(0, num_unique_keys), counts)
     # average over points with same cell key
     sampled_points = tf.math.segment_mean(points, new_keys)
@@ -335,7 +349,7 @@ def compute_pdf_inside_neighborhoods_tf(neighborhood,
   nbh_ranges = neighborhood._samples_neigh_ranges
 
   # compute difference vectors inside neighborhoods
-  num_adjacencies = neighbors.shape[0]
+  num_adjacencies = tf.shape(neighbors)[0]
   nbh_start_ind = tf.concat(([0], nbh_ranges[0:-1]), axis=0)
   nbh_sizes = nbh_ranges - nbh_start_ind
   max_num_neighbors = tf.reduce_max(nbh_sizes)
@@ -389,7 +403,7 @@ def compute_pdf_tf(neighborhood, bandwidth, mode, name=None):
 
   rel_bandwidth = tf.reshape(bandwidth * neighborhood._radii, [1, -1])
   points = neighborhood._grid._sorted_points / rel_bandwidth
-  num_points = points.shape[0]
+  num_points = tf.shape(points)[0]
   neighbors = neighborhood._neighbors
   # point differences
   nb_diff = tf.gather(points, neighbors[:, 0]) - \
@@ -421,7 +435,7 @@ def basis_proj_tf(neigh_basis, features, neighborhood, name=None):
   neigh_basis = tf.convert_to_tensor(value=neigh_basis, dtype=tf.float32)
   features = tf.convert_to_tensor(value=features, dtype=tf.float32)
   # get input in correct shapes
-  num_nbh = neighborhood._point_cloud_sampled._points.shape[0]
+  num_nbh = tf.shape(neighborhood._point_cloud_sampled._points)[0]
   features_per_nb = tf.gather(features,
                               neighborhood._original_neigh_ids[:, 0])
   # Monte-Carlo Integration
