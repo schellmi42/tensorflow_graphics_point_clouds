@@ -243,7 +243,7 @@ class MCConv(tf.Module):
     #Create the radii tensor.
     radius = tf.reshape(tf.convert_to_tensor(value=radius, dtype=tf.float32), [1, 1])
     radii_tensor = tf.repeat(radius, self._num_dims)
-    #Create the badnwidth tensor.
+    #Create the bandwidth tensor.
     bwTensor = tf.repeat(bandwidth, self._num_dims)
 
     if neighborhood is None:
