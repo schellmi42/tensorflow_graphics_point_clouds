@@ -33,8 +33,7 @@ quick_test = False
 
 # -- loading data ---
 
-data_dir = './2019 - ModelNet_PointNet/'
-hdf5_tmp_dir = "./tmp_modelnet"
+from data_paths import data_dir, hdf5_tmp_dir
 num_classes = 40  # modelnet 10 or 40
 points_per_file = 1024  # number of points loaded per model
 samples_per_model = 1024  # number of input points per file
@@ -299,12 +298,14 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     features = tf.ones([self.batch_size, samples_per_model, 1])
 
     # sample points
-    self_indices = self.order[index * self.batch_size:(index + 1) * self.batch_size]
+    self_indices = \
+        self.order[index * self.batch_size:(index + 1) * self.batch_size]
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
     out_labels = np.empty([self.batch_size])
     for batch in range(self.batch_size):
 
-      sampled_points[batch] = self.points[self_indices[batch]][0:samples_per_model]
+      sampled_points[batch] = \
+          self.points[self_indices[batch]][0:samples_per_model]
       out_labels[batch] = self.labels[self_indices[batch]]
 
       if self.augment:
@@ -435,7 +436,7 @@ def training(model,
 dropout_rate = 0.5
 
 model_MC = mymodel(feature_sizes, sample_radii, conv_radii,
-                   layer_type='MCConv', dropout_rate=dropout_rate)                   
+                   layer_type='MCConv', dropout_rate=dropout_rate)
 
 # load previously saved model weights
 #model_MC.load_weights('saved_models/5')

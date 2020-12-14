@@ -3,6 +3,17 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import tensorflow as tf
+# dynamically allocate GPU memory
+physical_devices = tf.config.list_physical_devices('GPU')
+try:
+  tf.config.experimental.set_memory_growth(physical_devices[0], True)
+  assert tf.config.experimental.get_memory_growth(physical_devices[0])
+except ValueError:
+  print('Invalid device or cannot modify virtual devices once initialized.')
+  pass
+except IndexError:
+  print('No GPU found')
+  pass
 import pylib.pc as pc
 from pylib.pc import layers
 import pylib.io as io
@@ -21,8 +32,7 @@ quick_test = False
 
 # -- loading data ---
 
-data_dir = './2019 - ModelNet_PointNet/'
-hdf5_tmp_dir = "./tmp_modelnet"
+from data_paths import data_dir, hdf5_tmp_dir
 num_classes = 40  # modelnet 10 or 40
 points_per_file = 10000  # number of points loaded per model
 samples_per_model = 1024  # number of input points per file
@@ -427,12 +437,14 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     features = tf.ones([self.batch_size, samples_per_model, 1])
 
     # sample points
-    self_indices = self.order[index * self.batch_size:(index + 1) * self.batch_size]
+    self_indices = \
+        self.order[index * self.batch_size:(index + 1) * self.batch_size]
     sampled_points = np.empty([self.batch_size, samples_per_model, 3])
     out_labels = np.empty([self.batch_size])
     for batch in range(self.batch_size):
 
-      sampled_points[batch] = self.points[self_indices[batch]][0:samples_per_model]
+      sampled_points[batch] = \
+          self.points[self_indices[batch]][0:samples_per_model]
       out_labels[batch] = self.labels[self_indices[batch]]
 
       if self.augment:
@@ -449,7 +461,6 @@ class modelnet_data_generator(tf.keras.utils.Sequence):
     self.index = 0
 
 #-----------------------------------------------
-
 
 
 num_epochs = 400
@@ -550,16 +561,15 @@ feature_sizes = [128, 256, 512, 1024, 2048, 1024, num_classes]
 pool_radii = np.array([0.02, 0.04, 0.08, 0.16, 0.32])
 conv_radii = pool_radii * 2.0
 
-"""
 model_MC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='MCConv', dropout_rate=dropout_rate)
 training(model_MC, num_epochs)
-
+"""
 model_KP = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='KPConv', dropout_rate=dropout_rate)
 training(model_KP, num_epochs)
-"""
+
 model_PC = mymodel(feature_sizes, pool_radii, conv_radii,
                    layer_type='PointConv', dropout_rate=dropout_rate)
 training(model_PC, num_epochs)
-
+"""
