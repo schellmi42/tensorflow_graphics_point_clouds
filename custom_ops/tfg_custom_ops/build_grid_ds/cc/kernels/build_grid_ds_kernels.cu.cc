@@ -52,7 +52,7 @@
 
         //Check if it is the first point in the ds cell.
         int prevPtIndex = curPtIndex-1;
-        if(prevPtIndex > 0){
+        if(prevPtIndex >= 0){
             if(dsIndex != 
                 mccnn::compute_ds_index_from_key_gpu_funct(pKeys[prevPtIndex], pNumCells[0])){
                     pOutDS[dsIndex].x = curPtIndex;
