@@ -88,6 +88,9 @@ def _flatten_features(features, point_cloud: PointCloud):
     features, _ = flatten_batch_to_2d(features, sizes)
     sorting = tf.math.invert_permutation(point_cloud._sorted_indices_batch)
     features = tf.gather(features, sorting)
+  else:
+    tf.assert_equal(tf.shape(features)[0], tf.shape(point_cloud._points)[0])
+  tf.assert_equal(tf.rank(features), 2)
   return features
 
 
