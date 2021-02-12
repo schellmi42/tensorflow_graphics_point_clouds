@@ -238,6 +238,11 @@ class MCConv(tf.Module):
 
     features = tf.cast(tf.convert_to_tensor(value=features),
                        dtype=tf.float32)
+
+    tf.assert_equal(
+        tf.shape(features)[-1],
+        self._num_features_in)
+
     features = _flatten_features(features, point_cloud_in)
 
     #Create the radii tensor.
